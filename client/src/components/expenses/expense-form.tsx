@@ -57,8 +57,8 @@ const expenseFormSchema = z.object({
   groupId: z.string().min(1, "Group is required"),
   paidBy: z.string().min(1, "Payer is required"),
   splitMethod: z.enum(["equal", "unequal", "percentage"]),
-  // Use coerce.date to handle the date properly
-  date: z.coerce.date(),
+  // Use string for date to avoid type issues with the input field
+  date: z.string().min(1, "Date is required"),
   notes: z.string().optional(),
 });
 
@@ -90,7 +90,7 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
       groupId: groupId?.toString() || "",
       paidBy: user?.id.toString() || "",
       splitMethod: "equal",
-      date: new Date(),
+      date: formatISO(new Date(), { representation: "date" }),
       notes: "",
     },
   });
@@ -181,8 +181,8 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
       };
     });
 
-    // Format the date for submission
-    const formattedDate = formatISO(values.date, { representation: 'date' });
+    // The date is already in the correct format from the input field
+    const formattedDate = values.date;
 
     createExpenseMutation.mutate({
       title: values.title,
