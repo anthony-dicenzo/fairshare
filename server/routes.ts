@@ -28,8 +28,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.logActivity({
         groupId: group.id,
         userId: req.user.id,
-        actionType: "create_group",
-        referenceId: group.id
+        actionType: "create_group"
       });
       
       res.status(201).json(group);
@@ -145,8 +144,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.logActivity({
         groupId,
         userId: req.user.id,
-        actionType: "add_member",
-        referenceId: invitedUser.id
+        actionType: "add_member"
       });
       
       res.status(201).json(membership);
