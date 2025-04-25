@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/main-layout";
@@ -16,43 +16,81 @@ import { GroupInvite } from "@/components/groups/group-invite";
 import { ActionButtons } from "@/components/dashboard/action-buttons";
 
 export default function GroupPage() {
+  // Get the group ID from the URL parameters
   const params = useParams<{ id: string }>();
-  const groupId = params.id ? parseInt(params.id) : 0;
-  const groupIdString = groupId ? groupId.toString() : "";
   const [, navigate] = useLocation();
   
+  // Safely extract the group ID from params
+  const groupId = params && params.id ? parseInt(params.id) : 0;
+  
+  // Create a safe string representation for the query key
+  const groupIdStr = groupId > 0 ? groupId.toString() : "";
+  
+  // Modal state
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
 
-  const { data: group, isLoading: isLoadingGroup } = useQuery({
-    queryKey: ["/api/groups", groupIdString],
-    enabled: !!groupId
+  // Fetch the group data
+  const { 
+    data: group = null, 
+    isLoading: isLoadingGroup,
+    error: groupError
+  } = useQuery({
+    queryKey: ["/api/groups", groupIdStr],
+    enabled: groupId > 0
   });
 
-  const { data: members = [], isLoading: isLoadingMembers } = useQuery({
-    queryKey: ["/api/groups", groupIdString, "members"],
-    enabled: !!groupId && !!group
+  // If there's an error fetching the group, navigate back to home
+  useEffect(() => {
+    if (groupError) {
+      navigate("/");
+    }
+  }, [groupError, navigate]);
+
+  // Fetch group members
+  const { 
+    data: members = [], 
+    isLoading: isLoadingMembers 
+  } = useQuery({
+    queryKey: ["/api/groups", groupIdStr, "members"],
+    enabled: groupId > 0 && !!group
   });
 
-  const { data: expenses = [], isLoading: isLoadingExpenses } = useQuery({
-    queryKey: ["/api/groups", groupIdString, "expenses"],
-    enabled: !!groupId && !!group
+  // Fetch group expenses
+  const { 
+    data: expenses = [], 
+    isLoading: isLoadingExpenses 
+  } = useQuery({
+    queryKey: ["/api/groups", groupIdStr, "expenses"],
+    enabled: groupId > 0 && !!group
   });
 
-  const { data: payments = [], isLoading: isLoadingPayments } = useQuery({
-    queryKey: ["/api/groups", groupIdString, "payments"],
-    enabled: !!groupId && !!group
+  // Fetch group payments
+  const { 
+    data: payments = [], 
+    isLoading: isLoadingPayments 
+  } = useQuery({
+    queryKey: ["/api/groups", groupIdStr, "payments"],
+    enabled: groupId > 0 && !!group
   });
 
-  const { data: balances = [], isLoading: isLoadingBalances } = useQuery({
-    queryKey: ["/api/groups", groupIdString, "balances"],
-    enabled: !!groupId && !!group
+  // Fetch group balances
+  const { 
+    data: balances = [], 
+    isLoading: isLoadingBalances 
+  } = useQuery({
+    queryKey: ["/api/groups", groupIdStr, "balances"],
+    enabled: groupId > 0 && !!group
   });
 
-  const { data: activity = [], isLoading: isLoadingActivity } = useQuery({
-    queryKey: ["/api/groups", groupIdString, "activity"],
-    enabled: !!groupId && !!group
+  // Fetch group activity
+  const { 
+    data: activity = [], 
+    isLoading: isLoadingActivity 
+  } = useQuery({
+    queryKey: ["/api/groups", groupIdStr, "activity"],
+    enabled: groupId > 0 && !!group
   });
 
   if (isLoadingGroup) {

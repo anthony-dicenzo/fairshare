@@ -213,14 +213,14 @@ export function PaymentForm({ open, onOpenChange, groupId }: PaymentFormProps) {
                         <SelectItem value={user?.id.toString() || ""}>
                           You
                         </SelectItem>
-                        {groupMembers
-                          .filter((member) => member.userId !== user?.id)
+                        {Array.isArray(groupMembers) && groupMembers
+                          .filter((member) => member?.userId !== user?.id)
                           .map((member) => (
                             <SelectItem 
-                              key={member.userId} 
-                              value={member.userId.toString()}
+                              key={member?.userId} 
+                              value={(member?.userId || 0).toString()}
                             >
-                              {member.user.name}
+                              {member?.user?.name || "Unknown User"}
                             </SelectItem>
                           ))}
                       </SelectContent>
@@ -252,17 +252,17 @@ export function PaymentForm({ open, onOpenChange, groupId }: PaymentFormProps) {
                             You
                           </SelectItem>
                         )}
-                        {groupMembers
+                        {Array.isArray(groupMembers) && groupMembers
                           .filter((member) => 
-                            member.userId !== user?.id && 
-                            member.userId.toString() !== form.getValues("paidBy")
+                            member?.userId !== user?.id && 
+                            member?.userId?.toString() !== form.getValues("paidBy")
                           )
                           .map((member) => (
                             <SelectItem 
-                              key={member.userId} 
-                              value={member.userId.toString()}
+                              key={member?.userId} 
+                              value={(member?.userId || 0).toString()}
                             >
-                              {member.user.name}
+                              {member?.user?.name || "Unknown User"}
                             </SelectItem>
                           ))}
                       </SelectContent>
