@@ -81,16 +81,28 @@ export const insertGroupMemberSchema = createInsertSchema(groupMembers).omit({
   joinedAt: true
 });
 
-export const insertExpenseSchema = createInsertSchema(expenses).omit({
+export const insertExpenseSchema = createInsertSchema(expenses, {
+  totalAmount: z.union([z.string(), z.number()]).transform(val => 
+    typeof val === 'string' ? val : val.toString()
+  )
+}).omit({
   id: true,
   createdAt: true
 });
 
-export const insertExpenseParticipantSchema = createInsertSchema(expenseParticipants).omit({
+export const insertExpenseParticipantSchema = createInsertSchema(expenseParticipants, {
+  amountOwed: z.union([z.string(), z.number()]).transform(val => 
+    typeof val === 'string' ? val : val.toString()
+  )
+}).omit({
   id: true
 });
 
-export const insertPaymentSchema = createInsertSchema(payments).omit({
+export const insertPaymentSchema = createInsertSchema(payments, {
+  amount: z.union([z.string(), z.number()]).transform(val => 
+    typeof val === 'string' ? val : val.toString()
+  )
+}).omit({
   id: true,
   createdAt: true
 });
