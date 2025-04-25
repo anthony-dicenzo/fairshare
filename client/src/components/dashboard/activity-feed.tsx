@@ -77,10 +77,8 @@ export function ActivityFeed() {
                     {getActionText(activity)}
                     {" "}
                     {activity.group && (
-                      <Link href={`/group/${activity.group.id}`}>
-                        <a className="text-primary hover:underline">
-                          {activity.group.name}
-                        </a>
+                      <Link href={`/group/${activity.group.id}`} className="text-primary hover:underline">
+                        {activity.group.name}
                       </Link>
                     )}
                   </p>
@@ -96,10 +94,8 @@ export function ActivityFeed() {
         </div>
       </CardContent>
       <CardFooter className="border-t p-4">
-        <Link href="/activity">
-          <a className="text-sm text-primary hover:underline">
-            View all activity
-          </a>
+        <Link href="/activity" className="text-sm text-primary hover:underline">
+          View all activity
         </Link>
       </CardFooter>
     </Card>
