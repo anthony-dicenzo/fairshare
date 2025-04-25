@@ -1,0 +1,138 @@
+Product Requirements Document (PRD)
+Product Name: Fairshare
+Tagline:
+Split expenses fairly with friends, roommates, or groups — everyone gets their fair share.
+________________________________________
+Overview
+Fairshare is a collaborative expense-sharing app designed to help groups of friends, roommates, or colleagues keep track of shared expenses and settle up easily. It enables users to log expenses, assign shares, track debts, and record payments.
+The app will use shadcn/ui for styling. The backend, auth system, and hosting stack are intentionally unspecified to allow flexibility in implementation.
+________________________________________
+Goals
+•	Simplify bill and expense splitting among users
+•	Allow tracking of who owes whom and how much
+•	Record payments made to settle debts
+•	Enable creation of groups for recurring or shared expenses (e.g. roommates, trips)
+________________________________________
+Core Features
+1.	User Authentication
+o	Sign up, login, logout
+o	Email or OAuth-based auth (Google, GitHub, etc.)
+2.	Dashboard / Home
+o	Overview of current balances
+o	Recent activity (expenses added, payments made)
+o	Summary of what you owe and what is owed to you
+3.	Groups
+o	Create/join groups (e.g. "Roommates", "Trip to Paris")
+o	Invite members to a group by email or link
+o	Group expenses and balances
+4.	Expenses
+o	Add expense with title, amount, payer, and participants
+o	Custom split (equally or unequally)
+o	Attach receipt (optional)
+o	View expense history by group or individual
+5.	Payments
+o	Record a payment made to settle up a balance
+o	View payment history
+6.	Activity Feed
+o	Log of all activity (expenses added, edited, payments, group changes)
+7.	Notifications (Optional for v1)
+o	Notify users when new expenses or payments are added
+________________________________________
+Screens & UX
+1. Authentication
+•	Login / Sign up
+•	Forgot password
+2. Dashboard
+•	Current balance summary
+•	List of groups with outstanding balances
+•	Recent activity feed
+3. Group Page
+•	Group title, members
+•	Add expense
+•	Add payment
+•	List of all group activity
+•	Group balance matrix (who owes whom)
+4. Add Expense Modal
+•	Title, amount, date
+•	Paid by [user]
+•	Split between [users]
+•	Split method: equally / by percentage / by amount
+•	Notes / attachment (optional)
+5. Add Payment Modal
+•	From [payer] to [payee]
+•	Amount
+•	Date, note (optional)
+6. User Settings (Optional for v1)
+•	Profile info
+•	Notification settings
+________________________________________
+Database Schema (Relational)
+Users
+•	id (PK)
+•	name
+•	email (unique)
+•	password_hash / oauth_provider_id
+•	created_at
+Groups
+•	id (PK)
+•	name
+•	created_by (FK to Users)
+•	created_at
+GroupMembers
+•	id (PK)
+•	group_id (FK to Groups)
+•	user_id (FK to Users)
+•	joined_at
+Expenses
+•	id (PK)
+•	group_id (FK to Groups)
+•	paid_by (FK to Users)
+•	title
+•	total_amount
+•	notes
+•	created_at
+ExpenseParticipants
+•	id (PK)
+•	expense_id (FK to Expenses)
+•	user_id (FK to Users)
+•	amount_owed
+Payments
+•	id (PK)
+•	group_id (FK to Groups)
+•	paid_by (FK to Users)
+•	paid_to (FK to Users)
+•	amount
+•	note
+•	created_at
+ActivityLog
+•	id (PK)
+•	group_id (FK to Groups)
+•	user_id (FK to Users)
+•	action_type (e.g. 'add_expense', 'record_payment')
+•	reference_id (FK to related Expense or Payment)
+•	created_at
+________________________________________
+Non-Functional Requirements
+•	Responsive web app UI
+•	Secure authentication
+•	Error and input validation
+________________________________________
+Out of Scope for v1
+•	Currency conversion
+•	Expense recurring scheduling
+•	Debt simplification algorithms
+________________________________________
+Styling / Design System
+•	Use shadcn/ui components for all UI primitives
+•	Tailwind-based theming
+•	Modal forms for expense and payment inputs
+•	Soft shadows, rounded corners, clean grid layout
+________________________________________
+Deliverables for MVP
+•	Fully functional web app
+•	Clear debt tracking and settlement flow
+•	Elegant, responsive interface
+•	Tested CRUD for groups, expenses, and payments
+________________________________________
+End of PRD.
+
