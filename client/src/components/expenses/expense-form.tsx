@@ -78,8 +78,9 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
   const [selectedGroupId, setSelectedGroupId] = useState<string>(groupId?.toString() || "");
   
   const { data: groupMembers = [] } = useQuery({
-    queryKey: ["/api/groups", selectedGroupId, "members"],
+    queryKey: [`/api/groups/${selectedGroupId}/members`],
     enabled: !!selectedGroupId && selectedGroupId !== "",
+    staleTime: 0, // Always fetch fresh data
   });
 
   const form = useForm<ExpenseFormValues>({

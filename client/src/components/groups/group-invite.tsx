@@ -73,8 +73,17 @@ export function GroupInvite({ open, onOpenChange, groupId, members }: GroupInvit
       
       // Invalidate queries
       const groupIdStr = groupId ? groupId.toString() : "";
+      
+      // Invalidate both query key patterns
+      queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/members`] });
       queryClient.invalidateQueries({ queryKey: ["/api/groups", groupIdStr, "members"] });
+      
+      // Invalidate related activity queries
+      queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/activity`] });
       queryClient.invalidateQueries({ queryKey: ["/api/groups", groupIdStr, "activity"] });
+      
+      // Also invalidate group list to update member counts
+      queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
     },
     onError: (error) => {
       toast({

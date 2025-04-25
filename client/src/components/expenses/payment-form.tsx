@@ -72,8 +72,9 @@ export function PaymentForm({ open, onOpenChange, groupId }: PaymentFormProps) {
   const [selectedGroupId, setSelectedGroupId] = useState<string>(groupId?.toString() || "");
   
   const { data: groupMembers = [] } = useQuery({
-    queryKey: ["/api/groups", selectedGroupId, "members"],
-    enabled: !!selectedGroupId,
+    queryKey: [`/api/groups/${selectedGroupId}/members`],
+    enabled: !!selectedGroupId && selectedGroupId !== "",
+    staleTime: 0, // Always fetch fresh data
   });
 
   const form = useForm<PaymentFormValues>({
