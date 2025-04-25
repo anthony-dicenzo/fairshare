@@ -208,6 +208,11 @@ export class DatabaseStorage implements IStorage {
         validUpdates.totalAmount = validUpdates.totalAmount.toString();
       }
       
+      // Convert date string to Date object if it's a string
+      if (validUpdates.date && typeof validUpdates.date === 'string') {
+        validUpdates.date = new Date(validUpdates.date);
+      }
+      
       console.log(`Sanitized update data:`, validUpdates);
       
       const result = await db
@@ -290,6 +295,11 @@ export class DatabaseStorage implements IStorage {
       // Convert amount to string if it's a number to match DB schema
       if (typeof validUpdates.amount === 'number') {
         validUpdates.amount = validUpdates.amount.toString();
+      }
+      
+      // Convert date string to Date object if it's a string
+      if (validUpdates.date && typeof validUpdates.date === 'string') {
+        validUpdates.date = new Date(validUpdates.date);
       }
       
       console.log(`Sanitized update data:`, validUpdates);
