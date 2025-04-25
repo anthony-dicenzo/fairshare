@@ -57,23 +57,8 @@ const expenseFormSchema = z.object({
   groupId: z.string().min(1, "Group is required"),
   paidBy: z.string().min(1, "Payer is required"),
   splitMethod: z.enum(["equal", "unequal", "percentage"]),
-  // Date must be in YYYY-MM-DD format for the backend
-  date: z.string().transform(val => {
-    // If the value is empty or already in the correct format, return as is
-    if (!val) return formatISO(new Date(), { representation: 'date' });
-    // Try to parse the date and format it correctly
-    try {
-      const date = new Date(val);
-      // Check if the date is valid
-      if (isNaN(date.getTime())) {
-        return formatISO(new Date(), { representation: 'date' });
-      }
-      return formatISO(date, { representation: 'date' });
-    } catch (e) {
-      // If parsing fails, return today's date
-      return formatISO(new Date(), { representation: 'date' });
-    }
-  }),
+  // Use coerce.date to handle the date properly
+  date: z.coerce.date(),
   notes: z.string().optional(),
 });
 
@@ -105,7 +90,7 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
       groupId: groupId?.toString() || "",
       paidBy: user?.id.toString() || "",
       splitMethod: "equal",
-      date: formatISO(new Date(), { representation: "date" }),
+      date: new Date(),
       notes: "",
     },
   });
@@ -173,12 +158,21 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
   const handleSubmit = form.handleSubmit((values) => {
     // Calculate split amounts based on method
     const totalAmount = parseFloat(values.totalAmount);
-    const participants = selectedUserIds.map((userId) => {
+    
+    // Ensure we have at least one participant (even if it's just the current user)
+    let participantIds = [...selectedUserIds];
+    
+    // If no users are selected, add the current user as the only participant
+    if (participantIds.length === 0 && user?.id) {
+      participantIds = [user.id];
+    }
+    
+    const participants = participantIds.map((userId) => {
       let amountOwed = 0;
       
       // Simple equal split for now
       if (values.splitMethod === "equal") {
-        amountOwed = totalAmount / selectedUserIds.length;
+        amountOwed = totalAmount / participantIds.length;
       }
       
       return {
@@ -187,20 +181,8 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
       };
     });
 
-    // Ensure we have a valid date in the correct format
-    let formattedDate;
-    try {
-      // Try to use the date from the form, properly formatted
-      formattedDate = formatISO(new Date(values.date), { representation: 'date' });
-      // Validate the date format (yyyy-MM-dd)
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(formattedDate)) {
-        // If invalid format, use today's date
-        formattedDate = formatISO(new Date(), { representation: 'date' });
-      }
-    } catch (e) {
-      // If any error occurs, use today's date
-      formattedDate = formatISO(new Date(), { representation: 'date' });
-    }
+    // Format the date for submission
+    const formattedDate = formatISO(values.date, { representation: 'date' });
 
     createExpenseMutation.mutate({
       title: values.title,
