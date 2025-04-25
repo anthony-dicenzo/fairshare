@@ -156,7 +156,7 @@ export default function GroupPage() {
                 Back
               </Link>
             </Button>
-            <h1 className="text-2xl font-bold">{group?.name || 'Loading group...'}</h1>
+            <h1 className="text-2xl font-bold">{group ? (group as any).name || 'Loading group...' : 'Loading group...'}</h1>
           </div>
           <div className="flex items-center gap-2">
             <Button 
@@ -177,7 +177,7 @@ export default function GroupPage() {
         </div>
 
         <GroupDetail 
-          group={group || { id: 0, name: '', createdAt: new Date().toISOString() }}
+          group={group ? group as any : { id: 0, name: '', createdAt: new Date().toISOString() }}
           members={Array.isArray(members) ? members : []} 
           balances={Array.isArray(balances) ? balances : []} 
         />
