@@ -162,30 +162,30 @@ export function PaymentForm({ open, onOpenChange, groupId }: PaymentFormProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5 text-emerald-500" />
+          <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500" />
             Record a Payment
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-xs sm:text-sm">
             Enter the details of the payment to settle debts in your group.
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3">
             <FormField
               control={form.control}
               name="groupId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Group</FormLabel>
+                  <FormLabel className="text-xs sm:text-sm">Group</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
                     value={field.value}
                   >
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="h-8 sm:h-10 text-sm">
                         <SelectValue placeholder="Select a group" />
                       </SelectTrigger>
                     </FormControl>
@@ -197,25 +197,25 @@ export function PaymentForm({ open, onOpenChange, groupId }: PaymentFormProps) {
                       ))}
                     </SelectContent>
                   </Select>
-                  <FormMessage />
+                  <FormMessage className="text-xs" />
                 </FormItem>
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <FormField
                 control={form.control}
                 name="paidBy"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>From</FormLabel>
+                    <FormLabel className="text-xs sm:text-sm">From</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
                       value={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-8 sm:h-10 text-sm">
                           <SelectValue placeholder="Select payer" />
                         </SelectTrigger>
                       </FormControl>
@@ -235,7 +235,7 @@ export function PaymentForm({ open, onOpenChange, groupId }: PaymentFormProps) {
                           ))}
                       </SelectContent>
                     </Select>
-                    <FormMessage />
+                    <FormMessage className="text-xs" />
                   </FormItem>
                 )}
               />
@@ -245,14 +245,14 @@ export function PaymentForm({ open, onOpenChange, groupId }: PaymentFormProps) {
                 name="paidTo"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>To</FormLabel>
+                    <FormLabel className="text-xs sm:text-sm">To</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
                       value={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-8 sm:h-10 text-sm">
                           <SelectValue placeholder="Select recipient" />
                         </SelectTrigger>
                       </FormControl>
@@ -277,7 +277,7 @@ export function PaymentForm({ open, onOpenChange, groupId }: PaymentFormProps) {
                           ))}
                       </SelectContent>
                     </Select>
-                    <FormMessage />
+                    <FormMessage className="text-xs" />
                   </FormItem>
                 )}
               />
@@ -288,65 +288,71 @@ export function PaymentForm({ open, onOpenChange, groupId }: PaymentFormProps) {
               name="amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Amount</FormLabel>
+                  <FormLabel className="text-xs sm:text-sm">Amount</FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <span className="absolute left-3 top-2.5">$</span>
+                      <span className="absolute left-3 top-1.5 sm:top-2.5 text-sm">$</span>
                       <Input 
                         type="text"
                         placeholder="0.00" 
-                        className="pl-8" 
+                        className="pl-8 h-8 sm:h-10 text-sm" 
                         {...field} 
                       />
                     </div>
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-xs" />
                 </FormItem>
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="date"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Date</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs sm:text-sm">Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} className="h-8 sm:h-10 text-sm" />
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="note"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Note (optional)</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="e.g. Venmo payment, Cash, etc."
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="note"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs sm:text-sm">Note (optional)</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="e.g. Venmo, Cash"
+                        className="h-8 sm:h-10 text-sm"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-            <DialogFooter>
+            <DialogFooter className="sm:space-x-2">
               <Button
                 type="button"
                 variant="outline"
+                size="sm"
+                className="h-8 sm:h-9 text-xs sm:text-sm"
                 onClick={() => onOpenChange(false)}
               >
                 Cancel
               </Button>
               <Button 
                 type="submit"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                size="sm"
+                className="h-8 sm:h-9 text-xs sm:text-sm bg-emerald-600 hover:bg-emerald-700 text-white"
                 disabled={createPaymentMutation.isPending}
               >
                 {createPaymentMutation.isPending ? "Recording..." : "Record Payment"}

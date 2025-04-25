@@ -268,11 +268,11 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ShoppingBag className="h-5 w-5 text-primary" />
+          <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <ShoppingBag className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             Add an Expense
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-xs sm:text-sm">
             Enter the details of your expense to split it with your group.
           </DialogDescription>
         </DialogHeader>
@@ -605,16 +605,20 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
               />
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="sm:space-x-2">
               <Button
                 type="button"
                 variant="outline"
+                size="sm"
+                className="h-8 sm:h-9 text-xs sm:text-sm"
                 onClick={() => onOpenChange(false)}
               >
                 Cancel
               </Button>
               <Button 
                 type="submit"
+                size="sm"
+                className="h-8 sm:h-9 text-xs sm:text-sm"
                 disabled={
                   createExpenseMutation.isPending || 
                   (form.getValues("splitMethod") === "percentage" && 
