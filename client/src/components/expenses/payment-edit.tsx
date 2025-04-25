@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -92,18 +92,34 @@ export function PaymentEdit({ open, onOpenChange, paymentId, groupId }: PaymentE
     },
   });
 
-  // Update form when payment data is loaded
-  useState(() => {
-    if (payment) {
-      form.reset({
-        amount: payment.amount.toString(),
-        paidBy: payment.paidBy.toString(),
-        paidTo: payment.paidTo.toString(),
-        date: payment.date || formatISO(new Date(), { representation: "date" }),
-        note: payment.note || "",
-      });
+  // Auto-populate form when payment data is loaded
+  const [formPopulated, setFormPopulated] = useState(false);
+  
+  // This runs when payment data changes
+  if (payment && !formPopulated && form) {
+    try {
+      if (typeof payment === 'object') {
+        // Update all form fields
+        const amount = payment.amount ? String(payment.amount) : '0';
+        const paidBy = payment.paidBy ? String(payment.paidBy) : user?.id?.toString() || '';
+        const paidTo = payment.paidTo ? String(payment.paidTo) : '';
+        const paymentDate = payment.date ? String(payment.date) : formatISO(new Date(), { representation: "date" });
+        const note = payment.note ? String(payment.note) : '';
+        
+        // Update the form
+        setTimeout(() => {
+          form.setValue('amount', amount);
+          form.setValue('paidBy', paidBy);
+          form.setValue('paidTo', paidTo);
+          form.setValue('date', paymentDate);
+          form.setValue('note', note);
+          setFormPopulated(true);
+        }, 0);
+      }
+    } catch (error) {
+      console.error('Error populating form:', error);
     }
-  });
+  }
 
   // Update payment mutation
   const updatePaymentMutation = useMutation({

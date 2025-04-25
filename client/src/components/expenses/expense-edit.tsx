@@ -95,18 +95,34 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
     },
   });
 
-  // Update form when expense data is loaded
-  useState(() => {
-    if (expense) {
-      form.reset({
-        title: expense.title,
-        totalAmount: expense.totalAmount.toString(),
-        paidBy: expense.paidBy.toString(),
-        date: expense.date || formatISO(new Date(), { representation: "date" }),
-        notes: expense.notes || "",
-      });
+  // Auto-populate form when expense data is loaded
+  const [formPopulated, setFormPopulated] = useState(false);
+  
+  // This runs when expense data changes
+  if (expense && !formPopulated && form) {
+    try {
+      if (typeof expense === 'object') {
+        // Update all form fields
+        const title = expense.title ? String(expense.title) : '';
+        const amount = expense.totalAmount ? String(expense.totalAmount) : '0';
+        const payer = expense.paidBy ? String(expense.paidBy) : user?.id?.toString() || '';
+        const expenseDate = expense.date ? String(expense.date) : formatISO(new Date(), { representation: "date" });
+        const notes = expense.notes ? String(expense.notes) : '';
+        
+        // Update the form
+        setTimeout(() => {
+          form.setValue('title', title);
+          form.setValue('totalAmount', amount);
+          form.setValue('paidBy', payer);
+          form.setValue('date', expenseDate);
+          form.setValue('notes', notes);
+          setFormPopulated(true);
+        }, 0);
+      }
+    } catch (error) {
+      console.error('Error populating form:', error);
     }
-  });
+  }
 
   // Update expense mutation
   const updateExpenseMutation = useMutation({
