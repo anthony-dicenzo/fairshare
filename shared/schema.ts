@@ -22,6 +22,7 @@ export const groupMembers = pgTable("group_members", {
   id: serial("id").primaryKey(),
   groupId: integer("group_id").notNull().references(() => groups.id),
   userId: integer("user_id").notNull().references(() => users.id),
+  role: text("role").default("member").notNull(),
   joinedAt: timestamp("joined_at").defaultNow().notNull()
 });
 
@@ -59,7 +60,8 @@ export const activityLog = pgTable("activity_log", {
   groupId: integer("group_id").references(() => groups.id),
   userId: integer("user_id").notNull().references(() => users.id),
   actionType: text("action_type").notNull(), // 'add_expense', 'record_payment', etc.
-  referenceId: integer("reference_id"), // ID of related expense or payment
+  expenseId: integer("expense_id").references(() => expenses.id),
+  paymentId: integer("payment_id").references(() => payments.id),
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 

@@ -71,11 +71,11 @@ export interface IStorage {
   }[]>;
   
   // Session store
-  sessionStore: session.SessionStore;
+  sessionStore: any; // Using 'any' for the session store type
 }
 
 export class DatabaseStorage implements IStorage {
-  sessionStore: session.SessionStore;
+  sessionStore: any; // Using any to avoid SessionStore type issues
   
   constructor() {
     this.sessionStore = new PostgresSessionStore({ 
