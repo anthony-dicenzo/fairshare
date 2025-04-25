@@ -193,7 +193,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         groupId,
         userId: req.user.id,
         actionType: "add_expense",
-        referenceId: expense.id
+        expenseId: expense.id
       });
       
       res.status(201).json(expense);
@@ -284,7 +284,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         groupId,
         userId: req.user.id,
         actionType: "record_payment",
-        referenceId: payment.id
+        paymentId: payment.id
       });
       
       res.status(201).json(payment);

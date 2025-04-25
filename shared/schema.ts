@@ -84,7 +84,14 @@ export const insertGroupMemberSchema = createInsertSchema(groupMembers).omit({
 export const insertExpenseSchema = createInsertSchema(expenses, {
   totalAmount: z.union([z.string(), z.number()]).transform(val => 
     typeof val === 'string' ? val : val.toString()
-  )
+  ),
+  date: z.string().transform(dateStr => {
+    try {
+      return new Date(dateStr);
+    } catch (e) {
+      return new Date(); // fallback to today if invalid date
+    }
+  })
 }).omit({
   id: true,
   createdAt: true
@@ -101,7 +108,14 @@ export const insertExpenseParticipantSchema = createInsertSchema(expenseParticip
 export const insertPaymentSchema = createInsertSchema(payments, {
   amount: z.union([z.string(), z.number()]).transform(val => 
     typeof val === 'string' ? val : val.toString()
-  )
+  ),
+  date: z.string().transform(dateStr => {
+    try {
+      return new Date(dateStr);
+    } catch (e) {
+      return new Date(); // fallback to today if invalid date
+    }
+  })
 }).omit({
   id: true,
   createdAt: true
