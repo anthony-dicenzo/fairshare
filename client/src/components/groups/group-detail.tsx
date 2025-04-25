@@ -19,15 +19,26 @@ type GroupDetailProps = {
     userId: number;
     balance: number;
   }[];
+  expenses?: any[];
+  payments?: any[];
 };
 
-export function GroupDetail({ group, members = [], balances = [] }: GroupDetailProps) {
+export function GroupDetail({ group, members = [], balances = [], expenses = [], payments = [] }: GroupDetailProps) {
   const { user } = useAuth();
 
   if (!user || !group) return null;
 
   // Find current user's balance
   const userBalance = balances?.find(b => b?.userId === user.id)?.balance || 0;
+  
+  // Calculate totals
+  const totalExpenseAmount = expenses.reduce((sum, expense) => sum + Number(expense.totalAmount || 0), 0);
+  const userExpenseAmount = expenses.filter(expense => expense.paidBy === user.id)
+    .reduce((sum, expense) => sum + Number(expense.totalAmount || 0), 0);
+  const paymentsMade = payments.filter(payment => payment.paidBy === user.id)
+    .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+  const paymentsReceived = payments.filter(payment => payment.paidTo === user.id)
+    .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
   
   return (
     <Card>
@@ -122,22 +133,22 @@ export function GroupDetail({ group, members = [], balances = [] }: GroupDetailP
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-muted/50 rounded-lg p-4">
             <h3 className="text-sm font-medium mb-1">Total Expenses</h3>
-            <p className="text-xl font-semibold" data-mock="true">$487.35</p>
+            <p className="text-xl font-semibold">${totalExpenseAmount.toFixed(2)}</p>
           </div>
           
           <div className="bg-muted/50 rounded-lg p-4">
             <h3 className="text-sm font-medium mb-1">Your Expenses</h3>
-            <p className="text-xl font-semibold" data-mock="true">$125.25</p>
+            <p className="text-xl font-semibold">${userExpenseAmount.toFixed(2)}</p>
           </div>
           
           <div className="bg-muted/50 rounded-lg p-4">
             <h3 className="text-sm font-medium mb-1">Payments Made</h3>
-            <p className="text-xl font-semibold" data-mock="true">$95.50</p>
+            <p className="text-xl font-semibold">${paymentsMade.toFixed(2)}</p>
           </div>
           
           <div className="bg-muted/50 rounded-lg p-4">
             <h3 className="text-sm font-medium mb-1">Payments Received</h3>
-            <p className="text-xl font-semibold" data-mock="true">$78.65</p>
+            <p className="text-xl font-semibold">${paymentsReceived.toFixed(2)}</p>
           </div>
         </div>
       </CardContent>

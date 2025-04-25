@@ -179,7 +179,9 @@ export default function GroupPage() {
         <GroupDetail 
           group={group ? group as any : { id: 0, name: '', createdAt: new Date().toISOString() }}
           members={Array.isArray(members) ? members : []} 
-          balances={Array.isArray(balances) ? balances : []} 
+          balances={Array.isArray(balances) ? balances : []}
+          expenses={Array.isArray(expenses) ? expenses : []}
+          payments={Array.isArray(payments) ? payments : []}
         />
 
         <div className="mt-8">
