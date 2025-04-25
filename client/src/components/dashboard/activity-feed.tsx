@@ -9,6 +9,7 @@ import {
   UserPlus, 
   Users
 } from "lucide-react";
+import { ActivityItemAction } from "@/components/activity/activity-item-action";
 
 type Activity = {
   id: number;
@@ -66,29 +67,40 @@ export function ActivityFeed() {
         <div className="divide-y">
           {activities.map((activity) => (
             <div key={activity.id} className="px-5 py-4 hover:bg-accent transition-colors">
-              <div className="flex">
-                <div className="flex-shrink-0 mr-4">
-                  <ActivityIcon type={activity.actionType} />
+              <ActivityItemAction 
+                actionType={activity.actionType}
+                expenseId={activity.expense?.id}
+                paymentId={activity.payment?.id}
+                groupId={activity.group?.id}
+              >
+                <div className="flex">
+                  <div className="flex-shrink-0 mr-4">
+                    <ActivityIcon type={activity.actionType} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">
+                      <span>{activity.user.name}</span>
+                      {" "}
+                      {getActionText(activity)}
+                      {" "}
+                      {activity.group && (
+                        <Link 
+                          href={`/group/${activity.group.id}`} 
+                          className="text-primary hover:underline"
+                          onClick={(e) => e.stopPropagation()} // Prevent clicking the wrapper
+                        >
+                          {activity.group.name}
+                        </Link>
+                      )}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {activity.expense && `$${parseFloat(activity.expense.totalAmount.toString()).toFixed(2)} · `}
+                      {activity.payment && `$${parseFloat(activity.payment.amount.toString()).toFixed(2)} · `}
+                      {formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}
+                    </p>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium">
-                    <span>{activity.user.name}</span>
-                    {" "}
-                    {getActionText(activity)}
-                    {" "}
-                    {activity.group && (
-                      <Link href={`/group/${activity.group.id}`} className="text-primary hover:underline">
-                        {activity.group.name}
-                      </Link>
-                    )}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {activity.expense && `$${parseFloat(activity.expense.totalAmount.toString()).toFixed(2)} · `}
-                    {activity.payment && `$${parseFloat(activity.payment.amount.toString()).toFixed(2)} · `}
-                    {formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}
-                  </p>
-                </div>
-              </div>
+              </ActivityItemAction>
             </div>
           ))}
         </div>

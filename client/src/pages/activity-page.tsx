@@ -14,6 +14,7 @@ import {
   ChevronLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ActivityItemAction } from "@/components/activity/activity-item-action";
 
 type Activity = {
   id: number;
