@@ -50,27 +50,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryKey: ["/api/user"],
     queryFn: async ({queryKey}) => {
       try {
+        console.log("Fetching user data...");
         const res = await fetch(queryKey[0] as string, {
           credentials: "include",
         });
         
+        console.log("User data fetch status:", res.status);
+        
         if (res.status === 401) {
+          console.log("User not authenticated");
           return null;
         }
         
         if (!res.ok) {
           const errorText = await res.text();
+          console.error("Error fetching user data:", errorText || res.statusText);
           throw new Error(errorText || res.statusText);
         }
         
-        return await res.json();
+        const userData = await res.json();
+        console.log("User data fetched successfully:", userData.username);
+        return userData;
       } catch (error) {
+        console.error("Exception fetching user data:", error);
         if (error instanceof Error) {
           throw error;
         }
         throw new Error("An error occurred while fetching user data");
       }
     },
+    staleTime: 1000 * 60 * 5, // Cache user data for 5 minutes
+    retry: 1 // Retry once on failure
   });
 
   const loginMutation = useMutation({
@@ -175,7 +185,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider
       value={{
-        user,
+        user: user ?? null,
         isLoading,
         error,
         loginMutation,
