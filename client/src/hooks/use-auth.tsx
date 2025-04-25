@@ -75,17 +75,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
-      const res = await apiRequest("POST", "/api/login", credentials);
-      return await res.json();
+      console.log("Logging in with:", credentials.username);
+      
+      try {
+        const res = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(credentials),
+          credentials: "include" // Important for cookies
+        });
+        
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(errorText || res.statusText);
+        }
+        
+        const userData = await res.json();
+        console.log("Login successful, user data:", userData);
+        
+        // Validate session is working by immediately checking user status
+        const verifyRes = await fetch("/api/user", { 
+          credentials: "include"
+        });
+        console.log("Verification status:", verifyRes.status);
+        
+        return userData;
+      } catch (error) {
+        console.error("Login error:", error);
+        throw error;
+      }
     },
     onSuccess: (user: SafeUser) => {
       queryClient.setQueryData(["/api/user"], user);
+      
+      // Invalidate other queries to force refresh with new auth state
+      queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/balances"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/activity"] });
+      
       toast({
         title: "Login successful",
         description: `Welcome back, ${user.name}!`,
       });
     },
     onError: (error: Error) => {
+      console.error("Login mutation error:", error);
+      // Reset cached user data on login error
+      queryClient.setQueryData(["/api/user"], null);
+      
       toast({
         title: "Login failed",
         description: error.message,

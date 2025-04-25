@@ -34,13 +34,13 @@ export function setupAuth(app: Express) {
   
   const sessionSettings: session.SessionOptions = {
     secret: sessionSecret,
-    resave: false,
-    saveUninitialized: false,
+    resave: true,
+    saveUninitialized: true,
     cookie: {
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       httpOnly: true,
-      secure: app.get('env') === 'production',
-      sameSite: 'lax'
+      secure: false, // Set to false for development
+      sameSite: 'lax' 
     },
     store: storage.sessionStore,
   };
@@ -126,13 +126,19 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err, user, info) => {
+    passport.authenticate("local", (err: Error, user: any, info: any) => {
       if (err) return next(err);
       if (!user) {
         return res.status(401).json({ error: "Invalid username or password" });
       }
+      
       req.login(user, (err) => {
         if (err) return next(err);
+        
+        // Log successful login
+        console.log(`User logged in successfully: ${user.username} (ID: ${user.id})`);
+        console.log(`Session ID: ${req.sessionID}`);
+        
         // Remove password from response
         const { password, ...userWithoutPassword } = user;
         return res.status(200).json(userWithoutPassword);
@@ -148,6 +154,10 @@ export function setupAuth(app: Express) {
   });
 
   app.get("/api/user", (req, res) => {
+    console.log(`Session ID in /api/user: ${req.sessionID}`);
+    console.log(`Is authenticated: ${req.isAuthenticated()}`);
+    console.log(`Session data:`, req.session);
+    
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
