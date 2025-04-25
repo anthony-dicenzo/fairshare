@@ -1,7 +1,6 @@
-import { Pool } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import { migrate } from 'drizzle-orm/neon-serverless/migrator';
-import * as schema from './shared/schema.js';
+const { Pool } = require('@neondatabase/serverless');
+const { drizzle } = require('drizzle-orm/neon-serverless');
+const schema = require('./shared/schema');
 
 // Ensure DATABASE_URL is available
 if (!process.env.DATABASE_URL) {
