@@ -70,7 +70,6 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [deleteConfirm, setDeleteConfirm] = useState(false);
   
   // Fetch expense details
   const { data: expense, isLoading: isLoadingExpense } = useQuery({
@@ -210,15 +209,6 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
     });
   });
 
-  const handleDelete = () => {
-    if (!deleteConfirm) {
-      setDeleteConfirm(true);
-      return;
-    }
-    
-    deleteExpenseMutation.mutate();
-  };
-
   // Check if the current user is the one who paid or created the expense
   const canEdit = expense && user && expense.paidBy === user.id;
 
@@ -355,16 +345,23 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
             />
 
             <DialogFooter className="flex-col sm:flex-row gap-2">
-              <Button
-                type="button"
+              <ConfirmDialog
+                title="Delete Expense"
+                description="Are you sure you want to delete this expense? This action cannot be undone."
+                onConfirm={() => deleteExpenseMutation.mutate()}
                 variant="destructive"
-                onClick={handleDelete}
-                className="flex items-center gap-1"
-                disabled={!canEdit || deleteExpenseMutation.isPending}
-              >
-                <Trash className="h-4 w-4" />
-                {deleteConfirm ? "Confirm Delete" : "Delete Expense"}
-              </Button>
+                trigger={
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    className="flex items-center gap-1"
+                    disabled={!canEdit || deleteExpenseMutation.isPending}
+                  >
+                    <Trash className="h-4 w-4" />
+                    Delete Expense
+                  </Button>
+                }
+              />
               <div className="flex gap-2">
                 <Button
                   type="button"

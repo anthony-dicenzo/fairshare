@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { CreditCard, Trash } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 import {
   Dialog,
@@ -66,7 +67,6 @@ export function PaymentEdit({ open, onOpenChange, paymentId, groupId }: PaymentE
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [deleteConfirm, setDeleteConfirm] = useState(false);
   
   // Fetch payment details
   const { data: payment, isLoading: isLoadingPayment } = useQuery({
@@ -205,15 +205,6 @@ export function PaymentEdit({ open, onOpenChange, paymentId, groupId }: PaymentE
       note: values.note,
     });
   });
-
-  const handleDelete = () => {
-    if (!deleteConfirm) {
-      setDeleteConfirm(true);
-      return;
-    }
-    
-    deletePaymentMutation.mutate();
-  };
 
   // Check if the current user is the one who paid or created the payment
   const canEdit = payment && user && (payment.paidBy === user.id || payment.paidTo === user.id);
@@ -380,16 +371,23 @@ export function PaymentEdit({ open, onOpenChange, paymentId, groupId }: PaymentE
             />
 
             <DialogFooter className="flex-col sm:flex-row gap-2">
-              <Button
-                type="button"
+              <ConfirmDialog
+                title="Delete Payment"
+                description="Are you sure you want to delete this payment? This action cannot be undone."
+                onConfirm={() => deletePaymentMutation.mutate()}
                 variant="destructive"
-                onClick={handleDelete}
-                className="flex items-center gap-1"
-                disabled={!canEdit || deletePaymentMutation.isPending}
-              >
-                <Trash className="h-4 w-4" />
-                {deleteConfirm ? "Confirm Delete" : "Delete Payment"}
-              </Button>
+                trigger={
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    className="flex items-center gap-1"
+                    disabled={!canEdit || deletePaymentMutation.isPending}
+                  >
+                    <Trash className="h-4 w-4" />
+                    Delete Payment
+                  </Button>
+                }
+              />
               <div className="flex gap-2">
                 <Button
                   type="button"
