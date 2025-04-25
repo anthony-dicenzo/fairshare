@@ -426,22 +426,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const paymentId = parseInt(req.params.id);
+      console.log(`Attempting to delete payment with id: ${paymentId}`);
+      
       const payment = await storage.getPaymentById(paymentId);
       
       if (!payment) {
+        console.log(`Payment with id ${paymentId} not found`);
         return res.status(404).json({ error: "Payment not found" });
       }
       
+      console.log(`Payment found: ${JSON.stringify(payment)}`);
+      console.log(`Current user id: ${req.user.id}, Payment paidBy: ${payment.paidBy}, paidTo: ${payment.paidTo}`);
+      
       // Check if user is involved in the payment
       if (payment.paidBy !== req.user.id && payment.paidTo !== req.user.id) {
+        console.log(`User ${req.user.id} is not authorized to delete payment ${paymentId}`);
         return res.status(403).json({ error: "You cannot delete this payment" });
       }
       
       // Delete the payment
-      await storage.deletePayment(paymentId);
+      console.log(`Proceeding to delete payment ${paymentId}`);
+      const result = await storage.deletePayment(paymentId);
+      console.log(`Delete result: ${result}`);
       
       res.status(200).json({ message: "Payment deleted successfully" });
     } catch (error) {
+      console.error("Error deleting payment:", error);
       res.status(500).json({ error: "Failed to delete payment" });
     }
   });

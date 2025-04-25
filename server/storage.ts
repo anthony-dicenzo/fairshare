@@ -197,15 +197,11 @@ export class DatabaseStorage implements IStorage {
   
   async updateExpense(expenseId: number, updates: Partial<Expense>): Promise<Expense> {
     // Remove fields that should not be updated
-    delete updates.id;
-    delete updates.createdAt;
+    const { id, createdAt, updatedAt, ...validUpdates } = updates as any;
     
     const result = await db
       .update(expenses)
-      .set({
-        ...updates,
-        updatedAt: new Date()
-      })
+      .set(validUpdates)
       .where(eq(expenses.id, expenseId))
       .returning();
     
@@ -258,15 +254,11 @@ export class DatabaseStorage implements IStorage {
   
   async updatePayment(paymentId: number, updates: Partial<Payment>): Promise<Payment> {
     // Remove fields that should not be updated
-    delete updates.id;
-    delete updates.createdAt;
+    const { id, createdAt, updatedAt, ...validUpdates } = updates as any;
     
     const result = await db
       .update(payments)
-      .set({
-        ...updates,
-        updatedAt: new Date()
-      })
+      .set(validUpdates)
       .where(eq(payments.id, paymentId))
       .returning();
     

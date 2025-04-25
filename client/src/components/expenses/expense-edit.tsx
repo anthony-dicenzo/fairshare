@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { ShoppingBag, Trash } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 import {
   Dialog,
