@@ -126,7 +126,7 @@ export default function GroupPage() {
                 Back
               </Link>
             </Button>
-            <h1 className="text-2xl font-bold">{group.name}</h1>
+            <h1 className="text-2xl font-bold">{group?.name || 'Loading group...'}</h1>
           </div>
           <div className="flex items-center gap-2">
             <Button 
@@ -147,9 +147,9 @@ export default function GroupPage() {
         </div>
 
         <GroupDetail 
-          group={group} 
-          members={members} 
-          balances={balances} 
+          group={group || { id: 0, name: '', createdAt: new Date().toISOString() }}
+          members={Array.isArray(members) ? members : []} 
+          balances={Array.isArray(balances) ? balances : []} 
         />
 
         <div className="mt-8">
@@ -161,7 +161,7 @@ export default function GroupPage() {
             </TabsList>
 
             <TabsContent value="expenses" className="mt-0">
-              {expenses.length === 0 ? (
+              {Array.isArray(expenses) && expenses.length === 0 ? (
                 <div className="text-center py-8 bg-white dark:bg-gray-800 rounded-lg border shadow-sm">
                   <h3 className="font-semibold text-lg mb-2">No expenses yet</h3>
                   <p className="text-muted-foreground mb-4">
@@ -174,19 +174,22 @@ export default function GroupPage() {
                 </div>
               ) : (
                 <div className="bg-white dark:bg-gray-800 rounded-lg border shadow-sm divide-y">
-                  {expenses.map((expense) => (
-                    <div key={expense.id} className="p-4 hover:bg-muted transition-colors">
+                  {Array.isArray(expenses) && expenses.map((expense: any) => (
+                    <div key={expense?.id || 'unknown'} className="p-4 hover:bg-muted transition-colors">
                       <div className="flex justify-between">
                         <div>
-                          <h3 className="font-medium">{expense.title}</h3>
+                          <h3 className="font-medium">{expense?.title || 'Untitled Expense'}</h3>
                           <p className="text-sm text-muted-foreground">
-                            Added on {new Date(expense.date).toLocaleDateString()}
+                            Added on {expense?.date ? new Date(expense.date).toLocaleDateString() : 'Unknown date'}
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium">${parseFloat(expense.totalAmount.toString()).toFixed(2)}</p>
+                          <p className="font-medium">
+                            ${expense?.totalAmount ? parseFloat(expense.totalAmount.toString()).toFixed(2) : '0.00'}
+                          </p>
                           <p className="text-xs text-muted-foreground">
-                            Paid by {members.find(m => m.userId === expense.paidBy)?.user.name}
+                            Paid by {Array.isArray(members) && 
+                              members.find((m: any) => m?.userId === expense?.paidBy)?.user?.name || 'Unknown'}
                           </p>
                         </div>
                       </div>
@@ -197,39 +200,48 @@ export default function GroupPage() {
             </TabsContent>
 
             <TabsContent value="balances" className="mt-0">
-              <BalancesMatrix balances={balances} members={members} />
+              <BalancesMatrix 
+                balances={Array.isArray(balances) ? balances : []} 
+                members={Array.isArray(members) ? members : []} 
+              />
             </TabsContent>
 
             <TabsContent value="activity" className="mt-0">
               <div className="bg-white dark:bg-gray-800 rounded-lg border shadow-sm">
-                {activity.length === 0 ? (
+                {!Array.isArray(activity) || activity.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-muted-foreground">No activity yet</p>
                   </div>
                 ) : (
                   <div className="divide-y">
-                    {activity.map((item) => (
-                      <div key={item.id} className="p-4 hover:bg-muted transition-colors">
+                    {activity.map((item: any) => (
+                      <div key={item?.id || 'unknown'} className="p-4 hover:bg-muted transition-colors">
                         <div className="flex">
                           <div className="flex-shrink-0 mr-4">
                             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                              {item.actionType === 'add_expense' && <span className="text-primary">💰</span>}
-                              {item.actionType === 'record_payment' && <span className="text-emerald-500">💸</span>}
-                              {item.actionType === 'add_member' && <span className="text-purple-500">👤</span>}
+                              {item?.actionType === 'add_expense' && <span className="text-primary">💰</span>}
+                              {item?.actionType === 'record_payment' && <span className="text-emerald-500">💸</span>}
+                              {item?.actionType === 'add_member' && <span className="text-purple-500">👤</span>}
+                              {(!item?.actionType || !['add_expense', 'record_payment', 'add_member'].includes(item.actionType)) && 
+                                <span>📝</span>}
                             </div>
                           </div>
                           <div>
                             <p className="text-sm">
-                              <span className="font-medium">{item.user.name}</span>
-                              {item.actionType === 'add_expense' && ' added expense '}
-                              {item.actionType === 'record_payment' && ' recorded payment '}
-                              {item.actionType === 'add_member' && ' added a new member '}
+                              <span className="font-medium">{item?.user?.name || 'Unknown user'}</span>
+                              {item?.actionType === 'add_expense' && ' added expense '}
+                              {item?.actionType === 'record_payment' && ' recorded payment '}
+                              {item?.actionType === 'add_member' && ' added a new member '}
+                              {(!item?.actionType || !['add_expense', 'record_payment', 'add_member'].includes(item.actionType)) && 
+                                ' performed an action '}
                               
-                              {item.expense && <span className="font-medium">"{item.expense.title}"</span>}
-                              {item.payment && <span className="font-medium">${parseFloat(item.payment.amount.toString()).toFixed(2)}</span>}
+                              {item?.expense && <span className="font-medium">"{item.expense?.title || 'Untitled'}"</span>}
+                              {item?.payment && <span className="font-medium">
+                                ${item.payment?.amount ? parseFloat(item.payment.amount.toString()).toFixed(2) : '0.00'}
+                              </span>}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {new Date(item.createdAt).toLocaleString()}
+                              {item?.createdAt ? new Date(item.createdAt).toLocaleString() : 'Unknown time'}
                             </p>
                           </div>
                         </div>
@@ -258,7 +270,7 @@ export default function GroupPage() {
         open={showInviteModal}
         onOpenChange={setShowInviteModal}
         groupId={groupId}
-        members={members}
+        members={Array.isArray(members) ? members : []}
       />
     </MainLayout>
   );

@@ -106,8 +106,10 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
 
   // Initialize selectedUserIds with all members when group changes
   useEffect(() => {
-    if (groupMembers && groupMembers.length > 0) {
-      const memberIds = groupMembers.map(member => member?.userId).filter(Boolean) as number[];
+    if (Array.isArray(groupMembers) && groupMembers.length > 0) {
+      const memberIds = groupMembers
+        .map(member => member?.userId)
+        .filter(id => typeof id === 'number') as number[];
       setSelectedUserIds(memberIds);
     }
   }, [groupMembers]);
