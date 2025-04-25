@@ -38,11 +38,11 @@ export function GroupDetail({ group, members, balances }: GroupDetailProps) {
             <div className="flex items-center mb-4">
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mr-4">
                 <span className="text-lg font-medium text-primary">
-                  {group.name.charAt(0)}
+                  {group.name ? group.name.charAt(0) : "G"}
                 </span>
               </div>
               <div>
-                <h2 className="text-xl font-semibold">{group.name}</h2>
+                <h2 className="text-xl font-semibold">{group.name || "Group"}</h2>
                 <p className="text-sm text-muted-foreground">
                   {members.length} member{members.length !== 1 ? 's' : ''} · Created {new Date(group.createdAt).toLocaleDateString()}
                 </p>
@@ -76,12 +76,14 @@ export function GroupDetail({ group, members, balances }: GroupDetailProps) {
             <div className="space-y-3">
               {members.map((member) => {
                 const memberBalance = balances.find(b => b.userId === member.user.id)?.balance || 0;
-                const initials = member.user.name
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .toUpperCase()
-                  .substring(0, 2);
+                const initials = member.user && member.user.name 
+                  ? member.user.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .toUpperCase()
+                      .substring(0, 2)
+                  : "U";
                   
                 return (
                   <div key={member.user.id} className="flex items-center justify-between">
@@ -92,10 +94,10 @@ export function GroupDetail({ group, members, balances }: GroupDetailProps) {
                         </AvatarFallback>
                       </Avatar>
                       <span className="text-sm font-medium">
-                        {member.user.id === user.id ? "You" : member.user.name}
+                        {member.user && user && member.user.id === user.id ? "You" : member.user?.name || "User"}
                       </span>
                     </div>
-                    {member.user.id !== user.id && (
+                    {member.user && user && member.user.id !== user.id && (
                       <span className={`text-sm font-medium ${
                         memberBalance > 0 
                           ? "text-emerald-500" 

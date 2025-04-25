@@ -1,12 +1,19 @@
-import { 
-  User, InsertUser, Group, InsertGroup, GroupMember, InsertGroupMember, 
-  Expense, InsertExpense, ExpenseParticipant, InsertExpenseParticipant,
-  Payment, InsertPayment, ActivityLogEntry, InsertActivityLogEntry
-} from "@shared/schema";
 import session from "express-session";
-import createMemoryStore from "memorystore";
+import { 
+  User, InsertUser, 
+  Group, InsertGroup, 
+  GroupMember, InsertGroupMember,
+  Expense, InsertExpense,
+  ExpenseParticipant, InsertExpenseParticipant,
+  Payment, InsertPayment,
+  ActivityLogEntry, InsertActivityLogEntry,
+  users, groups, groupMembers, expenses, expenseParticipants, payments, activityLog
+} from "@shared/schema";
+import connectPg from "connect-pg-simple";
+import { db, pool } from "./db";
+import { eq, and, desc, asc, inArray } from "drizzle-orm";
 
-const MemoryStore = createMemoryStore(session);
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   // User operations
@@ -67,322 +74,300 @@ export interface IStorage {
   sessionStore: session.SessionStore;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private groups: Map<number, Group>;
-  private groupMembers: Map<number, GroupMember>;
-  private expenses: Map<number, Expense>;
-  private expenseParticipants: Map<number, ExpenseParticipant>;
-  private payments: Map<number, Payment>;
-  private activities: Map<number, ActivityLogEntry>;
-  
+export class DatabaseStorage implements IStorage {
   sessionStore: session.SessionStore;
   
-  private userIdCounter: number = 1;
-  private groupIdCounter: number = 1;
-  private groupMemberIdCounter: number = 1;
-  private expenseIdCounter: number = 1;
-  private expenseParticipantIdCounter: number = 1;
-  private paymentIdCounter: number = 1;
-  private activityIdCounter: number = 1;
-
   constructor() {
-    this.users = new Map();
-    this.groups = new Map();
-    this.groupMembers = new Map();
-    this.expenses = new Map();
-    this.expenseParticipants = new Map();
-    this.payments = new Map();
-    this.activities = new Map();
-    
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000 // 24 hours
+    this.sessionStore = new PostgresSessionStore({ 
+      pool,
+      createTableIfMissing: true
     });
   }
-
-  // User operations
+  
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const result = await db.select().from(users).where(eq(users.id, id));
+    return result[0];
   }
-
+  
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username.toLowerCase() === username.toLowerCase()
-    );
+    const result = await db.select().from(users).where(eq(users.username, username));
+    return result[0];
   }
   
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.email.toLowerCase() === email.toLowerCase()
-    );
+    const result = await db.select().from(users).where(eq(users.email, email));
+    return result[0];
   }
-
+  
   async createUser(userData: InsertUser): Promise<User> {
-    const id = this.userIdCounter++;
-    const now = new Date();
-    const user: User = { 
-      ...userData, 
-      id, 
-      createdAt: now
-    };
-    this.users.set(id, user);
-    return user;
+    const result = await db.insert(users).values(userData).returning();
+    return result[0];
   }
-
-  // Group operations
+  
   async createGroup(groupData: InsertGroup): Promise<Group> {
-    const id = this.groupIdCounter++;
-    const now = new Date();
-    const group: Group = {
-      ...groupData,
-      id,
-      createdAt: now
-    };
-    this.groups.set(id, group);
+    const result = await db.insert(groups).values(groupData).returning();
+    const group = result[0];
     
-    // Add the creator as a member automatically
+    // Automatically add the creator as a member
     await this.addUserToGroup({
-      groupId: id,
-      userId: groupData.createdBy
+      groupId: group.id,
+      userId: groupData.createdBy,
+      role: 'admin'
     });
     
     return group;
   }
-
+  
   async getGroup(id: number): Promise<Group | undefined> {
-    return this.groups.get(id);
+    const result = await db.select().from(groups).where(eq(groups.id, id));
+    return result[0];
   }
-
+  
   async getGroupsByUserId(userId: number): Promise<Group[]> {
-    const memberEntries = Array.from(this.groupMembers.values())
-      .filter(member => member.userId === userId);
-      
-    return memberEntries.map(entry => 
-      this.groups.get(entry.groupId)!
-    ).filter(group => group !== undefined);
+    const result = await db
+      .select({
+        group: groups
+      })
+      .from(groupMembers)
+      .where(eq(groupMembers.userId, userId))
+      .innerJoin(groups, eq(groupMembers.groupId, groups.id));
+    
+    return result.map(r => r.group);
   }
-
+  
   async addUserToGroup(memberData: InsertGroupMember): Promise<GroupMember> {
-    const id = this.groupMemberIdCounter++;
-    const now = new Date();
-    const member: GroupMember = {
-      ...memberData,
-      id,
-      joinedAt: now
-    };
-    this.groupMembers.set(id, member);
-    return member;
+    const result = await db.insert(groupMembers).values(memberData).returning();
+    return result[0];
   }
-
+  
   async getGroupMembers(groupId: number): Promise<(GroupMember & { user: User })[]> {
-    const members = Array.from(this.groupMembers.values())
-      .filter(member => member.groupId === groupId);
-      
-    return members.map(member => ({
-      ...member,
-      user: this.users.get(member.userId)!
+    const result = await db
+      .select({
+        member: groupMembers,
+        user: users
+      })
+      .from(groupMembers)
+      .where(eq(groupMembers.groupId, groupId))
+      .innerJoin(users, eq(groupMembers.userId, users.id));
+    
+    return result.map(r => ({
+      ...r.member,
+      user: r.user
     }));
   }
-
-  // Expense operations
+  
   async createExpense(expenseData: InsertExpense): Promise<Expense> {
-    const id = this.expenseIdCounter++;
-    const now = new Date();
-    const expense: Expense = {
-      ...expenseData,
-      id,
-      date: expenseData.date || now,
-      createdAt: now
-    };
-    this.expenses.set(id, expense);
-    return expense;
+    const result = await db.insert(expenses).values(expenseData).returning();
+    return result[0];
   }
-
+  
   async getExpensesByGroupId(groupId: number): Promise<Expense[]> {
-    return Array.from(this.expenses.values())
-      .filter(expense => expense.groupId === groupId);
+    const result = await db
+      .select()
+      .from(expenses)
+      .where(eq(expenses.groupId, groupId))
+      .orderBy(desc(expenses.createdAt));
+    
+    return result;
   }
-
+  
   async getExpenseById(id: number): Promise<Expense | undefined> {
-    return this.expenses.get(id);
+    const result = await db.select().from(expenses).where(eq(expenses.id, id));
+    return result[0];
   }
-
+  
   async addExpenseParticipant(participantData: InsertExpenseParticipant): Promise<ExpenseParticipant> {
-    const id = this.expenseParticipantIdCounter++;
-    const participant: ExpenseParticipant = {
-      ...participantData,
-      id
-    };
-    this.expenseParticipants.set(id, participant);
-    return participant;
+    const result = await db.insert(expenseParticipants).values(participantData).returning();
+    return result[0];
   }
-
+  
   async getExpenseParticipants(expenseId: number): Promise<ExpenseParticipant[]> {
-    return Array.from(this.expenseParticipants.values())
-      .filter(participant => participant.expenseId === expenseId);
+    const result = await db
+      .select()
+      .from(expenseParticipants)
+      .where(eq(expenseParticipants.expenseId, expenseId));
+    
+    return result;
   }
-
-  // Payment operations
+  
   async createPayment(paymentData: InsertPayment): Promise<Payment> {
-    const id = this.paymentIdCounter++;
-    const now = new Date();
-    const payment: Payment = {
-      ...paymentData,
-      id,
-      date: paymentData.date || now,
-      createdAt: now
-    };
-    this.payments.set(id, payment);
-    return payment;
+    const result = await db.insert(payments).values(paymentData).returning();
+    return result[0];
   }
-
+  
   async getPaymentsByGroupId(groupId: number): Promise<Payment[]> {
-    return Array.from(this.payments.values())
-      .filter(payment => payment.groupId === groupId);
+    const result = await db
+      .select()
+      .from(payments)
+      .where(eq(payments.groupId, groupId))
+      .orderBy(desc(payments.createdAt));
+    
+    return result;
   }
-
-  // Activity operations
+  
   async logActivity(activityData: InsertActivityLogEntry): Promise<ActivityLogEntry> {
-    const id = this.activityIdCounter++;
-    const now = new Date();
-    const activity: ActivityLogEntry = {
-      ...activityData,
-      id,
-      createdAt: now
-    };
-    this.activities.set(id, activity);
-    return activity;
+    const result = await db.insert(activityLog).values(activityData).returning();
+    return result[0];
   }
-
+  
   async getActivityByUserId(userId: number, limit: number = 20): Promise<(ActivityLogEntry & {
     user: User;
     group?: Group;
     expense?: Expense;
     payment?: Payment;
   })[]> {
-    // Get activities where this user is involved
-    const userActivities = Array.from(this.activities.values())
-      .filter(activity => {
-        // Direct involvement
-        if (activity.userId === userId) return true;
-        
-        // Check if user is participant in the referenced expense
-        if (activity.actionType === 'add_expense' && activity.referenceId) {
-          const expenseId = activity.referenceId;
-          const participants = Array.from(this.expenseParticipants.values())
-            .filter(p => p.expenseId === expenseId && p.userId === userId);
-          return participants.length > 0;
-        }
-        
-        // Check if user is part of a payment
-        if (activity.actionType === 'record_payment' && activity.referenceId) {
-          const paymentId = activity.referenceId;
-          const payment = this.payments.get(paymentId);
-          return payment && (payment.paidBy === userId || payment.paidTo === userId);
-        }
-        
-        return false;
+    // Get all groups the user is a member of
+    const userGroups = await this.getGroupsByUserId(userId);
+    const groupIds = userGroups.map(g => g.id);
+    
+    // Get activities where user is actor or in user's groups
+    const activities = await db
+      .select({
+        activity: activityLog,
+        user: users
       })
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-      .slice(0, limit);
-      
-    return userActivities.map(activity => {
+      .from(activityLog)
+      .where(
+        groupIds.length > 0 
+          ? eq(activityLog.userId, userId) || inArray(activityLog.groupId, groupIds)
+          : eq(activityLog.userId, userId)
+      )
+      .innerJoin(users, eq(activityLog.userId, users.id))
+      .orderBy(desc(activityLog.createdAt))
+      .limit(limit);
+    
+    // Enrich with group, expense, payment data
+    const enrichedActivities = await Promise.all(activities.map(async (a) => {
       const enriched: any = {
-        ...activity,
-        user: this.users.get(activity.userId)!
+        ...a.activity,
+        user: a.user
       };
       
-      if (activity.groupId) {
-        enriched.group = this.groups.get(activity.groupId);
+      if (a.activity.groupId) {
+        const group = await this.getGroup(a.activity.groupId);
+        if (group) enriched.group = group;
       }
       
-      if (activity.actionType === 'add_expense' && activity.referenceId) {
-        enriched.expense = this.expenses.get(activity.referenceId);
+      if (a.activity.expenseId) {
+        const expense = await this.getExpenseById(a.activity.expenseId);
+        if (expense) enriched.expense = expense;
       }
       
-      if (activity.actionType === 'record_payment' && activity.referenceId) {
-        enriched.payment = this.payments.get(activity.referenceId);
+      if (a.activity.paymentId) {
+        const payment = await db
+          .select()
+          .from(payments)
+          .where(eq(payments.id, a.activity.paymentId))
+          .then(res => res[0]);
+        
+        if (payment) enriched.payment = payment;
       }
       
       return enriched;
-    });
+    }));
+    
+    return enrichedActivities;
   }
-
+  
   async getActivityByGroupId(groupId: number, limit: number = 20): Promise<(ActivityLogEntry & {
     user: User;
     group?: Group;
     expense?: Expense;
     payment?: Payment;
   })[]> {
-    const groupActivities = Array.from(this.activities.values())
-      .filter(activity => activity.groupId === groupId)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-      .slice(0, limit);
-      
-    return groupActivities.map(activity => {
+    const activities = await db
+      .select({
+        activity: activityLog,
+        user: users
+      })
+      .from(activityLog)
+      .where(eq(activityLog.groupId, groupId))
+      .innerJoin(users, eq(activityLog.userId, users.id))
+      .orderBy(desc(activityLog.createdAt))
+      .limit(limit);
+    
+    // Enrich with group, expense, payment data
+    const enrichedActivities = await Promise.all(activities.map(async (a) => {
       const enriched: any = {
-        ...activity,
-        user: this.users.get(activity.userId)!,
-        group: this.groups.get(activity.groupId!)!
+        ...a.activity,
+        user: a.user
       };
       
-      if (activity.actionType === 'add_expense' && activity.referenceId) {
-        enriched.expense = this.expenses.get(activity.referenceId);
+      if (a.activity.groupId) {
+        const group = await this.getGroup(a.activity.groupId);
+        if (group) enriched.group = group;
       }
       
-      if (activity.actionType === 'record_payment' && activity.referenceId) {
-        enriched.payment = this.payments.get(activity.referenceId);
+      if (a.activity.expenseId) {
+        const expense = await this.getExpenseById(a.activity.expenseId);
+        if (expense) enriched.expense = expense;
+      }
+      
+      if (a.activity.paymentId) {
+        const payment = await db
+          .select()
+          .from(payments)
+          .where(eq(payments.id, a.activity.paymentId))
+          .then(res => res[0]);
+        
+        if (payment) enriched.payment = payment;
       }
       
       return enriched;
-    });
+    }));
+    
+    return enrichedActivities;
   }
   
-  // Balance calculations
   async getUserBalanceInGroup(userId: number, groupId: number): Promise<number> {
-    let balance = 0;
+    // Get all expenses in the group
+    const expenses = await this.getExpensesByGroupId(groupId);
     
-    // Add expenses paid by this user
-    const paidExpenses = Array.from(this.expenses.values())
-      .filter(expense => expense.groupId === groupId && expense.paidBy === userId);
-      
-    for (const expense of paidExpenses) {
-      // Get all participants except the payer
+    // Get all expense participants
+    const expenseParticipants: ExpenseParticipant[] = [];
+    for (const expense of expenses) {
       const participants = await this.getExpenseParticipants(expense.id);
-      const otherParticipantsAmount = participants
-        .filter(p => p.userId !== userId)
-        .reduce((sum, p) => sum + Number(p.amountOwed), 0);
-      
-      balance += Number(otherParticipantsAmount);
+      expenseParticipants.push(...participants);
     }
     
-    // Subtract expenses where this user owes
-    const allExpenses = await this.getExpensesByGroupId(groupId);
-    for (const expense of allExpenses) {
-      if (expense.paidBy === userId) continue; // Skip expenses paid by this user
+    // Get all payments in the group
+    const payments = await this.getPaymentsByGroupId(groupId);
+    
+    let balance = 0;
+    
+    // Calculate the balance from expenses
+    for (const expense of expenses) {
+      // If user paid for the expense, add the amount they are owed by others
+      if (expense.paidBy === userId) {
+        const userParticipants = expenseParticipants.filter(
+          p => p.expenseId === expense.id && p.userId !== userId
+        );
+        const totalOthersOwe = userParticipants.reduce(
+          (sum, p) => sum + p.amountOwed, 0
+        );
+        balance += totalOthersOwe;
+      }
       
-      const participants = await this.getExpenseParticipants(expense.id);
-      const userParticipant = participants.find(p => p.userId === userId);
-      
-      if (userParticipant) {
-        balance -= Number(userParticipant.amountOwed);
+      // If user is a participant, subtract the amount they owe
+      const userParticipant = expenseParticipants.find(
+        p => p.expenseId === expense.id && p.userId === userId
+      );
+      if (userParticipant && expense.paidBy !== userId) {
+        balance -= userParticipant.amountOwed;
       }
     }
     
-    // Add payments received by this user
-    const paymentsReceived = Array.from(this.payments.values())
-      .filter(payment => payment.groupId === groupId && payment.paidTo === userId);
+    // Calculate the balance from payments
+    for (const payment of payments) {
+      // If user made the payment, subtract the amount
+      if (payment.paidBy === userId) {
+        balance -= payment.amount;
+      }
       
-    for (const payment of paymentsReceived) {
-      balance += Number(payment.amount);
-    }
-    
-    // Subtract payments made by this user
-    const paymentsMade = Array.from(this.payments.values())
-      .filter(payment => payment.groupId === groupId && payment.paidBy === userId);
-      
-    for (const payment of paymentsMade) {
-      balance -= Number(payment.amount);
+      // If user received the payment, add the amount
+      if (payment.paidTo === userId) {
+        balance += payment.amount;
+      }
     }
     
     return balance;
@@ -395,105 +380,114 @@ export class MemStorage implements IStorage {
     owedByUsers: { user: User; amount: number }[];
     owesToUsers: { user: User; amount: number }[];
   }> {
-    const userGroups = await this.getGroupsByUserId(userId);
+    // Get all groups user is a member of
+    const groups = await this.getGroupsByUserId(userId);
+    
     let totalOwed = 0;
     let totalOwes = 0;
-    
-    // Track individual balances
-    const balancesByUser: Record<number, number> = {};
-    
-    for (const group of userGroups) {
-      // Calculate what others owe this user in this group
-      const expensesPaidByUser = Array.from(this.expenses.values())
-        .filter(expense => expense.groupId === group.id && expense.paidBy === userId);
-        
-      for (const expense of expensesPaidByUser) {
-        const participants = await this.getExpenseParticipants(expense.id);
-        for (const participant of participants) {
-          if (participant.userId === userId) continue; // Skip self
-          
-          const amount = Number(participant.amountOwed);
-          totalOwed += amount;
-          
-          // Add to individual balance
-          if (!balancesByUser[participant.userId]) {
-            balancesByUser[participant.userId] = 0;
-          }
-          balancesByUser[participant.userId] += amount;
-        }
-      }
-      
-      // Calculate what this user owes to others in this group
-      const expensesNotPaidByUser = Array.from(this.expenses.values())
-        .filter(expense => expense.groupId === group.id && expense.paidBy !== userId);
-        
-      for (const expense of expensesNotPaidByUser) {
-        const participants = await this.getExpenseParticipants(expense.id);
-        const userParticipant = participants.find(p => p.userId === userId);
-        
-        if (userParticipant) {
-          const amount = Number(userParticipant.amountOwed);
-          totalOwes += amount;
-          
-          // Subtract from individual balance
-          if (!balancesByUser[expense.paidBy]) {
-            balancesByUser[expense.paidBy] = 0;
-          }
-          balancesByUser[expense.paidBy] -= amount;
-        }
-      }
-      
-      // Add payments received
-      const paymentsReceived = Array.from(this.payments.values())
-        .filter(payment => payment.groupId === group.id && payment.paidTo === userId);
-        
-      for (const payment of paymentsReceived) {
-        const amount = Number(payment.amount);
-        totalOwed -= amount; // Reduce amount owed as it's been paid
-        
-        // Update individual balance
-        if (!balancesByUser[payment.paidBy]) {
-          balancesByUser[payment.paidBy] = 0;
-        }
-        balancesByUser[payment.paidBy] -= amount;
-      }
-      
-      // Add payments made
-      const paymentsMade = Array.from(this.payments.values())
-        .filter(payment => payment.groupId === group.id && payment.paidBy === userId);
-        
-      for (const payment of paymentsMade) {
-        const amount = Number(payment.amount);
-        totalOwes -= amount; // Reduce amount to pay as it's been paid
-        
-        // Update individual balance
-        if (!balancesByUser[payment.paidTo]) {
-          balancesByUser[payment.paidTo] = 0;
-        }
-        balancesByUser[payment.paidTo] += amount;
-      }
-    }
-    
-    // Format the result with user details
     const owedByUsers: { user: User; amount: number }[] = [];
     const owesToUsers: { user: User; amount: number }[] = [];
     
-    for (const [userIdStr, balance] of Object.entries(balancesByUser)) {
-      const otherUserId = parseInt(userIdStr);
-      const otherUser = await this.getUser(otherUserId);
+    // Calculate balances for each group
+    for (const group of groups) {
+      // Get all expenses in the group
+      const expenses = await this.getExpensesByGroupId(group.id);
       
-      if (!otherUser) continue;
+      // Get all expense participants
+      const expenseParticipants: ExpenseParticipant[] = [];
+      for (const expense of expenses) {
+        const participants = await this.getExpenseParticipants(expense.id);
+        expenseParticipants.push(...participants);
+      }
       
-      if (balance > 0) {
-        owedByUsers.push({ user: otherUser, amount: balance });
-      } else if (balance < 0) {
-        owesToUsers.push({ user: otherUser, amount: -balance });
+      // Get all payments in the group
+      const payments = await this.getPaymentsByGroupId(group.id);
+      
+      // Get all members in the group
+      const members = await this.getGroupMembers(group.id);
+      
+      // Track balances with each member
+      const memberBalances = new Map<number, number>();
+      
+      // Initialize balance for each member
+      for (const member of members) {
+        if (member.userId !== userId) {
+          memberBalances.set(member.userId, 0);
+        }
+      }
+      
+      // Calculate balances from expenses
+      for (const expense of expenses) {
+        if (expense.paidBy === userId) {
+          // User paid for the expense, others owe user
+          const participants = expenseParticipants.filter(
+            p => p.expenseId === expense.id && p.userId !== userId
+          );
+          
+          for (const participant of participants) {
+            const currentBalance = memberBalances.get(participant.userId) || 0;
+            memberBalances.set(
+              participant.userId, 
+              currentBalance + participant.amountOwed
+            );
+          }
+        } else {
+          // Another user paid, check if user owes them
+          const userParticipant = expenseParticipants.find(
+            p => p.expenseId === expense.id && p.userId === userId
+          );
+          
+          if (userParticipant) {
+            const currentBalance = memberBalances.get(expense.paidBy) || 0;
+            memberBalances.set(
+              expense.paidBy, 
+              currentBalance - userParticipant.amountOwed
+            );
+          }
+        }
+      }
+      
+      // Calculate balances from payments
+      for (const payment of payments) {
+        if (payment.paidBy === userId && payment.paidTo !== userId) {
+          // User paid another user
+          const currentBalance = memberBalances.get(payment.paidTo) || 0;
+          memberBalances.set(
+            payment.paidTo, 
+            currentBalance - payment.amount
+          );
+        } else if (payment.paidTo === userId && payment.paidBy !== userId) {
+          // Another user paid user
+          const currentBalance = memberBalances.get(payment.paidBy) || 0;
+          memberBalances.set(
+            payment.paidBy, 
+            currentBalance + payment.amount
+          );
+        }
+      }
+      
+      // Aggregate the balances
+      for (const [memberId, balance] of memberBalances.entries()) {
+        const member = members.find(m => m.userId === memberId);
+        if (member) {
+          if (balance > 0) {
+            // This user owes the current user
+            totalOwed += balance;
+            owedByUsers.push({
+              user: member.user,
+              amount: balance
+            });
+          } else if (balance < 0) {
+            // The current user owes this user
+            totalOwes += Math.abs(balance);
+            owesToUsers.push({
+              user: member.user,
+              amount: Math.abs(balance)
+            });
+          }
+        }
       }
     }
-    
-    // Sort by amount (highest first)
-    owedByUsers.sort((a, b) => b.amount - a.amount);
-    owesToUsers.sort((a, b) => b.amount - a.amount);
     
     return {
       totalOwed,
@@ -509,13 +503,11 @@ export class MemStorage implements IStorage {
     user: User;
     balance: number;
   }[]> {
+    // Get all members in the group
     const members = await this.getGroupMembers(groupId);
-    const balances: {
-      userId: number;
-      user: User;
-      balance: number;
-    }[] = [];
     
+    // Calculate balance for each member
+    const balances = [];
     for (const member of members) {
       const balance = await this.getUserBalanceInGroup(member.userId, groupId);
       balances.push({
@@ -525,8 +517,8 @@ export class MemStorage implements IStorage {
       });
     }
     
-    return balances.sort((a, b) => b.balance - a.balance);
+    return balances;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
