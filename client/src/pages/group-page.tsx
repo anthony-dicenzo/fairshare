@@ -29,29 +29,29 @@ export default function GroupPage() {
     onError: () => navigate("/")
   });
 
-  const { data: members = [] } = useQuery({
+  const { data: members = [], isLoading: isLoadingMembers } = useQuery({
     queryKey: ["/api/groups", groupId.toString(), "members"],
-    enabled: !!groupId
+    enabled: !!groupId && !!group
   });
 
-  const { data: expenses = [] } = useQuery({
+  const { data: expenses = [], isLoading: isLoadingExpenses } = useQuery({
     queryKey: ["/api/groups", groupId.toString(), "expenses"],
-    enabled: !!groupId
+    enabled: !!groupId && !!group
   });
 
-  const { data: payments = [] } = useQuery({
+  const { data: payments = [], isLoading: isLoadingPayments } = useQuery({
     queryKey: ["/api/groups", groupId.toString(), "payments"],
-    enabled: !!groupId
+    enabled: !!groupId && !!group
   });
 
-  const { data: balances = [] } = useQuery({
+  const { data: balances = [], isLoading: isLoadingBalances } = useQuery({
     queryKey: ["/api/groups", groupId.toString(), "balances"],
-    enabled: !!groupId
+    enabled: !!groupId && !!group
   });
 
-  const { data: activity = [] } = useQuery({
+  const { data: activity = [], isLoading: isLoadingActivity } = useQuery({
     queryKey: ["/api/groups", groupId.toString(), "activity"],
-    enabled: !!groupId
+    enabled: !!groupId && !!group
   });
 
   if (isLoadingGroup) {

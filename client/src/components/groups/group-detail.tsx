@@ -21,13 +21,13 @@ type GroupDetailProps = {
   }[];
 };
 
-export function GroupDetail({ group, members, balances }: GroupDetailProps) {
+export function GroupDetail({ group, members = [], balances = [] }: GroupDetailProps) {
   const { user } = useAuth();
 
-  if (!user) return null;
+  if (!user || !group) return null;
 
   // Find current user's balance
-  const userBalance = balances.find(b => b.userId === user.id)?.balance || 0;
+  const userBalance = balances?.find(b => b?.userId === user.id)?.balance || 0;
   
   return (
     <Card>
@@ -38,13 +38,13 @@ export function GroupDetail({ group, members, balances }: GroupDetailProps) {
             <div className="flex items-center mb-4">
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mr-4">
                 <span className="text-lg font-medium text-primary">
-                  {group.name ? group.name.charAt(0) : "G"}
+                  {group?.name ? group.name.charAt(0) : "G"}
                 </span>
               </div>
               <div>
-                <h2 className="text-xl font-semibold">{group.name || "Group"}</h2>
+                <h2 className="text-xl font-semibold">{group?.name || "Group"}</h2>
                 <p className="text-sm text-muted-foreground">
-                  {members.length} member{members.length !== 1 ? 's' : ''} · Created {new Date(group.createdAt).toLocaleDateString()}
+                  {members?.length || 0} member{(members?.length || 0) !== 1 ? 's' : ''} · Created {group?.createdAt ? new Date(group.createdAt).toLocaleDateString() : 'recently'}
                 </p>
               </div>
             </div>
@@ -58,7 +58,7 @@ export function GroupDetail({ group, members, balances }: GroupDetailProps) {
                     ? "text-rose-500" 
                     : ""
               }`}>
-                {userBalance > 0 ? "+" : ""}${Math.abs(userBalance).toFixed(2)}
+                {userBalance > 0 ? "+" : ""}${Math.abs(Number(userBalance)).toFixed(2)}
               </p>
               <p className="text-sm text-muted-foreground mt-1">
                 {userBalance > 0 
@@ -74,9 +74,11 @@ export function GroupDetail({ group, members, balances }: GroupDetailProps) {
           <div className="flex-1">
             <h3 className="text-sm font-medium mb-3">Group Members</h3>
             <div className="space-y-3">
-              {members.map((member) => {
-                const memberBalance = balances.find(b => b.userId === member.user.id)?.balance || 0;
-                const initials = member.user && member.user.name 
+              {members?.map((member) => {
+                if (!member?.user?.id) return null;
+                
+                const memberBalance = balances?.find(b => b?.userId === member?.user?.id)?.balance || 0;
+                const initials = member?.user?.name 
                   ? member.user.name
                       .split(" ")
                       .map((n) => n[0])
@@ -94,10 +96,10 @@ export function GroupDetail({ group, members, balances }: GroupDetailProps) {
                         </AvatarFallback>
                       </Avatar>
                       <span className="text-sm font-medium">
-                        {member.user && user && member.user.id === user.id ? "You" : member.user?.name || "User"}
+                        {member?.user && user && member.user.id === user.id ? "You" : member?.user?.name || "User"}
                       </span>
                     </div>
-                    {member.user && user && member.user.id !== user.id && (
+                    {member?.user && user && member.user.id !== user.id && (
                       <span className={`text-sm font-medium ${
                         memberBalance > 0 
                           ? "text-emerald-500" 
@@ -105,7 +107,7 @@ export function GroupDetail({ group, members, balances }: GroupDetailProps) {
                             ? "text-rose-500" 
                             : ""
                       }`}>
-                        {memberBalance > 0 ? "+" : ""}${Math.abs(memberBalance).toFixed(2)}
+                        {memberBalance > 0 ? "+" : ""}${Math.abs(Number(memberBalance)).toFixed(2)}
                       </span>
                     )}
                   </div>

@@ -78,7 +78,7 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
   
   const { data: groupMembers = [] } = useQuery({
     queryKey: ["/api/groups", selectedGroupId, "members"],
-    enabled: !!selectedGroupId,
+    enabled: !!selectedGroupId && selectedGroupId !== "",
   });
 
   const form = useForm<ExpenseFormValues>({
@@ -106,8 +106,8 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
 
   // Initialize selectedUserIds with all members when group changes
   useEffect(() => {
-    if (groupMembers.length > 0) {
-      const memberIds = groupMembers.map(member => member.userId);
+    if (groupMembers && groupMembers.length > 0) {
+      const memberIds = groupMembers.map(member => member?.userId).filter(Boolean) as number[];
       setSelectedUserIds(memberIds);
     }
   }, [groupMembers]);
