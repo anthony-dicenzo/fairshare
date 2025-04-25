@@ -64,8 +64,9 @@ export function GroupInvite({ open, onOpenChange, groupId, members }: GroupInvit
       form.reset();
       
       // Invalidate queries
-      queryClient.invalidateQueries({ queryKey: ["/api/groups", groupId.toString(), "members"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/groups", groupId.toString(), "activity"] });
+      const groupIdStr = groupId ? groupId.toString() : "";
+      queryClient.invalidateQueries({ queryKey: ["/api/groups", groupIdStr, "members"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/groups", groupIdStr, "activity"] });
     },
     onError: (error) => {
       toast({
@@ -122,23 +123,33 @@ export function GroupInvite({ open, onOpenChange, groupId, members }: GroupInvit
           </form>
         </Form>
 
-        {members.length > 0 && (
+        {Array.isArray(members) && members.length > 0 && (
           <div className="mt-4">
             <h3 className="text-sm font-medium mb-2">Current members</h3>
             <div className="space-y-2">
-              {members.map((member) => (
-                <div key={member.userId} className="flex items-center">
-                  <Avatar className="h-7 w-7 mr-2">
-                    <AvatarFallback className="text-xs">
-                      {member.user.name.split(" ").map((n: string) => n[0]).join("").toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="text-sm font-medium">{member.user.name}</p>
-                    <p className="text-xs text-muted-foreground">{member.user.email}</p>
+              {members.map((member) => {
+                if (!member?.userId || !member?.user?.name) return null;
+                
+                const initials = member.user.name
+                  .split(" ")
+                  .map((n: string) => n[0])
+                  .join("")
+                  .toUpperCase();
+                  
+                return (
+                  <div key={member.userId} className="flex items-center">
+                    <Avatar className="h-7 w-7 mr-2">
+                      <AvatarFallback className="text-xs">
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="text-sm font-medium">{member.user.name}</p>
+                      <p className="text-xs text-muted-foreground">{member.user.email || "No email provided"}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

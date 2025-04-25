@@ -280,14 +280,14 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                       <SelectItem value={user?.id.toString() || ""}>
                         You
                       </SelectItem>
-                      {groupMembers
-                        .filter((member) => member.userId !== user?.id)
+                      {Array.isArray(groupMembers) && groupMembers
+                        .filter((member) => member?.userId !== user?.id)
                         .map((member) => (
                           <SelectItem 
-                            key={member.userId} 
-                            value={member.userId.toString()}
+                            key={member?.userId} 
+                            value={(member?.userId || 0).toString()}
                           >
-                            {member.user.name}
+                            {member?.user?.name || "Unknown User"}
                           </SelectItem>
                         ))}
                     </SelectContent>
@@ -343,15 +343,15 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
             <div>
               <FormLabel>Split between</FormLabel>
               <div className="mt-2 space-y-2">
-                {groupMembers.map((member) => (
-                  <div key={member.userId} className="flex items-center space-x-2">
+                {Array.isArray(groupMembers) && groupMembers.map((member) => (
+                  <div key={member?.userId} className="flex items-center space-x-2">
                     <Checkbox
-                      id={`split-${member.userId}`}
-                      checked={selectedUserIds.includes(member.userId)}
+                      id={`split-${member?.userId}`}
+                      checked={selectedUserIds.includes(member?.userId || 0)}
                       onCheckedChange={(checked) => {
-                        if (checked) {
+                        if (checked && member?.userId) {
                           setSelectedUserIds([...selectedUserIds, member.userId]);
-                        } else {
+                        } else if (member?.userId) {
                           setSelectedUserIds(
                             selectedUserIds.filter((id) => id !== member.userId)
                           );
@@ -359,10 +359,10 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                       }}
                     />
                     <label
-                      htmlFor={`split-${member.userId}`}
+                      htmlFor={`split-${member?.userId}`}
                       className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                     >
-                      {member.userId === user?.id ? "You" : member.user.name}
+                      {member?.userId === user?.id ? "You" : member?.user?.name || "Unknown User"}
                     </label>
                   </div>
                 ))}

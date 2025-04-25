@@ -17,7 +17,8 @@ import { ActionButtons } from "@/components/dashboard/action-buttons";
 
 export default function GroupPage() {
   const params = useParams<{ id: string }>();
-  const groupId = parseInt(params.id);
+  const groupId = params.id ? parseInt(params.id) : 0;
+  const groupIdString = groupId ? groupId.toString() : "";
   const [, navigate] = useLocation();
   
   const [showExpenseModal, setShowExpenseModal] = useState(false);
@@ -25,32 +26,32 @@ export default function GroupPage() {
   const [showInviteModal, setShowInviteModal] = useState(false);
 
   const { data: group, isLoading: isLoadingGroup } = useQuery({
-    queryKey: ["/api/groups", groupId.toString()],
-    onError: () => navigate("/")
+    queryKey: ["/api/groups", groupIdString],
+    enabled: !!groupId
   });
 
   const { data: members = [], isLoading: isLoadingMembers } = useQuery({
-    queryKey: ["/api/groups", groupId.toString(), "members"],
+    queryKey: ["/api/groups", groupIdString, "members"],
     enabled: !!groupId && !!group
   });
 
   const { data: expenses = [], isLoading: isLoadingExpenses } = useQuery({
-    queryKey: ["/api/groups", groupId.toString(), "expenses"],
+    queryKey: ["/api/groups", groupIdString, "expenses"],
     enabled: !!groupId && !!group
   });
 
   const { data: payments = [], isLoading: isLoadingPayments } = useQuery({
-    queryKey: ["/api/groups", groupId.toString(), "payments"],
+    queryKey: ["/api/groups", groupIdString, "payments"],
     enabled: !!groupId && !!group
   });
 
   const { data: balances = [], isLoading: isLoadingBalances } = useQuery({
-    queryKey: ["/api/groups", groupId.toString(), "balances"],
+    queryKey: ["/api/groups", groupIdString, "balances"],
     enabled: !!groupId && !!group
   });
 
   const { data: activity = [], isLoading: isLoadingActivity } = useQuery({
-    queryKey: ["/api/groups", groupId.toString(), "activity"],
+    queryKey: ["/api/groups", groupIdString, "activity"],
     enabled: !!groupId && !!group
   });
 
