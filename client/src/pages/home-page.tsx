@@ -17,27 +17,29 @@ export default function HomePage() {
 
   return (
     <MainLayout>
-      <div className="px-4 py-6 md:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <ActionButtons 
-            onAddExpense={() => setShowExpenseModal(true)}
-            onAddPayment={() => setShowPaymentModal(true)}
-          />
+      <div className="px-3 py-4 sm:px-4 sm:py-6 md:px-6 lg:px-8 w-full max-w-full">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6">
+          <h1 className="text-2xl font-bold mb-3 sm:mb-0">Dashboard</h1>
+          <div className="flex justify-start sm:justify-end w-full sm:w-auto">
+            <ActionButtons 
+              onAddExpense={() => setShowExpenseModal(true)}
+              onAddPayment={() => setShowPaymentModal(true)}
+            />
+          </div>
         </div>
 
         {/* Balance Summary */}
         <BalanceSummary />
 
         {/* Groups and Recent Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6">
           {/* Groups Card */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 w-full">
             <GroupsList />
           </div>
           
           {/* Recent Activity */}
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-3 w-full">
             <ActivityFeed />
           </div>
         </div>

@@ -31,17 +31,17 @@ export function BalanceSummary() {
   const percentOwed = totalAmountForProgress === 0 ? 0 : (totalOwed / totalAmountForProgress) * 100;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
       {/* You Owe Card */}
-      <Card>
-        <CardHeader className="pb-2">
+      <Card className="w-full">
+        <CardHeader className="pb-2 px-4 pt-4">
           <CardTitle className="text-sm font-medium text-muted-foreground">You Owe</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4 pb-4">
           <p className="text-2xl font-semibold text-rose-500 dark:text-rose-400">
             ${totalOwes.toFixed(2)}
           </p>
-          <div className="mt-4 space-y-2">
+          <div className="mt-3 space-y-2">
             {owesToUsers.slice(0, 2).map((item) => (
               <div key={item.user.id} className="flex justify-between items-center">
                 <div className="flex items-center">
@@ -57,20 +57,23 @@ export function BalanceSummary() {
                 </span>
               </div>
             ))}
+            {owesToUsers.length === 0 && (
+              <div className="text-sm text-muted-foreground italic">No debts</div>
+            )}
           </div>
         </CardContent>
       </Card>
 
       {/* You Are Owed Card */}
-      <Card>
-        <CardHeader className="pb-2">
+      <Card className="w-full">
+        <CardHeader className="pb-2 px-4 pt-4">
           <CardTitle className="text-sm font-medium text-muted-foreground">You Are Owed</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4 pb-4">
           <p className="text-2xl font-semibold text-emerald-500 dark:text-emerald-400">
             ${totalOwed.toFixed(2)}
           </p>
-          <div className="mt-4 space-y-2">
+          <div className="mt-3 space-y-2">
             {owedByUsers.slice(0, 2).map((item) => (
               <div key={item.user.id} className="flex justify-between items-center">
                 <div className="flex items-center">
@@ -86,23 +89,26 @@ export function BalanceSummary() {
                 </span>
               </div>
             ))}
+            {owedByUsers.length === 0 && (
+              <div className="text-sm text-muted-foreground italic">No credits</div>
+            )}
           </div>
         </CardContent>
       </Card>
 
       {/* Balance Card */}
-      <Card>
-        <CardHeader className="pb-2">
+      <Card className="w-full sm:col-span-2 md:col-span-1">
+        <CardHeader className="pb-2 px-4 pt-4">
           <CardTitle className="text-sm font-medium text-muted-foreground">Total Balance</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4 pb-4">
           <p className={`text-2xl font-semibold ${netBalance >= 0 ? "text-primary" : "text-rose-500 dark:text-rose-400"}`}>
             {netBalance >= 0 ? "+" : ""}${netBalance.toFixed(2)}
           </p>
-          <div className="mt-4">
+          <div className="mt-3">
             <Progress value={percentOwed} className="h-2.5" />
-            <div className="flex justify-between mt-2 text-xs text-muted-foreground">
-              <span>You owe: ${totalOwes.toFixed(2)}</span>
+            <div className="flex flex-col xs:flex-row justify-between mt-2 text-xs text-muted-foreground">
+              <span className="mb-1 xs:mb-0">You owe: ${totalOwes.toFixed(2)}</span>
               <span>You are owed: ${totalOwed.toFixed(2)}</span>
             </div>
           </div>
@@ -114,14 +120,14 @@ export function BalanceSummary() {
 
 function BalanceSummarySkeleton() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
       {[1, 2, 3].map((i) => (
-        <Card key={i}>
-          <CardHeader className="pb-2">
+        <Card key={i} className={`w-full ${i === 3 ? 'sm:col-span-2 md:col-span-1' : ''}`}>
+          <CardHeader className="pb-2 px-4 pt-4">
             <Skeleton className="h-4 w-24" />
           </CardHeader>
-          <CardContent>
-            <Skeleton className="h-8 w-24 mb-4" />
+          <CardContent className="px-4 pb-4">
+            <Skeleton className="h-8 w-24 mb-3" />
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <div className="flex items-center">

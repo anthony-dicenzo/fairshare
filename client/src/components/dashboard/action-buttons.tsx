@@ -14,8 +14,9 @@ export function ActionButtons({ onAddExpense, onAddPayment, compact = false }: A
         <Button 
           size="sm" 
           onClick={onAddExpense}
+          className="flex-1 sm:flex-none"
         >
-          <PlusCircle className="h-4 w-4 mr-2" />
+          <PlusCircle className="h-4 w-4 mr-1 sm:mr-2" />
           <span className="hidden sm:inline">Add Expense</span>
           <span className="sm:hidden">Expense</span>
         </Button>
@@ -23,8 +24,9 @@ export function ActionButtons({ onAddExpense, onAddPayment, compact = false }: A
           size="sm" 
           variant="outline" 
           onClick={onAddPayment}
+          className="flex-1 sm:flex-none"
         >
-          <CreditCard className="h-4 w-4 mr-2" />
+          <CreditCard className="h-4 w-4 mr-1 sm:mr-2" />
           <span className="hidden sm:inline">Record Payment</span>
           <span className="sm:hidden">Payment</span>
         </Button>
@@ -33,14 +35,23 @@ export function ActionButtons({ onAddExpense, onAddPayment, compact = false }: A
   }
 
   return (
-    <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-3">
-      <Button onClick={onAddExpense}>
-        <PlusCircle className="h-4 w-4 mr-2" />
-        Add Expense
+    <div className="flex w-full space-x-2 sm:space-x-3">
+      <Button 
+        onClick={onAddExpense}
+        className="flex-1 sm:flex-none text-xs sm:text-sm py-2 px-3 sm:px-4"
+      >
+        <PlusCircle className="h-4 w-4 mr-1 sm:mr-2" />
+        <span className="hidden xs:inline">Add Expense</span>
+        <span className="xs:hidden">Expense</span>
       </Button>
-      <Button variant="outline" onClick={onAddPayment}>
-        <CreditCard className="h-4 w-4 mr-2" />
-        Record Payment
+      <Button 
+        variant="outline" 
+        onClick={onAddPayment}
+        className="flex-1 sm:flex-none text-xs sm:text-sm py-2 px-3 sm:px-4"
+      >
+        <CreditCard className="h-4 w-4 mr-1 sm:mr-2" />
+        <span className="hidden xs:inline">Record Payment</span>
+        <span className="xs:hidden">Payment</span>
       </Button>
     </div>
   );
