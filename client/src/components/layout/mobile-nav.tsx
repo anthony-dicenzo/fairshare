@@ -10,18 +10,18 @@ export function MobileNav() {
   
   return (
     <>
-      <div className="fixed bottom-0 left-0 right-0 bg-background border-t z-50 md:hidden">
-        <nav className="flex justify-around px-2 py-3">
+      <div className="fixed bottom-0 left-0 right-0 w-full bg-background border-t z-50 md:hidden">
+        <nav className="flex justify-around items-center px-2 py-3">
           <Link href="/">
-            <div className="flex flex-col items-center gap-1 cursor-pointer">
+            <div className="flex flex-col items-center gap-0.5 cursor-pointer">
               <Home className={cn("h-5 w-5", location === "/" ? "text-primary" : "text-muted-foreground")} />
-              <span className="text-xs">Home</span>
+              <span className="text-xs font-medium">Home</span>
             </div>
           </Link>
           <Link href="/groups">
-            <div className="flex flex-col items-center gap-1 cursor-pointer">
+            <div className="flex flex-col items-center gap-0.5 cursor-pointer">
               <Users className={cn("h-5 w-5", location === "/groups" ? "text-primary" : "text-muted-foreground")} />
-              <span className="text-xs">Groups</span>
+              <span className="text-xs font-medium">Groups</span>
             </div>
           </Link>
           <button 
@@ -31,15 +31,15 @@ export function MobileNav() {
             <Plus className="h-6 w-6" />
           </button>
           <Link href="/activity">
-            <div className="flex flex-col items-center gap-1 cursor-pointer">
+            <div className="flex flex-col items-center gap-0.5 cursor-pointer">
               <BarChart4 className={cn("h-5 w-5", location === "/activity" ? "text-primary" : "text-muted-foreground")} />
-              <span className="text-xs">Activity</span>
+              <span className="text-xs font-medium">Activity</span>
             </div>
           </Link>
           <Link href="/profile">
-            <div className="flex flex-col items-center gap-1 cursor-pointer">
+            <div className="flex flex-col items-center gap-0.5 cursor-pointer">
               <User className={cn("h-5 w-5", location === "/profile" ? "text-primary" : "text-muted-foreground")} />
-              <span className="text-xs">Profile</span>
+              <span className="text-xs font-medium">Profile</span>
             </div>
           </Link>
         </nav>

@@ -9,7 +9,7 @@ interface MainLayoutProps {
 
 export function MainLayout({ children }: MainLayoutProps) {
   return (
-    <div className="flex h-screen overflow-hidden bg-muted/40">
+    <div className="flex h-screen w-full overflow-hidden bg-muted/40">
       {/* Mobile Header */}
       <MobileHeader />
 
@@ -19,7 +19,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto pt-16 md:pt-0 pb-16 md:pb-0">
+      <main className="flex-grow w-full overflow-y-auto pt-16 md:pt-0 pb-16 md:pb-0">
         {children}
       </main>
 
