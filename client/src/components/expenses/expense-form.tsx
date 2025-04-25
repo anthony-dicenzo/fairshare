@@ -57,7 +57,23 @@ const expenseFormSchema = z.object({
   groupId: z.string().min(1, "Group is required"),
   paidBy: z.string().min(1, "Payer is required"),
   splitMethod: z.enum(["equal", "unequal", "percentage"]),
-  date: z.string().optional(),
+  // Date must be in YYYY-MM-DD format for the backend
+  date: z.string().transform(val => {
+    // If the value is empty or already in the correct format, return as is
+    if (!val) return formatISO(new Date(), { representation: 'date' });
+    // Try to parse the date and format it correctly
+    try {
+      const date = new Date(val);
+      // Check if the date is valid
+      if (isNaN(date.getTime())) {
+        return formatISO(new Date(), { representation: 'date' });
+      }
+      return formatISO(date, { representation: 'date' });
+    } catch (e) {
+      // If parsing fails, return today's date
+      return formatISO(new Date(), { representation: 'date' });
+    }
+  }),
   notes: z.string().optional(),
 });
 
@@ -171,12 +187,27 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
       };
     });
 
+    // Ensure we have a valid date in the correct format
+    let formattedDate;
+    try {
+      // Try to use the date from the form, properly formatted
+      formattedDate = formatISO(new Date(values.date), { representation: 'date' });
+      // Validate the date format (yyyy-MM-dd)
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(formattedDate)) {
+        // If invalid format, use today's date
+        formattedDate = formatISO(new Date(), { representation: 'date' });
+      }
+    } catch (e) {
+      // If any error occurs, use today's date
+      formattedDate = formatISO(new Date(), { representation: 'date' });
+    }
+
     createExpenseMutation.mutate({
       title: values.title,
       totalAmount,
       groupId: parseInt(values.groupId),
       paidBy: parseInt(values.paidBy),
-      date: values.date || formatISO(new Date(), { representation: "date" }),
+      date: formattedDate,
       notes: values.notes,
       participants,
     });
@@ -345,29 +376,34 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
             <div>
               <FormLabel>Split between</FormLabel>
               <div className="mt-2 space-y-2">
-                {Array.isArray(groupMembers) && groupMembers.map((member) => (
-                  <div key={member?.userId} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`split-${member?.userId}`}
-                      checked={selectedUserIds.includes(member?.userId || 0)}
-                      onCheckedChange={(checked) => {
-                        if (checked && member?.userId) {
-                          setSelectedUserIds([...selectedUserIds, member.userId]);
-                        } else if (member?.userId) {
-                          setSelectedUserIds(
-                            selectedUserIds.filter((id) => id !== member.userId)
-                          );
-                        }
-                      }}
-                    />
-                    <label
-                      htmlFor={`split-${member?.userId}`}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      {member?.userId === user?.id ? "You" : member?.user?.name || "Unknown User"}
-                    </label>
-                  </div>
-                ))}
+                {Array.isArray(groupMembers) && groupMembers.map((member) => {
+                  // Skip if userId is not defined
+                  if (!member?.userId) return null;
+                  
+                  return (
+                    <div key={member.userId} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`split-${member.userId}`}
+                        checked={selectedUserIds.includes(member.userId)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedUserIds(prev => [...prev, member.userId]);
+                          } else {
+                            setSelectedUserIds(prev => 
+                              prev.filter(id => id !== member.userId)
+                            );
+                          }
+                        }}
+                      />
+                      <label
+                        htmlFor={`split-${member.userId}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        {member.userId === user?.id ? "You" : member?.user?.name || "Unknown User"}
+                      </label>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
