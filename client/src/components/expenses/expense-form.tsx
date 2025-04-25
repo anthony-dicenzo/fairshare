@@ -68,6 +68,10 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
   const { toast } = useToast();
   const { user } = useAuth();
   const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
+  // Track custom amounts for unequal splits
+  const [customAmounts, setCustomAmounts] = useState<Record<number, number>>({});
+  // Track custom percentages for percentage splits
+  const [customPercentages, setCustomPercentages] = useState<Record<number, number>>({});
 
   // Get groups data
   const { data: groups = [] } = useQuery<Group[]>({
@@ -113,8 +117,42 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
         .map(member => member?.userId)
         .filter(id => typeof id === 'number') as number[];
       setSelectedUserIds(memberIds);
+      
+      // Reset custom amounts and percentages
+      handleInitializeAmountsAndPercentages(memberIds);
     }
   }, [groupMembers]);
+  
+  // Watch for changes to the split method and total amount
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      if (value.splitMethod || value.totalAmount) {
+        handleInitializeAmountsAndPercentages(selectedUserIds);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form, selectedUserIds]);
+  
+  // Function to initialize custom amounts and percentages
+  const handleInitializeAmountsAndPercentages = (userIds: number[]) => {
+    if (userIds.length === 0) return;
+    
+    const totalAmount = parseFloat(form.getValues("totalAmount") || "0");
+    const equalAmount = totalAmount / userIds.length;
+    const equalPercentage = 100 / userIds.length;
+    
+    // Initialize custom amounts
+    const newAmounts: Record<number, number> = {};
+    const newPercentages: Record<number, number> = {};
+    
+    userIds.forEach(userId => {
+      newAmounts[userId] = equalAmount;
+      newPercentages[userId] = equalPercentage;
+    });
+    
+    setCustomAmounts(newAmounts);
+    setCustomPercentages(newPercentages);
+  };
 
   // Create expense mutation
   const createExpenseMutation = useMutation({
@@ -177,12 +215,33 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
       participantIds = [user.id];
     }
     
+    const splitMethod = values.splitMethod;
+    
+    // Calculate amount owed based on split method
     const participants = participantIds.map((userId) => {
       let amountOwed = 0;
       
-      // Simple equal split for now
-      if (values.splitMethod === "equal") {
+      if (splitMethod === "equal") {
+        // Equal split
         amountOwed = totalAmount / participantIds.length;
+      } 
+      else if (splitMethod === "unequal") {
+        // Unequal split - use custom amounts if available
+        if (customAmounts[userId]) {
+          amountOwed = customAmounts[userId];
+        } else {
+          // Fall back to equal split if no custom amount
+          amountOwed = totalAmount / participantIds.length;
+        }
+      } 
+      else if (splitMethod === "percentage") {
+        // Percentage split - use custom percentages if available
+        if (customPercentages[userId]) {
+          amountOwed = (totalAmount * customPercentages[userId]) / 100;
+        } else {
+          // Fall back to equal percentage split
+          amountOwed = totalAmount / participantIds.length;
+        }
       }
       
       return {
@@ -372,31 +431,139 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                   // Skip if userId is not defined
                   if (!member?.userId) return null;
                   
+                  const isEqual = form.getValues("splitMethod") === "equal";
+                  const isUnequal = form.getValues("splitMethod") === "unequal";
+                  const isPercentage = form.getValues("splitMethod") === "percentage";
+                  const isSelected = selectedUserIds.includes(member.userId);
+                  
+                  const totalAmount = parseFloat(form.getValues("totalAmount")) || 0;
+                  const equalShare = isSelected && selectedUserIds.length > 0 ? 
+                    totalAmount / selectedUserIds.length : 0;
+                    
+                  // Calculate even percentage for each selected member
+                  const equalPercentage = isSelected && selectedUserIds.length > 0 ? 
+                    100 / selectedUserIds.length : 0;
+                  
                   return (
                     <div key={member.userId} className="flex items-center space-x-2">
                       <Checkbox
                         id={`split-${member.userId}`}
-                        checked={selectedUserIds.includes(member.userId)}
+                        checked={isSelected}
                         onCheckedChange={(checked) => {
                           if (checked) {
-                            setSelectedUserIds(prev => [...prev, member.userId]);
+                            const newSelectedIds = [...selectedUserIds, member.userId];
+                            setSelectedUserIds(newSelectedIds);
+                            // Recalculate splits with new member included
+                            handleInitializeAmountsAndPercentages(newSelectedIds);
                           } else {
-                            setSelectedUserIds(prev => 
-                              prev.filter(id => id !== member.userId)
-                            );
+                            const newSelectedIds = selectedUserIds.filter(id => id !== member.userId);
+                            setSelectedUserIds(newSelectedIds);
+                            // Recalculate splits with this member removed
+                            handleInitializeAmountsAndPercentages(newSelectedIds);
                           }
                         }}
                       />
-                      <label
-                        htmlFor={`split-${member.userId}`}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        {member.userId === user?.id ? "You" : member?.user?.name || "Unknown User"}
-                      </label>
+                      <div className="flex items-center space-x-2 w-full">
+                        <label
+                          htmlFor={`split-${member.userId}`}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          {member.userId === user?.id ? "You" : member?.user?.name || "Unknown User"}
+                        </label>
+                        
+                        {/* Show amount for equal split (informational) */}
+                        {isEqual && isSelected && (
+                          <div className="ml-auto text-sm text-muted-foreground">
+                            ${equalShare.toFixed(2)}
+                          </div>
+                        )}
+                        
+                        {/* Input field for unequal split */}
+                        {isUnequal && isSelected && (
+                          <div className="ml-auto">
+                            <div className="relative">
+                              <span className="absolute left-2 top-2 text-xs">$</span>
+                              <Input 
+                                type="text"
+                                placeholder="0.00"
+                                className="w-24 h-8 pl-6 text-xs"
+                                value={customAmounts[member.userId]?.toFixed(2) || equalShare.toFixed(2)}
+                                onChange={(e) => {
+                                  const amount = parseFloat(e.target.value);
+                                  if (!isNaN(amount)) {
+                                    setCustomAmounts({
+                                      ...customAmounts,
+                                      [member.userId]: amount
+                                    });
+                                  }
+                                }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Input field for percentage split */}
+                        {isPercentage && isSelected && (
+                          <div className="ml-auto">
+                            <div className="relative">
+                              <Input 
+                                type="text"
+                                placeholder="0"
+                                className="w-24 h-8 pr-6 text-xs text-right"
+                                value={customPercentages[member.userId]?.toString() || equalPercentage.toFixed(0)}
+                                onChange={(e) => {
+                                  const percentage = parseInt(e.target.value);
+                                  if (!isNaN(percentage)) {
+                                    setCustomPercentages({
+                                      ...customPercentages,
+                                      [member.userId]: percentage
+                                    });
+                                  }
+                                }}
+                              />
+                              <span className="absolute right-2 top-2 text-xs">%</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
               </div>
+              
+              {/* Show total percentage when using percentage split */}
+              {form.getValues("splitMethod") === "percentage" && selectedUserIds.length > 0 && (
+                <div className="mt-2 text-xs text-right">
+                  <span className={`${
+                    // Calculate total percentage
+                    Object.values(customPercentages).reduce((acc, val) => acc + val, 0) === 100 
+                      ? "text-green-500" 
+                      : "text-red-500"
+                  }`}>
+                    Total: {Object.values(customPercentages).reduce((acc, val) => acc + val, 0)}%
+                    {Object.values(customPercentages).reduce((acc, val) => acc + val, 0) !== 100 && 
+                      " (should be 100%)"}
+                  </span>
+                </div>
+              )}
+              
+              {/* Show total amount for unequal split */}
+              {form.getValues("splitMethod") === "unequal" && selectedUserIds.length > 0 && (
+                <div className="mt-2 text-xs text-right">
+                  <span className={`${
+                    // Calculate total amount
+                    Math.abs(Object.values(customAmounts).reduce((acc, val) => acc + val, 0) - 
+                      parseFloat(form.getValues("totalAmount") || "0")) < 0.01
+                      ? "text-green-500" 
+                      : "text-red-500"
+                  }`}>
+                    Total: ${Object.values(customAmounts).reduce((acc, val) => acc + val, 0).toFixed(2)}
+                    {Math.abs(Object.values(customAmounts).reduce((acc, val) => acc + val, 0) - 
+                      parseFloat(form.getValues("totalAmount") || "0")) >= 0.01 && 
+                      ` (should be $${parseFloat(form.getValues("totalAmount") || "0").toFixed(2)})`}
+                  </span>
+                </div>
+              )}
             </div>
 
             <FormField
@@ -441,7 +608,24 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
               </Button>
               <Button 
                 type="submit"
-                disabled={createExpenseMutation.isPending}
+                disabled={
+                  createExpenseMutation.isPending || 
+                  (form.getValues("splitMethod") === "percentage" && 
+                   Object.values(customPercentages).reduce((acc, val) => acc + val, 0) !== 100) ||
+                  (form.getValues("splitMethod") === "unequal" && 
+                   Math.abs(Object.values(customAmounts).reduce((acc, val) => acc + val, 0) - 
+                   parseFloat(form.getValues("totalAmount") || "0")) >= 0.01)
+                }
+                title={
+                  form.getValues("splitMethod") === "percentage" && 
+                  Object.values(customPercentages).reduce((acc, val) => acc + val, 0) !== 100 
+                    ? "Percentages must sum to 100%" 
+                    : form.getValues("splitMethod") === "unequal" && 
+                      Math.abs(Object.values(customAmounts).reduce((acc, val) => acc + val, 0) - 
+                      parseFloat(form.getValues("totalAmount") || "0")) >= 0.01
+                      ? "Amounts must sum to the total" 
+                      : ""
+                }
               >
                 {createExpenseMutation.isPending ? "Saving..." : "Save Expense"}
               </Button>
