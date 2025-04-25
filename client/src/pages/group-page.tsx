@@ -50,7 +50,7 @@ export default function GroupPage() {
     data: members = [], 
     isLoading: isLoadingMembers 
   } = useQuery({
-    queryKey: ["/api/groups", groupIdStr, "members"],
+    queryKey: [`/api/groups/${groupIdStr}/members`],
     enabled: groupId > 0 && !!group
   });
 
@@ -59,7 +59,7 @@ export default function GroupPage() {
     data: expenses = [], 
     isLoading: isLoadingExpenses 
   } = useQuery({
-    queryKey: ["/api/groups", groupIdStr, "expenses"],
+    queryKey: [`/api/groups/${groupIdStr}/expenses`],
     enabled: groupId > 0 && !!group
   });
 
@@ -68,7 +68,7 @@ export default function GroupPage() {
     data: payments = [], 
     isLoading: isLoadingPayments 
   } = useQuery({
-    queryKey: ["/api/groups", groupIdStr, "payments"],
+    queryKey: [`/api/groups/${groupIdStr}/payments`],
     enabled: groupId > 0 && !!group
   });
 
@@ -77,7 +77,7 @@ export default function GroupPage() {
     data: balances = [], 
     isLoading: isLoadingBalances 
   } = useQuery({
-    queryKey: ["/api/groups", groupIdStr, "balances"],
+    queryKey: [`/api/groups/${groupIdStr}/balances`],
     enabled: groupId > 0 && !!group
   });
 
@@ -86,7 +86,7 @@ export default function GroupPage() {
     data: activity = [], 
     isLoading: isLoadingActivity 
   } = useQuery({
-    queryKey: ["/api/groups", groupIdStr, "activity"],
+    queryKey: [`/api/groups/${groupIdStr}/activity`],
     enabled: groupId > 0 && !!group
   });
 
