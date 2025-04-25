@@ -209,23 +209,34 @@ export class DatabaseStorage implements IStorage {
   }
   
   async deleteExpense(expenseId: number): Promise<boolean> {
-    // Delete all expense participants first
-    await db
-      .delete(expenseParticipants)
-      .where(eq(expenseParticipants.expenseId, expenseId));
+    console.log(`Starting expense deletion process for expense ID: ${expenseId}`);
     
-    // Delete the expense
-    const result = await db
-      .delete(expenses)
-      .where(eq(expenses.id, expenseId))
-      .returning();
-    
-    // Delete related activity logs
-    await db
-      .delete(activityLog)
-      .where(eq(activityLog.expenseId, expenseId));
-    
-    return result.length > 0;
+    try {
+      // 1. First, delete the activity logs that reference this expense
+      console.log(`Deleting activity logs for expense ID: ${expenseId}`);
+      await db
+        .delete(activityLog)
+        .where(eq(activityLog.expenseId, expenseId));
+      
+      // 2. Delete all expense participants
+      console.log(`Deleting expense participants for expense ID: ${expenseId}`);
+      await db
+        .delete(expenseParticipants)
+        .where(eq(expenseParticipants.expenseId, expenseId));
+      
+      // 3. Finally delete the expense itself
+      console.log(`Deleting expense with ID: ${expenseId}`);
+      const result = await db
+        .delete(expenses)
+        .where(eq(expenses.id, expenseId))
+        .returning();
+      
+      console.log(`Expense deletion complete. Results: ${JSON.stringify(result)}`);
+      return result.length > 0;
+    } catch (error) {
+      console.error(`Error in deleteExpense: ${error}`);
+      throw error;
+    }
   }
   
   async createPayment(paymentData: InsertPayment): Promise<Payment> {
@@ -266,18 +277,28 @@ export class DatabaseStorage implements IStorage {
   }
   
   async deletePayment(paymentId: number): Promise<boolean> {
-    // Delete the payment
-    const result = await db
-      .delete(payments)
-      .where(eq(payments.id, paymentId))
-      .returning();
+    console.log(`Starting payment deletion process for payment ID: ${paymentId}`);
     
-    // Delete related activity logs
-    await db
-      .delete(activityLog)
-      .where(eq(activityLog.paymentId, paymentId));
-    
-    return result.length > 0;
+    try {
+      // First, delete the activity logs that reference this payment
+      console.log(`Deleting activity logs for payment ID: ${paymentId}`);
+      await db
+        .delete(activityLog)
+        .where(eq(activityLog.paymentId, paymentId));
+      
+      // Then delete the payment itself
+      console.log(`Deleting payment with ID: ${paymentId}`);
+      const result = await db
+        .delete(payments)
+        .where(eq(payments.id, paymentId))
+        .returning();
+      
+      console.log(`Payment deletion complete. Results: ${JSON.stringify(result)}`);
+      return result.length > 0;
+    } catch (error) {
+      console.error(`Error in deletePayment: ${error}`);
+      throw error;
+    }
   }
   
   async logActivity(activityData: InsertActivityLogEntry): Promise<ActivityLogEntry> {
