@@ -35,9 +35,9 @@ export function Sidebar({ className }: SidebarProps) {
         <ScrollArea className="flex-1 px-3 py-2">
           <nav className="flex flex-col gap-1">
             <Link href="/">
-              <a
+              <div
                 className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium",
+                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium cursor-pointer",
                   location === "/"
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:bg-accent"
@@ -45,12 +45,12 @@ export function Sidebar({ className }: SidebarProps) {
               >
                 <Home className="h-5 w-5" />
                 Dashboard
-              </a>
+              </div>
             </Link>
             <Link href="/groups">
-              <a
+              <div
                 className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium",
+                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium cursor-pointer",
                   location === "/groups"
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:bg-accent"
@@ -58,12 +58,12 @@ export function Sidebar({ className }: SidebarProps) {
               >
                 <Users className="h-5 w-5" />
                 Groups
-              </a>
+              </div>
             </Link>
             <Link href="/activity">
-              <a
+              <div
                 className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium",
+                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium cursor-pointer",
                   location === "/activity"
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:bg-accent"
@@ -71,7 +71,7 @@ export function Sidebar({ className }: SidebarProps) {
               >
                 <BarChart4 className="h-5 w-5" />
                 Activity
-              </a>
+              </div>
             </Link>
           </nav>
 
@@ -84,9 +84,9 @@ export function Sidebar({ className }: SidebarProps) {
             <div className="mt-2 space-y-1">
               {groups.map((group) => (
                 <Link key={group.id} href={`/group/${group.id}`}>
-                  <a
+                  <div
                     className={cn(
-                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium",
+                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium cursor-pointer",
                       location === `/group/${group.id}`
                         ? "bg-primary/10 text-primary"
                         : "text-muted-foreground hover:bg-accent"
@@ -96,7 +96,7 @@ export function Sidebar({ className }: SidebarProps) {
                       <span className="text-xs">{group.name.charAt(0)}</span>
                     </div>
                     <span>{group.name}</span>
-                  </a>
+                  </div>
                 </Link>
               ))}
               <button

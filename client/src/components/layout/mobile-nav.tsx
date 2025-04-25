@@ -13,16 +13,16 @@ export function MobileNav() {
       <div className="fixed bottom-0 left-0 right-0 bg-background border-t z-50 md:hidden">
         <nav className="flex justify-around px-2 py-3">
           <Link href="/">
-            <a className="flex flex-col items-center gap-1">
+            <div className="flex flex-col items-center gap-1 cursor-pointer">
               <Home className={cn("h-5 w-5", location === "/" ? "text-primary" : "text-muted-foreground")} />
               <span className="text-xs">Home</span>
-            </a>
+            </div>
           </Link>
           <Link href="/groups">
-            <a className="flex flex-col items-center gap-1">
+            <div className="flex flex-col items-center gap-1 cursor-pointer">
               <Users className={cn("h-5 w-5", location === "/groups" ? "text-primary" : "text-muted-foreground")} />
               <span className="text-xs">Groups</span>
-            </a>
+            </div>
           </Link>
           <button 
             onClick={() => setShowExpenseModal(true)}
@@ -31,16 +31,16 @@ export function MobileNav() {
             <Plus className="h-6 w-6" />
           </button>
           <Link href="/activity">
-            <a className="flex flex-col items-center gap-1">
+            <div className="flex flex-col items-center gap-1 cursor-pointer">
               <BarChart4 className={cn("h-5 w-5", location === "/activity" ? "text-primary" : "text-muted-foreground")} />
               <span className="text-xs">Activity</span>
-            </a>
+            </div>
           </Link>
           <Link href="/profile">
-            <a className="flex flex-col items-center gap-1">
+            <div className="flex flex-col items-center gap-1 cursor-pointer">
               <User className={cn("h-5 w-5", location === "/profile" ? "text-primary" : "text-muted-foreground")} />
               <span className="text-xs">Profile</span>
-            </a>
+            </div>
           </Link>
         </nav>
       </div>
