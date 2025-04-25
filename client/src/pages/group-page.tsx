@@ -37,8 +37,9 @@ export default function GroupPage() {
     isLoading: isLoadingGroup,
     error: groupError
   } = useQuery({
-    queryKey: ["/api/groups", groupIdStr],
-    enabled: groupId > 0
+    queryKey: [`/api/groups/${groupIdStr}`], // Fixed query key pattern to match the API
+    enabled: groupId > 0,
+    staleTime: 0
   });
 
   // If there's an error fetching the group or the user is not in any groups,
@@ -160,7 +161,11 @@ export default function GroupPage() {
                 Back
               </Link>
             </Button>
-            <h1 className="text-2xl font-bold">{group ? (group as any).name || 'Loading group...' : 'Loading group...'}</h1>
+            <h1 className="text-2xl font-bold">
+              {group && typeof group === 'object' && 'name' in group 
+                ? group.name 
+                : 'Loading group...'}
+            </h1>
           </div>
           <div className="flex items-center gap-2">
             <Button 
@@ -181,7 +186,19 @@ export default function GroupPage() {
         </div>
 
         <GroupDetail 
-          group={group ? group as any : { id: 0, name: '', createdAt: new Date().toISOString() }}
+          group={group && typeof group === 'object' && 'id' in group && 'name' in group 
+            ? {
+                id: group.id as number, 
+                name: group.name as string, 
+                createdAt: 'createdAt' in group ? group.createdAt as string : new Date().toISOString(),
+                createdBy: 'createdBy' in group ? group.createdBy as number : undefined
+              } 
+            : { 
+                id: 0, 
+                name: '', 
+                createdAt: new Date().toISOString() 
+              }
+          }
           members={Array.isArray(members) ? members : []} 
           balances={Array.isArray(balances) ? balances : []}
           expenses={Array.isArray(expenses) ? expenses : []}

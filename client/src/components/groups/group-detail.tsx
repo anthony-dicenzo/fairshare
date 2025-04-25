@@ -7,7 +7,8 @@ type GroupDetailProps = {
   group: {
     id: number;
     name: string;
-    createdAt: string;
+    createdAt: string | Date;
+    createdBy?: number;
   };
   members: {
     user: {
@@ -18,6 +19,10 @@ type GroupDetailProps = {
   balances: {
     userId: number;
     balance: number;
+    user?: {
+      id: number;
+      name: string;
+    };
   }[];
   expenses?: any[];
   payments?: any[];
