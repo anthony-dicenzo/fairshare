@@ -343,7 +343,7 @@ export class DatabaseStorage implements IStorage {
           p => p.expenseId === expense.id && p.userId !== userId
         );
         const totalOthersOwe = userParticipants.reduce(
-          (sum, p) => sum + p.amountOwed, 0
+          (sum, p) => sum + Number(p.amountOwed), 0
         );
         balance += totalOthersOwe;
       }
@@ -353,7 +353,7 @@ export class DatabaseStorage implements IStorage {
         p => p.expenseId === expense.id && p.userId === userId
       );
       if (userParticipant && expense.paidBy !== userId) {
-        balance -= userParticipant.amountOwed;
+        balance -= Number(userParticipant.amountOwed);
       }
     }
     
@@ -361,12 +361,12 @@ export class DatabaseStorage implements IStorage {
     for (const payment of payments) {
       // If user made the payment, subtract the amount
       if (payment.paidBy === userId) {
-        balance -= payment.amount;
+        balance -= Number(payment.amount);
       }
       
       // If user received the payment, add the amount
       if (payment.paidTo === userId) {
-        balance += payment.amount;
+        balance += Number(payment.amount);
       }
     }
     
@@ -428,7 +428,7 @@ export class DatabaseStorage implements IStorage {
             const currentBalance = memberBalances.get(participant.userId) || 0;
             memberBalances.set(
               participant.userId, 
-              currentBalance + participant.amountOwed
+              currentBalance + Number(participant.amountOwed)
             );
           }
         } else {
@@ -441,7 +441,7 @@ export class DatabaseStorage implements IStorage {
             const currentBalance = memberBalances.get(expense.paidBy) || 0;
             memberBalances.set(
               expense.paidBy, 
-              currentBalance - userParticipant.amountOwed
+              currentBalance - Number(userParticipant.amountOwed)
             );
           }
         }
@@ -454,20 +454,20 @@ export class DatabaseStorage implements IStorage {
           const currentBalance = memberBalances.get(payment.paidTo) || 0;
           memberBalances.set(
             payment.paidTo, 
-            currentBalance - payment.amount
+            currentBalance - Number(payment.amount)
           );
         } else if (payment.paidTo === userId && payment.paidBy !== userId) {
           // Another user paid user
           const currentBalance = memberBalances.get(payment.paidBy) || 0;
           memberBalances.set(
             payment.paidBy, 
-            currentBalance + payment.amount
+            currentBalance + Number(payment.amount)
           );
         }
       }
       
       // Aggregate the balances
-      for (const [memberId, balance] of memberBalances.entries()) {
+      memberBalances.forEach((balance, memberId) => {
         const member = members.find(m => m.userId === memberId);
         if (member) {
           if (balance > 0) {
@@ -486,7 +486,7 @@ export class DatabaseStorage implements IStorage {
             });
           }
         }
-      }
+      });
     }
     
     return {
