@@ -122,10 +122,19 @@ export function PaymentForm({ open, onOpenChange, groupId }: PaymentFormProps) {
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ["/api/balances"] });
       queryClient.invalidateQueries({ queryKey: ["/api/activity"] });
+      
+      // Make sure to properly invalidate all group-related queries
       if (selectedGroupId) {
-        queryClient.invalidateQueries({ queryKey: ["/api/groups", selectedGroupId, "payments"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/groups", selectedGroupId, "balances"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/groups", selectedGroupId, "activity"] });
+        const groupIdStr = selectedGroupId;
+        // Invalidate the specific group queries
+        queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/payments`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/balances`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/activity`] });
+        
+        // Also invalidate the more general query patterns used in group-page.tsx
+        queryClient.invalidateQueries({ queryKey: ["/api/groups", groupIdStr, "payments"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/groups", groupIdStr, "balances"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/groups", groupIdStr, "activity"] });
       }
     },
     onError: (error) => {

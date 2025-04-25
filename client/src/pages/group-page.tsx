@@ -54,13 +54,14 @@ export default function GroupPage() {
     enabled: groupId > 0 && !!group
   });
 
-  // Fetch group expenses
+  // Fetch group expenses - adding staleTime: 0 to ensure data is always fresh on navigation
   const { 
     data: expenses = [], 
     isLoading: isLoadingExpenses 
   } = useQuery({
     queryKey: [`/api/groups/${groupIdStr}/expenses`],
-    enabled: groupId > 0 && !!group
+    enabled: groupId > 0 && !!group,
+    staleTime: 0 // Always refetch on component mount
   });
 
   // Fetch group payments
@@ -69,7 +70,8 @@ export default function GroupPage() {
     isLoading: isLoadingPayments 
   } = useQuery({
     queryKey: [`/api/groups/${groupIdStr}/payments`],
-    enabled: groupId > 0 && !!group
+    enabled: groupId > 0 && !!group,
+    staleTime: 0
   });
 
   // Fetch group balances
@@ -78,7 +80,8 @@ export default function GroupPage() {
     isLoading: isLoadingBalances 
   } = useQuery({
     queryKey: [`/api/groups/${groupIdStr}/balances`],
-    enabled: groupId > 0 && !!group
+    enabled: groupId > 0 && !!group,
+    staleTime: 0
   });
 
   // Fetch group activity
@@ -87,7 +90,8 @@ export default function GroupPage() {
     isLoading: isLoadingActivity 
   } = useQuery({
     queryKey: [`/api/groups/${groupIdStr}/activity`],
-    enabled: groupId > 0 && !!group
+    enabled: groupId > 0 && !!group,
+    staleTime: 0
   });
 
   if (isLoadingGroup) {
