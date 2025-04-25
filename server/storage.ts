@@ -33,12 +33,17 @@ export interface IStorage {
   createExpense(expense: InsertExpense): Promise<Expense>;
   getExpensesByGroupId(groupId: number): Promise<Expense[]>;
   getExpenseById(id: number): Promise<Expense | undefined>;
+  updateExpense(expenseId: number, updates: Partial<Expense>): Promise<Expense>;
+  deleteExpense(expenseId: number): Promise<boolean>;
   addExpenseParticipant(participant: InsertExpenseParticipant): Promise<ExpenseParticipant>;
   getExpenseParticipants(expenseId: number): Promise<ExpenseParticipant[]>;
   
   // Payment operations
   createPayment(payment: InsertPayment): Promise<Payment>;
   getPaymentsByGroupId(groupId: number): Promise<Payment[]>;
+  getPaymentById(id: number): Promise<Payment | undefined>;
+  updatePayment(paymentId: number, updates: Partial<Payment>): Promise<Payment>;
+  deletePayment(paymentId: number): Promise<boolean>;
   
   // Activity operations
   logActivity(activity: InsertActivityLogEntry): Promise<ActivityLogEntry>;
@@ -190,6 +195,43 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
   
+  async updateExpense(expenseId: number, updates: Partial<Expense>): Promise<Expense> {
+    // Remove fields that should not be updated
+    delete updates.id;
+    delete updates.createdAt;
+    
+    const result = await db
+      .update(expenses)
+      .set({
+        ...updates,
+        updatedAt: new Date()
+      })
+      .where(eq(expenses.id, expenseId))
+      .returning();
+    
+    return result[0];
+  }
+  
+  async deleteExpense(expenseId: number): Promise<boolean> {
+    // Delete all expense participants first
+    await db
+      .delete(expenseParticipants)
+      .where(eq(expenseParticipants.expenseId, expenseId));
+    
+    // Delete the expense
+    const result = await db
+      .delete(expenses)
+      .where(eq(expenses.id, expenseId))
+      .returning();
+    
+    // Delete related activity logs
+    await db
+      .delete(activityLog)
+      .where(eq(activityLog.expenseId, expenseId));
+    
+    return result.length > 0;
+  }
+  
   async createPayment(paymentData: InsertPayment): Promise<Payment> {
     const result = await db.insert(payments).values(paymentData).returning();
     return result[0];
@@ -203,6 +245,47 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(payments.createdAt));
     
     return result;
+  }
+  
+  async getPaymentById(id: number): Promise<Payment | undefined> {
+    const result = await db
+      .select()
+      .from(payments)
+      .where(eq(payments.id, id));
+    
+    return result[0];
+  }
+  
+  async updatePayment(paymentId: number, updates: Partial<Payment>): Promise<Payment> {
+    // Remove fields that should not be updated
+    delete updates.id;
+    delete updates.createdAt;
+    
+    const result = await db
+      .update(payments)
+      .set({
+        ...updates,
+        updatedAt: new Date()
+      })
+      .where(eq(payments.id, paymentId))
+      .returning();
+    
+    return result[0];
+  }
+  
+  async deletePayment(paymentId: number): Promise<boolean> {
+    // Delete the payment
+    const result = await db
+      .delete(payments)
+      .where(eq(payments.id, paymentId))
+      .returning();
+    
+    // Delete related activity logs
+    await db
+      .delete(activityLog)
+      .where(eq(activityLog.paymentId, paymentId));
+    
+    return result.length > 0;
   }
   
   async logActivity(activityData: InsertActivityLogEntry): Promise<ActivityLogEntry> {

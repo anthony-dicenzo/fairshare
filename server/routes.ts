@@ -255,6 +255,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  app.patch("/api/expenses/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    try {
+      const expenseId = parseInt(req.params.id);
+      const expense = await storage.getExpenseById(expenseId);
+      
+      if (!expense) {
+        return res.status(404).json({ error: "Expense not found" });
+      }
+      
+      // Check if user is the creator of the expense
+      if (expense.paidBy !== req.user.id) {
+        return res.status(403).json({ error: "You cannot edit this expense" });
+      }
+      
+      // Update the expense
+      const updatedExpense = await storage.updateExpense(expenseId, req.body);
+      
+      res.json(updatedExpense);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      res.status(500).json({ error: "Failed to update expense" });
+    }
+  });
+  
+  app.delete("/api/expenses/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    try {
+      const expenseId = parseInt(req.params.id);
+      const expense = await storage.getExpenseById(expenseId);
+      
+      if (!expense) {
+        return res.status(404).json({ error: "Expense not found" });
+      }
+      
+      // Check if user is the creator of the expense
+      if (expense.paidBy !== req.user.id) {
+        return res.status(403).json({ error: "You cannot delete this expense" });
+      }
+      
+      // Delete the expense
+      await storage.deleteExpense(expenseId);
+      
+      res.status(200).json({ message: "Expense deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete expense" });
+    }
+  });
+  
   // Payment routes
   app.post("/api/payments", async (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
@@ -312,6 +365,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(payments);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch payments" });
+    }
+  });
+  
+  app.get("/api/payments/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    try {
+      const paymentId = parseInt(req.params.id);
+      const payment = await storage.getPaymentById(paymentId);
+      
+      if (!payment) {
+        return res.status(404).json({ error: "Payment not found" });
+      }
+      
+      // Check if user is a member of the payment's group
+      const members = await storage.getGroupMembers(payment.groupId);
+      const isMember = members.some(member => member.userId === req.user.id);
+      
+      if (!isMember) {
+        return res.status(403).json({ error: "You do not have access to this payment" });
+      }
+      
+      res.json(payment);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch payment" });
+    }
+  });
+  
+  app.patch("/api/payments/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    try {
+      const paymentId = parseInt(req.params.id);
+      const payment = await storage.getPaymentById(paymentId);
+      
+      if (!payment) {
+        return res.status(404).json({ error: "Payment not found" });
+      }
+      
+      // Check if user is involved in the payment
+      if (payment.paidBy !== req.user.id && payment.paidTo !== req.user.id) {
+        return res.status(403).json({ error: "You cannot edit this payment" });
+      }
+      
+      // Update the payment
+      const updatedPayment = await storage.updatePayment(paymentId, req.body);
+      
+      res.json(updatedPayment);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      res.status(500).json({ error: "Failed to update payment" });
+    }
+  });
+  
+  app.delete("/api/payments/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    try {
+      const paymentId = parseInt(req.params.id);
+      const payment = await storage.getPaymentById(paymentId);
+      
+      if (!payment) {
+        return res.status(404).json({ error: "Payment not found" });
+      }
+      
+      // Check if user is involved in the payment
+      if (payment.paidBy !== req.user.id && payment.paidTo !== req.user.id) {
+        return res.status(403).json({ error: "You cannot delete this payment" });
+      }
+      
+      // Delete the payment
+      await storage.deletePayment(paymentId);
+      
+      res.status(200).json({ message: "Payment deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete payment" });
     }
   });
   
