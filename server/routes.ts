@@ -260,22 +260,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const expenseId = parseInt(req.params.id);
+      console.log(`Attempting to update expense ID: ${expenseId} with data:`, req.body);
+      
       const expense = await storage.getExpenseById(expenseId);
       
       if (!expense) {
+        console.log(`Expense with ID ${expenseId} not found`);
         return res.status(404).json({ error: "Expense not found" });
       }
       
       // Check if user is the creator of the expense
       if (expense.paidBy !== req.user.id) {
+        console.log(`User ${req.user.id} cannot edit expense ${expenseId} created by ${expense.paidBy}`);
         return res.status(403).json({ error: "You cannot edit this expense" });
       }
       
+      // Prepare the update data - ensure proper types
+      const updateData = {
+        title: req.body.title,
+        totalAmount: req.body.totalAmount.toString(), // Convert to string to match schema
+        paidBy: parseInt(req.body.paidBy),
+        date: req.body.date,
+        notes: req.body.notes || ""
+      };
+      
+      console.log(`Validated update data:`, updateData);
+      
       // Update the expense
-      const updatedExpense = await storage.updateExpense(expenseId, req.body);
+      const updatedExpense = await storage.updateExpense(expenseId, updateData);
+      console.log(`Expense updated successfully:`, updatedExpense);
       
       res.json(updatedExpense);
     } catch (error) {
+      console.error("Error updating expense:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: error.errors });
       }
@@ -398,22 +415,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const paymentId = parseInt(req.params.id);
+      console.log(`Attempting to update payment ID: ${paymentId} with data:`, req.body);
+      
       const payment = await storage.getPaymentById(paymentId);
       
       if (!payment) {
+        console.log(`Payment with ID ${paymentId} not found`);
         return res.status(404).json({ error: "Payment not found" });
       }
       
       // Check if user is involved in the payment
       if (payment.paidBy !== req.user.id && payment.paidTo !== req.user.id) {
+        console.log(`User ${req.user.id} cannot edit payment ${paymentId}`);
         return res.status(403).json({ error: "You cannot edit this payment" });
       }
       
+      // Prepare the update data - ensure proper types
+      const updateData = {
+        amount: typeof req.body.amount === 'number' ? req.body.amount.toString() : req.body.amount,
+        paidBy: parseInt(req.body.paidBy),
+        paidTo: parseInt(req.body.paidTo),
+        date: req.body.date,
+        note: req.body.note || ""
+      };
+      
+      console.log(`Validated payment update data:`, updateData);
+      
       // Update the payment
-      const updatedPayment = await storage.updatePayment(paymentId, req.body);
+      const updatedPayment = await storage.updatePayment(paymentId, updateData);
+      console.log(`Payment updated successfully:`, updatedPayment);
       
       res.json(updatedPayment);
     } catch (error) {
+      console.error("Error updating payment:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: error.errors });
       }

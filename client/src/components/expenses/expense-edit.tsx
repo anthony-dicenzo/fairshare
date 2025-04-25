@@ -133,7 +133,13 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
       date: string;
       notes?: string;
     }) => {
+      console.log("Sending update with data:", data);
       const res = await apiRequest("PATCH", `/api/expenses/${expenseId}`, data);
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error("Server response:", errorData);
+        throw new Error(errorData.error || "Failed to update expense");
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -148,9 +154,10 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
       invalidateQueries();
     },
     onError: (error) => {
+      console.error("Update expense error:", error);
       toast({
         title: "Failed to update expense",
-        description: error.message,
+        description: error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
     },

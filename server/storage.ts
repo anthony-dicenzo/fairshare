@@ -196,16 +196,32 @@ export class DatabaseStorage implements IStorage {
   }
   
   async updateExpense(expenseId: number, updates: Partial<Expense>): Promise<Expense> {
-    // Remove fields that should not be updated
-    const { id, createdAt, updatedAt, ...validUpdates } = updates as any;
+    console.log(`Starting expense update for expense ID: ${expenseId}`);
+    console.log(`Update data:`, updates);
     
-    const result = await db
-      .update(expenses)
-      .set(validUpdates)
-      .where(eq(expenses.id, expenseId))
-      .returning();
-    
-    return result[0];
+    try {
+      // Remove fields that should not be updated
+      const { id, createdAt, updatedAt, ...validUpdates } = updates as any;
+      
+      // Convert totalAmount to string if it's a number to match DB schema
+      if (typeof validUpdates.totalAmount === 'number') {
+        validUpdates.totalAmount = validUpdates.totalAmount.toString();
+      }
+      
+      console.log(`Sanitized update data:`, validUpdates);
+      
+      const result = await db
+        .update(expenses)
+        .set(validUpdates)
+        .where(eq(expenses.id, expenseId))
+        .returning();
+      
+      console.log(`Update successful, returning:`, result[0]);
+      return result[0];
+    } catch (error) {
+      console.error(`Error in updateExpense: ${error}`);
+      throw error;
+    }
   }
   
   async deleteExpense(expenseId: number): Promise<boolean> {
@@ -264,16 +280,32 @@ export class DatabaseStorage implements IStorage {
   }
   
   async updatePayment(paymentId: number, updates: Partial<Payment>): Promise<Payment> {
-    // Remove fields that should not be updated
-    const { id, createdAt, updatedAt, ...validUpdates } = updates as any;
+    console.log(`Starting payment update for payment ID: ${paymentId}`);
+    console.log(`Update data:`, updates);
     
-    const result = await db
-      .update(payments)
-      .set(validUpdates)
-      .where(eq(payments.id, paymentId))
-      .returning();
-    
-    return result[0];
+    try {
+      // Remove fields that should not be updated
+      const { id, createdAt, updatedAt, ...validUpdates } = updates as any;
+      
+      // Convert amount to string if it's a number to match DB schema
+      if (typeof validUpdates.amount === 'number') {
+        validUpdates.amount = validUpdates.amount.toString();
+      }
+      
+      console.log(`Sanitized update data:`, validUpdates);
+      
+      const result = await db
+        .update(payments)
+        .set(validUpdates)
+        .where(eq(payments.id, paymentId))
+        .returning();
+      
+      console.log(`Update successful, returning:`, result[0]);
+      return result[0];
+    } catch (error) {
+      console.error(`Error in updatePayment: ${error}`);
+      throw error;
+    }
   }
   
   async deletePayment(paymentId: number): Promise<boolean> {
