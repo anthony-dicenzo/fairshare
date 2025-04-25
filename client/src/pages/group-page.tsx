@@ -110,7 +110,40 @@ export default function GroupPage() {
     );
   }
 
-  if (!group) return null;
+  // Show a friendly error message if there was an error or no group found
+  if (hasError || !group) {
+    return (
+      <MainLayout>
+        <div className="px-4 py-6 md:px-6 lg:px-8">
+          <div className="flex items-center mb-6">
+            <Button variant="ghost" size="sm" asChild className="mr-2">
+              <Link href="/">
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Back
+              </Link>
+            </Button>
+            <h1 className="text-2xl font-bold">Group Not Found</h1>
+          </div>
+          
+          <div className="py-12 px-6 bg-white dark:bg-gray-800 rounded-lg border text-center">
+            <h2 className="text-xl font-semibold mb-4">
+              {hasError ? "Error accessing this group" : "This group doesn't exist or you don't have access"}
+            </h2>
+            <p className="text-muted-foreground mb-6">
+              {hasError 
+                ? "There was an error accessing this group. You may not have permission to view it." 
+                : "The group you're looking for doesn't exist or you haven't been invited yet."}
+            </p>
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <Button asChild>
+                <Link href="/">Go to Dashboard</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
