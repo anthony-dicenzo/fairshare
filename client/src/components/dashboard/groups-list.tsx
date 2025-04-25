@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { Group } from "@shared/schema";
-import { Link } from "wouter";
+import { useLocation } from "wouter";
 import { PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,6 +10,7 @@ import { GroupForm } from "../groups/group-form";
 
 export function GroupsList() {
   const [showGroupModal, setShowGroupModal] = useState(false);
+  const [, setLocation] = useLocation();
   
   const { data: groups, isLoading } = useQuery<(Group & { balance?: number; memberCount?: number })[]>({
     queryKey: ["/api/groups"],
@@ -67,41 +68,43 @@ export function GroupsList() {
         <CardContent className="p-0">
           <div className="divide-y">
             {groups.map((group) => (
-              <Link key={group.id} href={`/group/${group.id}`}>
-                <a className="block hover:bg-accent transition-colors">
-                  <div className="px-5 py-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-3">
-                          <span className="text-sm text-primary font-medium">
-                            {group.name.charAt(0)}
-                          </span>
-                        </div>
-                        <div>
-                          <p className="font-medium">{group.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {group.memberCount || "..."} members
-                          </p>
-                        </div>
+              <div 
+                key={group.id} 
+                className="hover:bg-accent transition-colors cursor-pointer" 
+                onClick={() => setLocation(`/group/${group.id}`)}
+              >
+                <div className="px-5 py-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                        <span className="text-sm text-primary font-medium">
+                          {group.name.charAt(0)}
+                        </span>
                       </div>
-                      {group.balance !== undefined && (
-                        <div className="text-right">
-                          <p className={`text-sm font-medium ${
-                            group.balance > 0 
-                              ? "text-emerald-500 dark:text-emerald-400" 
-                              : "text-rose-500 dark:text-rose-400"
-                          }`}>
-                            {group.balance > 0 ? "+" : ""}${Math.abs(group.balance).toFixed(2)}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {group.balance > 0 ? "You are owed" : "You owe"}
-                          </p>
-                        </div>
-                      )}
+                      <div>
+                        <p className="font-medium">{group.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {group.memberCount || "..."} members
+                        </p>
+                      </div>
                     </div>
+                    {group.balance !== undefined && (
+                      <div className="text-right">
+                        <p className={`text-sm font-medium ${
+                          group.balance > 0 
+                            ? "text-emerald-500 dark:text-emerald-400" 
+                            : "text-rose-500 dark:text-rose-400"
+                        }`}>
+                          {group.balance > 0 ? "+" : ""}${Math.abs(group.balance).toFixed(2)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {group.balance > 0 ? "You are owed" : "You owe"}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                </a>
-              </Link>
+                </div>
+              </div>
             ))}
           </div>
         </CardContent>
