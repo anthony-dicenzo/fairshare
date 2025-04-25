@@ -22,27 +22,27 @@ export function GroupsList() {
 
   if (!groups || groups.length === 0) {
     return (
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle>Your Groups</CardTitle>
+      <Card className="w-full">
+        <CardHeader className="flex flex-row items-center justify-between pb-2 px-4 pt-4">
+          <CardTitle className="text-base sm:text-lg">Your Groups</CardTitle>
           <Button
             onClick={() => setShowGroupModal(true)}
             variant="ghost"
-            className="text-sm text-primary h-8 px-2"
+            className="text-xs sm:text-sm text-primary h-8 px-2"
           >
             <PlusCircle className="h-4 w-4 mr-1" />
             New
           </Button>
         </CardHeader>
-        <CardContent className="text-center py-6">
-          <p className="text-muted-foreground">
+        <CardContent className="text-center py-4 sm:py-6 px-4">
+          <p className="text-sm text-muted-foreground">
             You don't have any groups yet. Create one to get started.
           </p>
           <Button
             onClick={() => setShowGroupModal(true)}
-            className="mt-4"
+            className="mt-4 text-xs sm:text-sm px-3 py-2"
           >
-            <PlusCircle className="h-4 w-4 mr-2" />
+            <PlusCircle className="h-4 w-4 mr-1 sm:mr-2" />
             Create Group
           </Button>
         </CardContent>
@@ -53,13 +53,13 @@ export function GroupsList() {
 
   return (
     <>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle>Your Groups</CardTitle>
+      <Card className="w-full">
+        <CardHeader className="flex flex-row items-center justify-between pb-2 px-4 pt-4">
+          <CardTitle className="text-base sm:text-lg">Your Groups</CardTitle>
           <Button
             onClick={() => setShowGroupModal(true)}
             variant="ghost"
-            className="text-sm text-primary h-8 px-2"
+            className="text-xs sm:text-sm text-primary h-8 px-2"
           >
             <PlusCircle className="h-4 w-4 mr-1" />
             New
@@ -73,24 +73,24 @@ export function GroupsList() {
                 className="hover:bg-accent transition-colors cursor-pointer" 
                 onClick={() => setLocation(`/group/${group.id}`)}
               >
-                <div className="px-5 py-4">
+                <div className="px-3 sm:px-5 py-3 sm:py-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-3">
-                        <span className="text-sm text-primary font-medium">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary/10 flex items-center justify-center mr-2 sm:mr-3 flex-shrink-0">
+                        <span className="text-xs sm:text-sm text-primary font-medium">
                           {group.name.charAt(0)}
                         </span>
                       </div>
-                      <div>
-                        <p className="font-medium">{group.name}</p>
-                        <p className="text-sm text-muted-foreground">
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm sm:text-base truncate">{group.name}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground">
                           {group.memberCount || "..."} members
                         </p>
                       </div>
                     </div>
                     {group.balance !== undefined && (
-                      <div className="text-right">
-                        <p className={`text-sm font-medium ${
+                      <div className="text-right ml-2 flex-shrink-0">
+                        <p className={`text-xs sm:text-sm font-medium ${
                           group.balance > 0 
                             ? "text-emerald-500 dark:text-emerald-400" 
                             : "text-rose-500 dark:text-rose-400"
@@ -116,26 +116,26 @@ export function GroupsList() {
 
 function GroupsListSkeleton() {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+    <Card className="w-full">
+      <CardHeader className="flex flex-row items-center justify-between pb-2 px-4 pt-4">
         <Skeleton className="h-5 w-24" />
         <Skeleton className="h-8 w-16" />
       </CardHeader>
       <CardContent className="p-0">
         <div className="divide-y">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="px-5 py-4">
+            <div key={i} className="px-3 sm:px-5 py-3 sm:py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <Skeleton className="w-10 h-10 rounded-full mr-3" />
+                  <Skeleton className="w-8 h-8 sm:w-10 sm:h-10 rounded-full mr-2 sm:mr-3 flex-shrink-0" />
                   <div>
-                    <Skeleton className="h-4 w-24 mb-2" />
-                    <Skeleton className="h-3 w-16" />
+                    <Skeleton className="h-4 w-20 sm:w-24 mb-2" />
+                    <Skeleton className="h-3 w-14 sm:w-16" />
                   </div>
                 </div>
-                <div className="text-right">
-                  <Skeleton className="h-4 w-16 mb-2" />
-                  <Skeleton className="h-3 w-12" />
+                <div className="text-right ml-2 flex-shrink-0">
+                  <Skeleton className="h-4 w-12 sm:w-16 mb-2" />
+                  <Skeleton className="h-3 w-10 sm:w-12" />
                 </div>
               </div>
             </div>

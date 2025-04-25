@@ -47,26 +47,26 @@ export function ActivityFeed() {
 
   if (!activities || activities.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
+      <Card className="w-full">
+        <CardHeader className="px-4 pt-4 pb-2">
+          <CardTitle className="text-base sm:text-lg">Recent Activity</CardTitle>
         </CardHeader>
-        <CardContent className="text-center py-6">
-          <p className="text-muted-foreground">No recent activity to show.</p>
+        <CardContent className="text-center py-4 sm:py-6 px-4">
+          <p className="text-sm text-muted-foreground">No recent activity to show.</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Recent Activity</CardTitle>
+    <Card className="w-full">
+      <CardHeader className="px-4 pt-4 pb-2">
+        <CardTitle className="text-base sm:text-lg">Recent Activity</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
         <div className="divide-y">
           {activities.map((activity) => (
-            <div key={activity.id} className="px-5 py-4 hover:bg-accent transition-colors">
+            <div key={activity.id} className="px-3 sm:px-5 py-3 sm:py-4 hover:bg-accent transition-colors">
               <ActivityItemAction 
                 actionType={activity.actionType}
                 expenseId={activity.expense?.id}
@@ -74,11 +74,11 @@ export function ActivityFeed() {
                 groupId={activity.group?.id}
               >
                 <div className="flex">
-                  <div className="flex-shrink-0 mr-4">
+                  <div className="flex-shrink-0 mr-2 sm:mr-4">
                     <ActivityIcon type={activity.actionType} />
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium">
+                  <div className="min-w-0 flex-1 pr-1">
+                    <p className="text-xs sm:text-sm font-medium truncate">
                       <span>{activity.user.name}</span>
                       {" "}
                       {getActionText(activity)}
@@ -93,7 +93,7 @@ export function ActivityFeed() {
                         </Link>
                       )}
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       {activity.expense && `$${parseFloat(activity.expense.totalAmount.toString()).toFixed(2)} · `}
                       {activity.payment && `$${parseFloat(activity.payment.amount.toString()).toFixed(2)} · `}
                       {formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}
@@ -105,8 +105,8 @@ export function ActivityFeed() {
           ))}
         </div>
       </CardContent>
-      <CardFooter className="border-t p-4">
-        <Link href="/activity" className="text-sm text-primary hover:underline">
+      <CardFooter className="border-t px-4 py-3">
+        <Link href="/activity" className="text-xs sm:text-sm text-primary hover:underline">
           View all activity
         </Link>
       </CardFooter>
@@ -115,36 +115,36 @@ export function ActivityFeed() {
 }
 
 function ActivityIcon({ type }: { type: string }) {
-  const iconClassName = "h-5 w-5";
+  const iconClassName = "h-4 w-4 sm:h-5 sm:w-5";
   
   switch (type) {
     case "add_expense":
       return (
-        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary/10 flex items-center justify-center">
           <ShoppingBag className={`${iconClassName} text-primary`} />
         </div>
       );
     case "record_payment":
       return (
-        <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/20 flex items-center justify-center">
+        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/20 flex items-center justify-center">
           <CreditCard className={`${iconClassName} text-emerald-500 dark:text-emerald-400`} />
         </div>
       );
     case "add_member":
       return (
-        <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center">
+        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center">
           <UserPlus className={`${iconClassName} text-purple-500 dark:text-purple-400`} />
         </div>
       );
     case "create_group":
       return (
-        <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
+        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
           <Users className={`${iconClassName} text-blue-500 dark:text-blue-400`} />
         </div>
       );
     default:
       return (
-        <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
           <span className="text-xs text-gray-500 dark:text-gray-400">?</span>
         </div>
       );
@@ -176,27 +176,27 @@ function getActionText(activity: Activity) {
 
 function ActivityFeedSkeleton() {
   return (
-    <Card>
-      <CardHeader>
+    <Card className="w-full">
+      <CardHeader className="px-4 pt-4 pb-2">
         <Skeleton className="h-5 w-24" />
       </CardHeader>
       <CardContent className="p-0">
         <div className="divide-y">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="px-5 py-4">
+            <div key={i} className="px-3 sm:px-5 py-3 sm:py-4">
               <div className="flex">
-                <Skeleton className="flex-shrink-0 w-10 h-10 rounded-full mr-4" />
+                <Skeleton className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full mr-2 sm:mr-4" />
                 <div className="min-w-0 w-full">
-                  <Skeleton className="h-4 w-full mb-2" />
-                  <Skeleton className="h-3 w-2/3" />
+                  <Skeleton className="h-3 sm:h-4 w-full mb-2" />
+                  <Skeleton className="h-2.5 sm:h-3 w-2/3" />
                 </div>
               </div>
             </div>
           ))}
         </div>
       </CardContent>
-      <CardFooter className="border-t p-4">
-        <Skeleton className="h-4 w-20" />
+      <CardFooter className="border-t px-4 py-3">
+        <Skeleton className="h-3 sm:h-4 w-16 sm:w-20" />
       </CardFooter>
     </Card>
   );
