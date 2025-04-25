@@ -9,9 +9,11 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { LogOut, User } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { Link, useLocation } from "wouter";
 
 export function UserDropdown() {
   const { user, logoutMutation } = useAuth();
+  const [, setLocation] = useLocation();
 
   if (!user) return null;
 
@@ -50,7 +52,7 @@ export function UserDropdown() {
             </div>
           </div>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setLocation("/profile")}>
             <User className="mr-2 h-4 w-4" />
             <span>Profile</span>
           </DropdownMenuItem>
