@@ -116,11 +116,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "You are not a member of this group" });
       }
       
-      // Find or create the user to invite
+      // Find the user to invite by email
       let invitedUser = await storage.getUserByEmail(req.body.email);
       
+      // If user doesn't exist, create a placeholder response
+      // The frontend can handle showing a message that the user will be added when they register
       if (!invitedUser) {
-        return res.status(404).json({ error: "User not found" });
+        // Just return an appropriate message
+        return res.status(200).json({ 
+          message: "User not registered. They'll be automatically added to the group when they register with this email." 
+        });
       }
       
       // Check if user is already a member

@@ -55,11 +55,19 @@ export function GroupInvite({ open, onOpenChange, groupId, members }: GroupInvit
       const res = await apiRequest("POST", `/api/groups/${groupId}/invite`, data);
       return res.json();
     },
-    onSuccess: () => {
-      toast({
-        title: "Invitation sent",
-        description: "The user has been invited to the group",
-      });
+    onSuccess: (data) => {
+      // Check if the response is a notification about user not existing yet
+      if (data.message) {
+        toast({
+          title: "Email invited",
+          description: data.message,
+        });
+      } else {
+        toast({
+          title: "User added",
+          description: "The user has been added to the group",
+        });
+      }
       
       form.reset();
       

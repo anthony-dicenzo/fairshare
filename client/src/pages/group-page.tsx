@@ -41,12 +41,9 @@ export default function GroupPage() {
     enabled: groupId > 0
   });
 
-  // If there's an error fetching the group, navigate back to home
-  useEffect(() => {
-    if (groupError) {
-      navigate("/");
-    }
-  }, [groupError, navigate]);
+  // If there's an error fetching the group or the user is not in any groups,
+  // show a message with a button to create a group instead of redirecting
+  const hasError = !!groupError;
 
   // Fetch group members
   const { 
