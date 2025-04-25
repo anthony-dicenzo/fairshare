@@ -58,7 +58,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log("User data fetch status:", res.status);
         
         if (res.status === 401) {
-          console.log("User not authenticated");
+          console.log("User not authenticated via cookies, checking localStorage...");
+          
+          // Check if we have auth data in localStorage
+          const storedAuth = localStorage.getItem("fairshare_auth_state");
+          if (storedAuth) {
+            try {
+              const authData = JSON.parse(storedAuth);
+              console.log("Found stored auth data for user:", authData.username);
+              
+              // If stored auth is from less than 30 days ago, try to use it
+              const loggedInAt = new Date(authData.loggedInAt);
+              const thirtyDaysAgo = new Date();
+              thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+              
+              if (loggedInAt > thirtyDaysAgo) {
+                console.log("Attempting to fetch user data using backup method...");
+                // Try to fetch user data using backup method
+                const userResponse = await fetch(`/api/users/${authData.userId}`, {
+                  headers: {
+                    'X-Session-Backup': authData.sessionId
+                  }
+                });
+                
+                if (userResponse.ok) {
+                  const userData = await userResponse.json();
+                  console.log("Successfully retrieved user data using backup method");
+                  return userData;
+                } else {
+                  console.log("Backup authentication failed, clearing stored auth");
+                  localStorage.removeItem("fairshare_auth_state");
+                }
+              } else {
+                console.log("Stored auth data is too old, clearing it");
+                localStorage.removeItem("fairshare_auth_state");
+              }
+            } catch (e) {
+              console.error("Error parsing stored auth data:", e);
+              localStorage.removeItem("fairshare_auth_state");
+            }
+          }
+          
           return null;
         }
         
@@ -88,6 +128,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log("Logging in with:", credentials.username);
       
       try {
+        // Clear any existing auth cookies from localStorage
+        localStorage.removeItem("fairshare_auth_state");
+        
         const res = await fetch("/api/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -103,13 +146,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userData = await res.json();
         console.log("Login successful, user data:", userData);
         
+        // Save session ID to localStorage as a backup authentication method
+        if (userData.sessionId) {
+          localStorage.setItem("fairshare_auth_state", JSON.stringify({
+            userId: userData.id,
+            username: userData.username,
+            sessionId: userData.sessionId,
+            loggedInAt: new Date().toISOString()
+          }));
+        }
+        
+        if (userData.message) {
+          console.log("Server message:", userData.message);
+        }
+        
         // Validate session is working by immediately checking user status
         const verifyRes = await fetch("/api/user", { 
           credentials: "include"
         });
         console.log("Verification status:", verifyRes.status);
         
-        return userData;
+        // Create a cleaned version without additional properties
+        const { message, sessionId, ...cleanUserData } = userData;
+        return cleanUserData;
       } catch (error) {
         console.error("Login error:", error);
         throw error;
