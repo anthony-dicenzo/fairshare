@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ActivityItemAction } from "@/components/activity/activity-item-action";
+import { MobilePageHeader } from "@/components/layout/mobile-page-header";
 
 type Activity = {
   id: number;
@@ -73,8 +74,10 @@ export default function ActivityPage() {
 
   return (
     <MainLayout>
-      <div className="px-4 py-6 md:px-6 lg:px-8">
-        <div className="flex items-center mb-6">
+      <MobilePageHeader title="Activity" />
+      
+      <div className="px-4 py-4 sm:py-6 md:px-6 lg:px-8">
+        <div className="hidden md:flex items-center mb-6">
           <Button variant="ghost" size="sm" asChild className="mr-2">
             <Link href="/">
               <ChevronLeft className="h-4 w-4 mr-1" />

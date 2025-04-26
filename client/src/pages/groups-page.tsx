@@ -8,6 +8,7 @@ import { PlusCircle, ChevronLeft, Users } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { GroupForm } from "@/components/groups/group-form";
 import { Group } from "@shared/schema";
+import { MobilePageHeader } from "@/components/layout/mobile-page-header";
 
 // Define types for enhanced group data
 interface EnhancedGroup extends Group {
@@ -226,8 +227,19 @@ export default function GroupsPage() {
 
   return (
     <MainLayout>
-      <div className="px-4 py-6 md:px-6 lg:px-8">
-        <div className="flex items-center justify-between mb-6">
+      <MobilePageHeader title="Your Groups">
+        <Button 
+          size="sm" 
+          onClick={() => setShowGroupModal(true)} 
+          className="md:hidden"
+        >
+          <PlusCircle className="h-4 w-4 mr-1" />
+          New
+        </Button>
+      </MobilePageHeader>
+      
+      <div className="px-4 py-4 sm:py-6 md:px-6 lg:px-8">
+        <div className="hidden md:flex items-center justify-between mb-6">
           <div className="flex items-center">
             <Button variant="ghost" size="sm" asChild className="mr-2">
               <Link href="/">
