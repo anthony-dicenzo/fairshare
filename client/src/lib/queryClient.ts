@@ -1,7 +1,7 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 // Helper to append auth data to requests via headers when cookies aren't working
-function getAuthHeaders() {
+export function getAuthHeaders() {
   const headers: Record<string, string> = {};
   
   // Try to get auth data from localStorage for mobile devices where cookies often fail

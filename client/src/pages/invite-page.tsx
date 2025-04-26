@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Users, UserPlus, AlertTriangle, CheckCircle } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, getAuthHeaders } from "@/lib/queryClient";
 
 export default function InvitePage() {
   const { user, isLoading: authLoading } = useAuth();
