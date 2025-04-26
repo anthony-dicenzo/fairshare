@@ -8,8 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/use-auth";
 import { LogOut, User } from "lucide-react";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 
 export function UserDropdown() {
   const { user, logoutMutation } = useAuth();
@@ -30,7 +29,6 @@ export function UserDropdown() {
 
   return (
     <div className="flex items-center gap-2">
-      <ThemeToggle />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
