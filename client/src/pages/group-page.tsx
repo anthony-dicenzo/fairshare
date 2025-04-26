@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/main-layout";
@@ -30,13 +30,24 @@ export default function GroupPage() {
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  
+  // Use refs to prevent duplicate db operations
+  const addedMembersRef = useRef(false);
 
+  // Define the Group type with expected fields to help TypeScript
+  interface GroupData {
+    id: number;
+    name: string;
+    createdAt?: string;
+    createdBy?: number;
+  }
+  
   // Fetch the group data
   const { 
     data: group = null, 
     isLoading: isLoadingGroup,
     error: groupError
-  } = useQuery({
+  } = useQuery<GroupData>({
     queryKey: [`/api/groups/${groupIdStr}`], // Fixed query key pattern to match the API
     enabled: groupId > 0,
     staleTime: 0
@@ -52,7 +63,9 @@ export default function GroupPage() {
     isLoading: isLoadingMembers 
   } = useQuery({
     queryKey: [`/api/groups/${groupIdStr}/members`],
-    enabled: groupId > 0 && !!group
+    enabled: groupId > 0 && !!group,
+    staleTime: Infinity, // Never refresh automatically to prevent duplicate member count issues
+    refetchOnMount: false // Don't refetch when component mounts again
   });
 
   // Fetch group expenses - adding staleTime: 0 to ensure data is always fresh on navigation
@@ -162,9 +175,7 @@ export default function GroupPage() {
               </Link>
             </Button>
             <h1 className="text-2xl font-bold">
-              {group && typeof group === 'object' && 'name' in group 
-                ? group.name 
-                : 'Loading group...'}
+              {group ? group.name : 'Loading group...'}
             </h1>
           </div>
           <div className="flex items-center gap-2">
@@ -186,12 +197,11 @@ export default function GroupPage() {
         </div>
 
         <GroupDetail 
-          group={group && typeof group === 'object' && 'id' in group && 'name' in group 
-            ? {
-                id: group.id as number, 
-                name: group.name as string, 
-                createdAt: 'createdAt' in group ? group.createdAt as string : new Date().toISOString(),
-                createdBy: 'createdBy' in group ? group.createdBy as number : undefined
+          group={group ? {
+                id: group.id, 
+                name: group.name, 
+                createdAt: group.createdAt || new Date().toISOString(),
+                createdBy: group.createdBy
               } 
             : { 
                 id: 0, 
