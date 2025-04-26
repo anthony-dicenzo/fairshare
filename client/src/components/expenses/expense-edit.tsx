@@ -263,67 +263,72 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
                 </FormItem>
               )}
             />
-           
-            <FormField
-              control={form.control}
-              name="paidBy"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs font-medium">From</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="h-9">
-                        <SelectValue placeholder="Select who paid" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value={user?.id.toString() || ""}>
-                        You
-                      </SelectItem>
-                      {Array.isArray(groupMembers) && groupMembers
-                        .filter((member) => member?.userId !== user?.id)
-                        .map((member) => (
-                          <SelectItem 
-                            key={member?.userId} 
-                            value={(member?.userId || 0).toString()}
-                          >
-                            {member?.user?.name || "Unknown User"}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )}
-            />
-           
-            <FormField
-              control={form.control}
-              name="totalAmount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs font-medium">Amount</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-sm">$</span>
-                      <Input 
-                        type="text"
-                        placeholder="0.00" 
-                        className="pl-8 h-9" 
-                        {...field} 
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )}
-            />
+            
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="paidBy"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium">From</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="Select who paid" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={user?.id.toString() || ""}>
+                          You
+                        </SelectItem>
+                        {Array.isArray(groupMembers) && groupMembers
+                          .filter((member) => member?.userId !== user?.id)
+                          .map((member) => (
+                            <SelectItem 
+                              key={member?.userId} 
+                              value={(member?.userId || 0).toString()}
+                            >
+                              {member?.user?.name || "Unknown User"}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+              
+              {/* This column is intentionally empty to match the layout of the payment form */}
+              <div></div>
+            </div>
            
             <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="totalAmount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium">Amount</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2.5 text-sm">$</span>
+                        <Input 
+                          type="text"
+                          placeholder="0.00" 
+                          className="pl-8 h-9" 
+                          {...field} 
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+              
               <FormField
                 control={form.control}
                 name="date"
@@ -332,24 +337,6 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
                     <FormLabel className="text-xs font-medium">Date</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} className="h-9" />
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs font-medium">Note (optional)</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="e.g. Groceries, Cash"
-                        className="h-9"
-                        {...field}
-                      />
                     </FormControl>
                     <FormMessage className="text-xs" />
                   </FormItem>

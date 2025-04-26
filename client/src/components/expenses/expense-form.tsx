@@ -294,36 +294,36 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
               )}
             />
             
-            <FormField
-              control={form.control}
-              name="groupId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs font-medium">Group</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="h-9">
-                        <SelectValue placeholder="Select a group" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {groups.map((group) => (
-                        <SelectItem key={group.id} value={group.id.toString()}>
-                          {group.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )}
-            />
-
             <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="groupId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium">Group</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="Select a group" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {groups.map((group) => (
+                          <SelectItem key={group.id} value={group.id.toString()}>
+                            {group.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+              
               <FormField
                 control={form.control}
                 name="paidBy"
@@ -360,35 +360,31 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                   </FormItem>
                 )}
               />
-              
-              <div className="h-9">
-                {/* Empty placeholder to match payment form layout */}
-              </div>
             </div>
 
-            <FormField
-              control={form.control}
-              name="totalAmount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs font-medium">Amount</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-sm">$</span>
-                      <Input 
-                        type="text"
-                        placeholder="0.00" 
-                        className="pl-8 h-9" 
-                        {...field} 
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )}
-            />
-
             <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="totalAmount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium">Amount</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2.5 text-sm">$</span>
+                        <Input 
+                          type="text"
+                          placeholder="0.00" 
+                          className="pl-8 h-9" 
+                          {...field} 
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="date"
@@ -402,36 +398,19 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                   </FormItem>
                 )}
               />
-
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs font-medium">Note (optional)</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="e.g. Groceries, Cash"
-                        className="h-9"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
             </div>
 
-            <div className="flex flex-row items-center gap-2">
-              <FormLabel className="text-xs font-medium whitespace-nowrap">Split:</FormLabel>
-              <FormField
-                control={form.control}
-                name="splitMethod"
-                render={({ field }) => (
-                  <div className="flex-1">
+            <FormField
+              control={form.control}
+              name="splitMethod"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs font-medium">Split:</FormLabel>
+                  <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
                       defaultValue={field.value}
+                      value={field.value}
                       className="flex space-x-4"
                     >
                       <div className="flex items-center space-x-1">
@@ -443,97 +422,11 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                         <FormLabel htmlFor="unequal-split" className="text-xs cursor-pointer font-normal">Unequal</FormLabel>
                       </div>
                     </RadioGroup>
-                  </div>
-                )}
-              />
-            </div>
-
-            <div className="border border-input rounded-md p-2 max-h-[120px] overflow-y-auto">
-              <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-                {Array.isArray(groupMembers) && groupMembers.map((member) => {
-                  if (!member?.userId) return null;
-                  
-                  const isEqual = form.getValues("splitMethod") === "equal";
-                  const isUnequal = form.getValues("splitMethod") === "unequal";
-                  const isSelected = selectedUserIds.includes(member.userId);
-                  
-                  const totalAmount = parseFloat(form.getValues("totalAmount")) || 0;
-                  const equalShare = isSelected && selectedUserIds.length > 0 ? 
-                    totalAmount / selectedUserIds.length : 0;
-                  
-                  return (
-                    <div key={member.userId} className="flex items-center space-x-1.5">
-                      <Checkbox
-                        id={`split-${member.userId}`}
-                        checked={isSelected}
-                        className="h-3.5 w-3.5"
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            const newSelectedIds = [...selectedUserIds, member.userId];
-                            setSelectedUserIds(newSelectedIds);
-                            handleInitializeAmountsAndPercentages(newSelectedIds);
-                          } else {
-                            const newSelectedIds = selectedUserIds.filter(id => id !== member.userId);
-                            setSelectedUserIds(newSelectedIds);
-                            handleInitializeAmountsAndPercentages(newSelectedIds);
-                          }
-                        }}
-                      />
-                      <div className="flex items-center w-full">
-                        <label
-                          htmlFor={`split-${member.userId}`}
-                          className="text-xs font-medium leading-none truncate max-w-[80px]"
-                        >
-                          {member.userId === user?.id ? "You" : member?.user?.name || "Unknown User"}
-                        </label>
-                        
-                        {isEqual && isSelected && (
-                          <div className="ml-auto text-xs text-muted-foreground">
-                            ${equalShare.toFixed(2)}
-                          </div>
-                        )}
-                        
-                        {isUnequal && isSelected && (
-                          <div className="ml-auto">
-                            <div className="relative">
-                              <span className="absolute left-1.5 top-1.5 text-xs">$</span>
-                              <Input 
-                                type="text"
-                                placeholder="0.00"
-                                className="w-14 h-6 pl-4 text-xs"
-                                value={customAmounts[member.userId]?.toFixed(2) || equalShare.toFixed(2)}
-                                onChange={(e) => {
-                                  const amount = parseFloat(e.target.value);
-                                  if (!isNaN(amount)) {
-                                    setCustomAmounts({
-                                      ...customAmounts,
-                                      [member.userId]: amount
-                                    });
-                                  }
-                                }}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              
-              {form.getValues("splitMethod") === "unequal" && selectedUserIds.length > 0 && (
-                <div className="mt-1 text-xs text-right">
-                  <span className={`${
-                    Math.abs(Object.values(customAmounts).reduce((acc, val) => acc + val, 0) - 
-                      parseFloat(form.getValues("totalAmount") || "0")) < 0.01
-                      ? "text-green-500" 
-                      : "text-red-500"
-                  }`}>
-                    Total: ${Object.values(customAmounts).reduce((acc, val) => acc + val, 0).toFixed(2)}
-                  </span>
-                </div>
+                  </FormControl>
+                  <FormMessage className="text-xs" />
+                </FormItem>
               )}
-            </div>
+            />
 
             <Button 
               type="submit"
