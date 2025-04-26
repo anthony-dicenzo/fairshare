@@ -25,11 +25,14 @@ export default function GroupsPage() {
     queryKey: ["/api/groups"],
   });
   
-  // Use a ref to prevent duplicate fetches
-  const fetchedRef = useRef(false);
+  // Track if the group member counts have been loaded
+  const [membersLoaded, setMembersLoaded] = useState(false);
 
-  // Fetch member counts for each group when groups data is available
+  // Fetch member counts for each group when groups data is available - only once
   useEffect(() => {
+    // Skip if no groups or already loaded
+    if (!groups || groups.length === 0 || membersLoaded) return;
+    
     // Function to get auth headers for requests
     function getAuthHeaders(): Record<string, string> {
       const headers: Record<string, string> = {};
@@ -48,20 +51,32 @@ export default function GroupsPage() {
       return headers;
     }
     
-    // Main function to fetch and enhance groups with member counts
-    async function enhanceGroupsWithMemberCounts() {
-      if (!groups || groups.length === 0) return;
-      if (fetchedRef.current) return; // Prevent duplicate fetches
-      
+    // Main function to fetch and enhance groups with member counts - with cache
+    async function fetchMemberCounts() {
       try {
         console.log("Fetching member counts for groups");
-        fetchedRef.current = true;
         
         const authHeaders = getAuthHeaders();
         
+        // First try to get members from localStorage cache
+        let cachedMemberCounts: Record<number, number> = {};
+        try {
+          const cached = localStorage.getItem("fairshare_member_counts");
+          if (cached) {
+            cachedMemberCounts = JSON.parse(cached);
+          }
+        } catch (e) {
+          console.error("Error reading cached member counts:", e);
+        }
+        
         // Create enhanced groups with member counts
         const groupsWithDetails = await Promise.all(
-          groups.map(async (group) => {
+          (groups || []).map(async (group) => {
+            // First check cache
+            if (cachedMemberCounts[group.id]) {
+              return { ...group, memberCount: cachedMemberCounts[group.id] };
+            }
+            
             try {
               // Fetch members for this group with auth headers
               const membersResponse = await fetch(`/api/groups/${group.id}/members`, {
@@ -77,6 +92,9 @@ export default function GroupsPage() {
               const members = await membersResponse.json();
               const memberCount = Array.isArray(members) ? members.length : 0;
               
+              // Update the cache
+              cachedMemberCounts[group.id] = memberCount;
+              
               console.log(`Group ${group.name} has ${memberCount} members`);
               
               return {
@@ -90,19 +108,22 @@ export default function GroupsPage() {
           })
         );
         
+        // Update localStorage cache
+        try {
+          localStorage.setItem("fairshare_member_counts", JSON.stringify(cachedMemberCounts));
+        } catch (e) {
+          console.error("Error caching member counts:", e);
+        }
+        
         setEnhancedGroups(groupsWithDetails);
+        setMembersLoaded(true);
       } catch (error) {
         console.error("Error enhancing groups with member counts:", error);
       }
     }
     
-    enhanceGroupsWithMemberCounts();
-    
-    // Clean up function to reset the fetched flag when component unmounts
-    return () => {
-      fetchedRef.current = false;
-    };
-  }, [groups]);
+    fetchMemberCounts();
+  }, [groups, membersLoaded]);
 
   // Render loading skeleton cards
   const renderSkeletons = () => {

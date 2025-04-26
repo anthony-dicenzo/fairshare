@@ -57,16 +57,45 @@ export default function GroupPage() {
   // show a message with a button to create a group instead of redirecting
   const hasError = !!groupError;
 
-  // Fetch group members
+  // Create our own callback for updating the member count cache
+  const updateMemberCountCache = (memberData: any[]) => {
+    if (Array.isArray(memberData) && memberData.length > 0) {
+      try {
+        // Update the local cache of member counts
+        const cached = localStorage.getItem("fairshare_member_counts");
+        let cachedMemberCounts: Record<number, number> = {};
+        if (cached) {
+          cachedMemberCounts = JSON.parse(cached);
+        }
+        
+        // Update the count for this group
+        cachedMemberCounts[groupId] = memberData.length;
+        
+        // Save back to localStorage
+        localStorage.setItem("fairshare_member_counts", JSON.stringify(cachedMemberCounts));
+      } catch (e) {
+        console.error("Error updating member count cache:", e);
+      }
+    }
+  };
+
+  // Fetch group members - with cache for consistent counts
   const { 
     data: members = [], 
     isLoading: isLoadingMembers 
-  } = useQuery({
+  } = useQuery<any[]>({
     queryKey: [`/api/groups/${groupIdStr}/members`],
     enabled: groupId > 0 && !!group,
     staleTime: Infinity, // Never refresh automatically to prevent duplicate member count issues
     refetchOnMount: false // Don't refetch when component mounts again
   });
+  
+  // Apply the cache update when members data changes
+  useEffect(() => {
+    if (members.length > 0) {
+      updateMemberCountCache(members);
+    }
+  }, [members, groupId]);
 
   // Fetch group expenses - adding staleTime: 0 to ensure data is always fresh on navigation
   const { 
