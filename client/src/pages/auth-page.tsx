@@ -22,7 +22,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 // Login schema
 const loginSchema = z.object({
@@ -99,7 +98,6 @@ export default function AuthPage() {
     <div className="min-h-screen flex flex-col bg-muted/40">
       <header className="flex items-center justify-between p-4 bg-background border-b">
         <div className="text-xl font-bold text-primary">FairShare</div>
-        <ThemeToggle />
       </header>
 
       <div className="flex-1 grid md:grid-cols-2 gap-0">
