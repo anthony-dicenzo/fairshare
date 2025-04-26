@@ -267,7 +267,7 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] p-4 rounded-lg">
+      <DialogContent className="sm:max-w-[500px] p-4 rounded-lg" autoFocus={false}>
         <DialogHeader className="pb-1">
           <DialogTitle className="flex items-center gap-2 text-base">
             <ShoppingBag className="h-4 w-4 text-primary" />
@@ -287,7 +287,7 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                 <FormItem>
                   <FormLabel className="text-xs font-medium">Title</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. Groceries, Dinner" {...field} className="h-9" />
+                    <Input placeholder="e.g. Groceries, Dinner" {...field} className="h-9" autoFocus={false} />
                   </FormControl>
                   <FormMessage className="text-xs" />
                 </FormItem>
@@ -376,6 +376,7 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                           type="text"
                           placeholder="0.00" 
                           className="pl-8 h-9" 
+                          autoFocus={false}
                           {...field} 
                         />
                       </div>
