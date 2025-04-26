@@ -268,7 +268,7 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] p-4 rounded-lg">
-        <DialogHeader className="pb-2">
+        <DialogHeader className="pb-1">
           <DialogTitle className="flex items-center gap-2 text-base">
             <ShoppingBag className="h-4 w-4 text-primary" />
             Add an Expense
@@ -279,7 +279,7 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={handleSubmit} className="space-y-3 mt-2">
+          <form onSubmit={handleSubmit} className="space-y-3 mt-1">
             <FormField
               control={form.control}
               name="title"
@@ -293,29 +293,7 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                 </FormItem>
               )}
             />
-
-            <FormField
-              control={form.control}
-              name="totalAmount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs font-medium">Amount</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-sm">$</span>
-                      <Input 
-                        type="text"
-                        placeholder="0.00" 
-                        className="pl-8 h-9" 
-                        {...field} 
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )}
-            />
-
+            
             <FormField
               control={form.control}
               name="groupId"
@@ -345,38 +323,66 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
               )}
             />
 
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="paidBy"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium">From</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="Select who paid" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={user?.id.toString() || ""}>
+                          You
+                        </SelectItem>
+                        {Array.isArray(groupMembers) && groupMembers
+                          .filter((member) => member?.userId !== user?.id)
+                          .map((member) => (
+                            <SelectItem 
+                              key={member?.userId} 
+                              value={(member?.userId || 0).toString()}
+                            >
+                              {member?.user?.name || "Unknown User"}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="h-9">
+                {/* Empty placeholder to match payment form layout */}
+              </div>
+            </div>
+
             <FormField
               control={form.control}
-              name="paidBy"
+              name="totalAmount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs font-medium">Paid by</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="h-9">
-                        <SelectValue placeholder="Select who paid" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value={user?.id.toString() || ""}>
-                        You
-                      </SelectItem>
-                      {Array.isArray(groupMembers) && groupMembers
-                        .filter((member) => member?.userId !== user?.id)
-                        .map((member) => (
-                          <SelectItem 
-                            key={member?.userId} 
-                            value={(member?.userId || 0).toString()}
-                          >
-                            {member?.user?.name || "Unknown User"}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
+                  <FormLabel className="text-xs font-medium">Amount</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-sm">$</span>
+                      <Input 
+                        type="text"
+                        placeholder="0.00" 
+                        className="pl-8 h-9" 
+                        {...field} 
+                      />
+                    </div>
+                  </FormControl>
                   <FormMessage className="text-xs" />
                 </FormItem>
               )}
@@ -531,7 +537,7 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
 
             <Button 
               type="submit"
-              className="w-full h-10 mt-2"
+              className="w-full h-10 mt-2 bg-emerald-600 hover:bg-emerald-700 text-white"
               disabled={
                 createExpenseMutation.isPending || 
                 (form.getValues("splitMethod") === "percentage" && 
@@ -546,7 +552,7 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
             <Button
               type="button"
               variant="outline"
-              className="w-full h-9"
+              className="w-full h-9 border-gray-200"
               onClick={() => onOpenChange(false)}
             >
               Cancel

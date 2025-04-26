@@ -245,7 +245,7 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={handleSubmit} className="space-y-3 mt-2">
+          <form onSubmit={handleSubmit} className="space-y-3 mt-1">
             <FormField
               control={form.control}
               name="title"
@@ -263,35 +263,13 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
                 </FormItem>
               )}
             />
-
-            <FormField
-              control={form.control}
-              name="totalAmount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs font-medium">Amount</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-sm">$</span>
-                      <Input 
-                        type="text"
-                        placeholder="0.00" 
-                        className="pl-8 h-9" 
-                        {...field} 
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )}
-            />
-
+           
             <FormField
               control={form.control}
               name="paidBy"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs font-medium">Paid by</FormLabel>
+                  <FormLabel className="text-xs font-medium">From</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
@@ -318,6 +296,28 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
                         ))}
                     </SelectContent>
                   </Select>
+                  <FormMessage className="text-xs" />
+                </FormItem>
+              )}
+            />
+           
+            <FormField
+              control={form.control}
+              name="totalAmount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs font-medium">Amount</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-sm">$</span>
+                      <Input 
+                        type="text"
+                        placeholder="0.00" 
+                        className="pl-8 h-9" 
+                        {...field} 
+                      />
+                    </div>
+                  </FormControl>
                   <FormMessage className="text-xs" />
                 </FormItem>
               )}
@@ -357,10 +357,10 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
               />
             </div>
 
-            <div className="mt-2">
+            <div className="mt-3">
               <Button 
                 type="submit"
-                className="w-full h-10"
+                className="w-full h-10 bg-emerald-600 hover:bg-emerald-700 text-white"
                 disabled={!canEdit || updateExpenseMutation.isPending}
               >
                 {updateExpenseMutation.isPending ? "Saving..." : "Save Changes"}
@@ -369,7 +369,7 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
               <Button
                 type="button"
                 variant="outline"
-                className="w-full h-9 mt-2"
+                className="w-full h-9 mt-2 border-gray-200"
                 onClick={() => onOpenChange(false)}
               >
                 Cancel
