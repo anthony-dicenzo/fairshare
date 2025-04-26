@@ -43,7 +43,7 @@ export function setupAuth(app: Express) {
       httpOnly: true,
       secure: false, // Always false for development
       path: '/',
-      sameSite: 'none' // Allow cross-site cookies for mobile webviews
+      sameSite: 'lax' // Changed from 'none' to 'lax' for better browser compatibility
     },
     store: storage.sessionStore,
   };
