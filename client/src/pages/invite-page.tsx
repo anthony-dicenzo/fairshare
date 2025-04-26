@@ -42,20 +42,55 @@ export default function InvitePage() {
     mutationFn: async () => {
       if (!inviteCode || !user) return null;
       
-      const res = await apiRequest("POST", `/api/groups/join/${inviteCode}`);
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to join group");
+      try {
+        const response = await fetch(`/api/groups/join/${inviteCode}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaders()
+          },
+          credentials: "include"
+        });
+        
+        // Clone the response so we can read it twice
+        const clonedResponse = response.clone();
+        
+        // Read the response as text first
+        const responseText = await response.text();
+        
+        // Check if response is OK
+        if (!response.ok) {
+          try {
+            // Try to parse as JSON
+            const errorData = JSON.parse(responseText);
+            throw new Error(errorData.error || "Failed to join group");
+          } catch (jsonError) {
+            // If not valid JSON, use text
+            throw new Error(responseText || "Failed to join group");
+          }
+        }
+        
+        // Try to parse as JSON if we have content
+        try {
+          if (responseText) {
+            return JSON.parse(responseText);
+          }
+          return { success: true };
+        } catch (jsonError) {
+          console.error("Error parsing success response:", jsonError);
+          return { success: true };
+        }
+      } catch (error) {
+        console.error("Error joining group:", error);
+        throw error;
       }
-      
-      return res.json();
     },
     onSuccess: (data) => {
       setJoined(true);
       
       toast({
         title: "Successfully joined group",
-        description: `You've been added to ${data?.group?.name}`,
+        description: `You've been added to ${data?.group?.name || 'the group'}`,
       });
       
       // Redirect to the group page after a brief delay
