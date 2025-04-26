@@ -188,18 +188,23 @@ export function setupAuth(app: Express) {
     res.json(userWithoutPassword);
   });
   
-  // Backup authentication endpoint for mobile devices that have session issues
+  // Enhanced backup authentication endpoint for mobile devices that have session issues
   app.get("/api/users/:userId", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
       const backupSessionId = req.headers['x-session-backup'] as string;
+      const fairshareAuthCookie = req.cookies?.fairshare_auth;
+      
+      // Use either header or cookie for backup session
+      const sessionToken = backupSessionId || fairshareAuthCookie;
       
       console.log(`Backup auth attempt for user ID: ${userId}`);
-      console.log(`Using backup session ID: ${backupSessionId}`);
+      console.log(`Using backup session: ${sessionToken}`);
       console.log(`Current session ID: ${req.sessionID}`);
+      console.log(`Client cookies:`, req.cookies);
       
       // Validate that we have both required parameters
-      if (!userId || !backupSessionId) {
+      if (!userId || !sessionToken) {
         return res.status(400).json({ error: "Missing required authentication parameters" });
       }
       
@@ -212,7 +217,7 @@ export function setupAuth(app: Express) {
       
       // Authenticate session - this is a simplified model.
       // In a production app, you would use a more secure token system.
-      const isValidSession = req.sessionStore && backupSessionId.length > 10;
+      const isValidSession = req.sessionStore && sessionToken.length > 10;
       
       if (!isValidSession) {
         return res.status(401).json({ error: "Invalid backup session" });
@@ -231,7 +236,21 @@ export function setupAuth(app: Express) {
           // Still return the user data even if we can't set the session
         }
         
-        res.json(userWithoutPassword);
+        // Set a cookie for future requests
+        res.cookie('fairshare.sid', req.sessionID, {
+          maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+          httpOnly: true,
+          secure: false, // Always false for development
+          path: '/',
+          sameSite: 'lax'
+        });
+        
+        // Send the user data with session details for debugging
+        res.json({
+          ...userWithoutPassword,
+          sessionId: req.sessionID,
+          message: "Backup authentication successful"
+        });
       });
     } catch (error) {
       console.error("Error in backup authentication:", error);

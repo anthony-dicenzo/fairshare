@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading,
   } = useQuery<SafeUser | null, Error>({
     queryKey: ["/api/user"],
-    queryFn: async ({queryKey}) => {
+    queryFn: async ({ queryKey }) => {
       try {
         console.log("Fetching user data...");
         const res = await fetch(queryKey[0] as string, {
@@ -78,12 +78,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 const userResponse = await fetch(`/api/users/${authData.userId}`, {
                   headers: {
                     'X-Session-Backup': authData.sessionId
-                  }
+                  },
+                  credentials: "include" // Important for cookie-based auth
                 });
                 
                 if (userResponse.ok) {
                   const userData = await userResponse.json();
                   console.log("Successfully retrieved user data using backup method");
+                  
+                  // Store the current session data for use in other API calls
+                  document.cookie = `fairshare_auth=${authData.sessionId}; path=/; max-age=2592000; SameSite=Lax`;
+                  
+                  // Force a refresh of groups data after successful backup auth
+                  setTimeout(() => {
+                    queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
+                    queryClient.invalidateQueries({ queryKey: ["/api/balances"] });
+                  }, 1000);
+                  
                   return userData;
                 } else {
                   console.log("Backup authentication failed, clearing stored auth");
@@ -110,6 +121,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         const userData = await res.json();
         console.log("User data fetched successfully:", userData.username);
+        
+        // Store successful session in localStorage for backup authentication
+        if (!localStorage.getItem("fairshare_auth_state")) {
+          localStorage.setItem("fairshare_auth_state", JSON.stringify({
+            userId: userData.id,
+            username: userData.username,
+            sessionId: "session_via_cookies", // A placeholder value since we don't have the actual sessionId
+            loggedInAt: new Date().toISOString()
+          }));
+        }
+        
         return userData;
       } catch (error) {
         console.error("Exception fetching user data:", error);
@@ -123,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     retry: 1 // Retry once on failure
   });
 
-  const loginMutation = useMutation({
+  const loginMutation = useMutation<SafeUser, Error, LoginData>({
     mutationFn: async (credentials: LoginData) => {
       console.log("Logging in with:", credentials.username);
       
@@ -139,22 +161,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
         
         if (!res.ok) {
-          const errorText = await res.text();
-          throw new Error(errorText || res.statusText);
+          const errorData = await res.json().catch(() => null);
+          const errorMessage = errorData?.error || res.statusText;
+          throw new Error(errorMessage);
         }
         
         const userData = await res.json();
         console.log("Login successful, user data:", userData);
         
-        // Save session ID to localStorage as a backup authentication method
-        if (userData.sessionId) {
-          localStorage.setItem("fairshare_auth_state", JSON.stringify({
-            userId: userData.id,
-            username: userData.username,
-            sessionId: userData.sessionId,
-            loggedInAt: new Date().toISOString()
-          }));
-        }
+        // Always save auth data to localStorage for mobile devices
+        // This provides a fallback authentication method
+        localStorage.setItem("fairshare_auth_state", JSON.stringify({
+          userId: userData.id,
+          username: userData.username,
+          sessionId: userData.sessionId,
+          loggedInAt: new Date().toISOString()
+        }));
         
         if (userData.message) {
           console.log("Server message:", userData.message);
@@ -171,10 +193,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return cleanUserData;
       } catch (error) {
         console.error("Login error:", error);
-        throw error;
+        if (error instanceof Error) {
+          throw error;
+        }
+        throw new Error("An error occurred during login");
       }
     },
-    onSuccess: (user: SafeUser) => {
+    onSuccess: (user) => {
       queryClient.setQueryData(["/api/user"], user);
       
       // Invalidate other queries to force refresh with new auth state
@@ -187,7 +212,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: `Welcome back, ${user.name}!`,
       });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       console.error("Login mutation error:", error);
       // Reset cached user data on login error
       queryClient.setQueryData(["/api/user"], null);
@@ -200,19 +225,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  const registerMutation = useMutation({
-    mutationFn: async (userData: RegisterData) => {
+  const registerMutation = useMutation<SafeUser, Error, RegisterData>({
+    mutationFn: async (userData) => {
       const res = await apiRequest("POST", "/api/register", userData);
       return await res.json();
     },
-    onSuccess: (user: SafeUser) => {
+    onSuccess: (user) => {
       queryClient.setQueryData(["/api/user"], user);
       toast({
         title: "Registration successful",
         description: `Welcome to FairShare, ${user.name}!`,
       });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast({
         title: "Registration failed",
         description: error.message,
@@ -221,8 +246,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  const logoutMutation = useMutation({
+  const logoutMutation = useMutation<void, Error, void>({
     mutationFn: async () => {
+      // Also clear local storage backup
+      localStorage.removeItem("fairshare_auth_state");
       await apiRequest("POST", "/api/logout");
     },
     onSuccess: () => {
@@ -232,7 +259,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: "You have been successfully logged out.",
       });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast({
         title: "Logout failed",
         description: error.message,
