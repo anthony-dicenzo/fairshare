@@ -31,12 +31,36 @@ export default function GroupsPage() {
       if (!groups || groups.length === 0) return;
       
       try {
+        // Get auth headers for requests
+        const authHeaders: Record<string, string> = {};
+        try {
+          const authData = localStorage.getItem("fairshare_auth_state");
+          if (authData) {
+            const parsed = JSON.parse(authData);
+            if (parsed.userId && parsed.sessionId) {
+              authHeaders["X-Session-Backup"] = parsed.sessionId;
+              authHeaders["X-User-Id"] = parsed.userId.toString();
+            }
+          }
+        } catch (e) {
+          console.error("Error getting auth headers:", e);
+        }
+        
         // Create enhanced groups with member counts
         const groupsWithDetails = await Promise.all(
           groups.map(async (group) => {
             try {
-              // Fetch members for this group
-              const membersResponse = await fetch(`/api/groups/${group.id}/members`);
+              // Fetch members for this group with auth headers
+              const membersResponse = await fetch(`/api/groups/${group.id}/members`, {
+                credentials: "include",
+                headers: authHeaders
+              });
+              
+              if (!membersResponse.ok) {
+                console.warn(`Could not fetch members for group ${group.id}: ${membersResponse.status}`);
+                return { ...group, memberCount: 0 };
+              }
+              
               const members = await membersResponse.json();
               
               return {
