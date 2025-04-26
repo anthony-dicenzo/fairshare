@@ -142,7 +142,7 @@ export function ActiveInvites({ groupId }: ActiveInvitesProps) {
                   {deactivateMutation.isPending ? (
                     <Loader2 className="h-4 w-4 mr-1 animate-spin" />
                   ) : (
-                    <LinkOff className="h-4 w-4 mr-1" />
+                    <Link2Off className="h-4 w-4 mr-1" />
                   )}
                   Deactivate
                 </Button>

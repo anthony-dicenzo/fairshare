@@ -16,14 +16,20 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { UserPlus } from "lucide-react";
+import { UserPlus, Link, Mail } from "lucide-react";
+
+import { InviteLinkGenerator } from "./invite-link-generator";
+import { ActiveInvites } from "./active-invites";
 
 type GroupInviteProps = {
   open: boolean;
@@ -41,6 +47,8 @@ type InviteFormValues = z.infer<typeof inviteFormSchema>;
 
 export function GroupInvite({ open, onOpenChange, groupId, members }: GroupInviteProps) {
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState<string>("link");
+  const [inviteGenerated, setInviteGenerated] = useState<boolean>(false);
 
   const form = useForm<InviteFormValues>({
     resolver: zodResolver(inviteFormSchema),
@@ -98,9 +106,16 @@ export function GroupInvite({ open, onOpenChange, groupId, members }: GroupInvit
     inviteMutation.mutate(data);
   });
 
+  const handleInviteGenerated = (inviteCode: string) => {
+    setInviteGenerated(true);
+    
+    // Invalidate queries to refresh the invites list
+    queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'invites'] });
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserPlus className="h-5 w-5 text-primary" />
@@ -111,39 +126,75 @@ export function GroupInvite({ open, onOpenChange, groupId, members }: GroupInvit
           </DialogDescription>
         </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={onSubmit} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email Address</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="Enter email address" 
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+        <Tabs defaultValue="link" value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="link" className="flex items-center gap-2">
+              <Link className="h-4 w-4" />
+              Invite Link
+            </TabsTrigger>
+            <TabsTrigger value="email" className="flex items-center gap-2">
+              <Mail className="h-4 w-4" />
+              Email Invite
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="link" className="py-4">
+            <div className="space-y-6">
+              <InviteLinkGenerator 
+                groupId={groupId} 
+                onLinkGenerated={handleInviteGenerated}
+              />
+              
+              {inviteGenerated && (
+                <div className="pt-4">
+                  <Separator className="my-6" />
+                  <ActiveInvites groupId={groupId} />
+                </div>
               )}
-            />
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="email" className="py-4">
+            <Form {...form}>
+              <form onSubmit={onSubmit} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email Address</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Enter email address" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <Button 
-              type="submit"
-              disabled={inviteMutation.isPending}
-              className="w-full"
-            >
-              {inviteMutation.isPending ? "Sending invite..." : "Send Invite"}
-            </Button>
-          </form>
-        </Form>
+                <Button 
+                  type="submit"
+                  disabled={inviteMutation.isPending}
+                  className="w-full"
+                >
+                  {inviteMutation.isPending ? "Sending invite..." : "Send Invite"}
+                </Button>
+              </form>
+            </Form>
+            
+            <div className="text-xs text-muted-foreground mt-2">
+              Users must register with the invited email to join the group.
+            </div>
+          </TabsContent>
+        </Tabs>
 
         {Array.isArray(members) && members.length > 0 && (
-          <div className="mt-4">
+          <div className="mt-2">
+            <Separator className="my-4" />
             <h3 className="text-sm font-medium mb-2">Current members</h3>
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
               {members.map((member) => {
                 if (!member?.userId || !member?.user?.name) return null;
                 
@@ -170,12 +221,6 @@ export function GroupInvite({ open, onOpenChange, groupId, members }: GroupInvit
             </div>
           </div>
         )}
-
-        <DialogFooter className="flex flex-col sm:flex-row gap-2">
-          <DialogDescription className="text-xs">
-            Users must register with the invited email to join the group.
-          </DialogDescription>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
