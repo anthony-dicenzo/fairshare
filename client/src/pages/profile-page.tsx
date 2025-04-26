@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ArrowLeft, ChevronRight, LogOut, User } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
+import { MobilePageHeader } from "@/components/layout/mobile-page-header";
 
 export default function ProfilePage() {
   const { user, logoutMutation } = useAuth();
@@ -28,8 +29,10 @@ export default function ProfilePage() {
 
   return (
     <MainLayout>
-      <div className="px-4 py-6 md:px-6 lg:px-8 max-w-4xl mx-auto">
-        <div className="flex items-center mb-6">
+      <MobilePageHeader title="Profile" />
+      
+      <div className="px-4 py-4 sm:py-6 md:px-6 lg:px-8 max-w-4xl mx-auto">
+        <div className="hidden md:flex items-center mb-6">
           <Button variant="ghost" size="sm" asChild className="mr-2">
             <Link href="/">
               <ArrowLeft className="h-4 w-4 mr-1" />
