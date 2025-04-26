@@ -266,82 +266,131 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[100vh] overflow-y-auto p-4 sm:p-6">
-        <DialogHeader className="pb-2 sm:pb-4">
-          <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
-            <ShoppingBag className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+      <DialogContent className="sm:max-w-[500px] p-4 rounded-lg">
+        <DialogHeader className="pb-2">
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <ShoppingBag className="h-4 w-4 text-primary" />
             Add an Expense
           </DialogTitle>
-          <DialogDescription className="text-xs sm:text-sm">
+          <DialogDescription className="text-xs">
             Enter the details of your expense to split it with your group.
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs sm:text-sm">Title</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. Groceries, Dinner" {...field} className="h-8 sm:h-10 text-sm" />
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
+          <form onSubmit={handleSubmit} className="space-y-3 mt-2">
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs font-medium">Title</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. Groceries, Dinner" {...field} className="h-9" />
+                  </FormControl>
+                  <FormMessage className="text-xs" />
+                </FormItem>
+              )}
+            />
 
-              <FormField
-                control={form.control}
-                name="totalAmount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs sm:text-sm">Amount</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1.5 sm:top-2.5 text-sm">$</span>
-                        <Input 
-                          type="text"
-                          placeholder="0.00" 
-                          className="pl-8 h-8 sm:h-10 text-sm" 
-                          {...field} 
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="totalAmount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs font-medium">Amount</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-sm">$</span>
+                      <Input 
+                        type="text"
+                        placeholder="0.00" 
+                        className="pl-8 h-9" 
+                        {...field} 
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage className="text-xs" />
+                </FormItem>
+              )}
+            />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <FormField
-                control={form.control}
-                name="groupId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs sm:text-sm">Group</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      value={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="h-8 sm:h-10 text-sm">
-                          <SelectValue placeholder="Select a group" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {groups.map((group) => (
-                          <SelectItem key={group.id} value={group.id.toString()}>
-                            {group.name}
+            <FormField
+              control={form.control}
+              name="groupId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs font-medium">Group</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Select a group" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {groups.map((group) => (
+                        <SelectItem key={group.id} value={group.id.toString()}>
+                          {group.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage className="text-xs" />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="paidBy"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs font-medium">Paid by</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Select who paid" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value={user?.id.toString() || ""}>
+                        You
+                      </SelectItem>
+                      {Array.isArray(groupMembers) && groupMembers
+                        .filter((member) => member?.userId !== user?.id)
+                        .map((member) => (
+                          <SelectItem 
+                            key={member?.userId} 
+                            value={(member?.userId || 0).toString()}
+                          >
+                            {member?.user?.name || "Unknown User"}
                           </SelectItem>
                         ))}
-                      </SelectContent>
-                    </Select>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage className="text-xs" />
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium">Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} className="h-9" />
+                    </FormControl>
                     <FormMessage className="text-xs" />
                   </FormItem>
                 )}
@@ -349,36 +398,17 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
 
               <FormField
                 control={form.control}
-                name="paidBy"
+                name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-xs sm:text-sm">Paid by</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      value={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="h-8 sm:h-10 text-sm">
-                          <SelectValue placeholder="Select who paid" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={user?.id.toString() || ""}>
-                          You
-                        </SelectItem>
-                        {Array.isArray(groupMembers) && groupMembers
-                          .filter((member) => member?.userId !== user?.id)
-                          .map((member) => (
-                            <SelectItem 
-                              key={member?.userId} 
-                              value={(member?.userId || 0).toString()}
-                            >
-                              {member?.user?.name || "Unknown User"}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
+                    <FormLabel className="text-xs font-medium">Note (optional)</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="e.g. Groceries, Cash"
+                        className="h-9"
+                        {...field}
+                      />
+                    </FormControl>
                     <FormMessage className="text-xs" />
                   </FormItem>
                 )}
@@ -389,13 +419,13 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
               control={form.control}
               name="splitMethod"
               render={({ field }) => (
-                <FormItem className="space-y-1">
-                  <FormLabel className="text-xs sm:text-sm">Split Method</FormLabel>
+                <FormItem>
+                  <FormLabel className="text-xs font-medium">Split Method</FormLabel>
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
                       defaultValue={field.value}
-                      className="flex space-x-3"
+                      className="flex space-x-4"
                     >
                       <FormItem className="flex items-center space-x-1 space-y-0">
                         <FormControl>
@@ -428,11 +458,10 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
               )}
             />
 
-            <div className="mb-1">
-              <FormLabel className="text-xs sm:text-sm">Split between</FormLabel>
+            <div>
+              <FormLabel className="text-xs font-medium">Split between</FormLabel>
               <div className="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-x-2 gap-y-1">
                 {Array.isArray(groupMembers) && groupMembers.map((member) => {
-                  // Skip if userId is not defined
                   if (!member?.userId) return null;
                   
                   const isEqual = form.getValues("splitMethod") === "equal";
@@ -444,7 +473,6 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                   const equalShare = isSelected && selectedUserIds.length > 0 ? 
                     totalAmount / selectedUserIds.length : 0;
                     
-                  // Calculate even percentage for each selected member
                   const equalPercentage = isSelected && selectedUserIds.length > 0 ? 
                     100 / selectedUserIds.length : 0;
                   
@@ -458,12 +486,10 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                           if (checked) {
                             const newSelectedIds = [...selectedUserIds, member.userId];
                             setSelectedUserIds(newSelectedIds);
-                            // Recalculate splits with new member included
                             handleInitializeAmountsAndPercentages(newSelectedIds);
                           } else {
                             const newSelectedIds = selectedUserIds.filter(id => id !== member.userId);
                             setSelectedUserIds(newSelectedIds);
-                            // Recalculate splits with this member removed
                             handleInitializeAmountsAndPercentages(newSelectedIds);
                           }
                         }}
@@ -476,14 +502,12 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                           {member.userId === user?.id ? "You" : member?.user?.name || "Unknown User"}
                         </label>
                         
-                        {/* Show amount for equal split (informational) */}
                         {isEqual && isSelected && (
                           <div className="ml-auto text-xs text-muted-foreground">
                             ${equalShare.toFixed(2)}
                           </div>
                         )}
                         
-                        {/* Input field for unequal split */}
                         {isUnequal && isSelected && (
                           <div className="ml-auto">
                             <div className="relative">
@@ -507,7 +531,6 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                           </div>
                         )}
                         
-                        {/* Input field for percentage split */}
                         {isPercentage && isSelected && (
                           <div className="ml-auto">
                             <div className="relative">
@@ -536,11 +559,9 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                 })}
               </div>
               
-              {/* Show total percentage when using percentage split */}
               {form.getValues("splitMethod") === "percentage" && selectedUserIds.length > 0 && (
-                <div className="mt-2 text-xs text-right">
+                <div className="mt-1 text-xs text-right">
                   <span className={`${
-                    // Calculate total percentage
                     Object.values(customPercentages).reduce((acc, val) => acc + val, 0) === 100 
                       ? "text-green-500" 
                       : "text-red-500"
@@ -552,11 +573,9 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                 </div>
               )}
               
-              {/* Show total amount for unequal split */}
               {form.getValues("splitMethod") === "unequal" && selectedUserIds.length > 0 && (
-                <div className="mt-2 text-xs text-right">
+                <div className="mt-1 text-xs text-right">
                   <span className={`${
-                    // Calculate total amount
                     Math.abs(Object.values(customAmounts).reduce((acc, val) => acc + val, 0) - 
                       parseFloat(form.getValues("totalAmount") || "0")) < 0.01
                       ? "text-green-500" 
@@ -571,76 +590,28 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs sm:text-sm">Date</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} className="h-8 sm:h-10 text-sm" />
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs sm:text-sm">Notes (optional)</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Brief note about this expense"
-                        className="h-8 sm:h-10 text-sm"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <DialogFooter className="sm:space-x-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-8 sm:h-9 text-xs sm:text-sm"
-                onClick={() => onOpenChange(false)}
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit"
-                size="sm"
-                className="h-8 sm:h-9 text-xs sm:text-sm"
-                disabled={
-                  createExpenseMutation.isPending || 
-                  (form.getValues("splitMethod") === "percentage" && 
-                   Object.values(customPercentages).reduce((acc, val) => acc + val, 0) !== 100) ||
-                  (form.getValues("splitMethod") === "unequal" && 
-                   Math.abs(Object.values(customAmounts).reduce((acc, val) => acc + val, 0) - 
-                   parseFloat(form.getValues("totalAmount") || "0")) >= 0.01)
-                }
-                title={
-                  form.getValues("splitMethod") === "percentage" && 
-                  Object.values(customPercentages).reduce((acc, val) => acc + val, 0) !== 100 
-                    ? "Percentages must sum to 100%" 
-                    : form.getValues("splitMethod") === "unequal" && 
-                      Math.abs(Object.values(customAmounts).reduce((acc, val) => acc + val, 0) - 
-                      parseFloat(form.getValues("totalAmount") || "0")) >= 0.01
-                      ? "Amounts must sum to the total" 
-                      : ""
-                }
-              >
-                {createExpenseMutation.isPending ? "Saving..." : "Save Expense"}
-              </Button>
-            </DialogFooter>
+            <Button 
+              type="submit"
+              className="w-full h-10 mt-2"
+              disabled={
+                createExpenseMutation.isPending || 
+                (form.getValues("splitMethod") === "percentage" && 
+                 Object.values(customPercentages).reduce((acc, val) => acc + val, 0) !== 100) ||
+                (form.getValues("splitMethod") === "unequal" && 
+                 Math.abs(Object.values(customAmounts).reduce((acc, val) => acc + val, 0) - 
+                 parseFloat(form.getValues("totalAmount") || "0")) >= 0.01)
+              }
+            >
+              {createExpenseMutation.isPending ? "Saving..." : "Save Expense"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full h-9"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
           </form>
         </Form>
       </DialogContent>
