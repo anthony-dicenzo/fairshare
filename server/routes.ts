@@ -4,7 +4,8 @@ import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { 
   insertGroupSchema, insertExpenseSchema, insertExpenseParticipantSchema, 
-  insertPaymentSchema, insertActivityLogSchema 
+  insertPaymentSchema, insertActivityLogSchema, insertGroupInviteSchema, 
+  insertGroupMemberSchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -115,41 +116,177 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "You are not a member of this group" });
       }
       
-      // Find the user to invite by email
-      let invitedUser = await storage.getUserByEmail(req.body.email);
-      
-      // If user doesn't exist, create a placeholder response
-      // The frontend can handle showing a message that the user will be added when they register
-      if (!invitedUser) {
-        // Just return an appropriate message
-        return res.status(200).json({ 
-          message: "User not registered. They'll be automatically added to the group when they register with this email." 
+      if (req.body.email) {
+        // Legacy email-based invitation (keeping for backward compatibility)
+        // Find the user to invite by email
+        let invitedUser = await storage.getUserByEmail(req.body.email);
+        
+        // If user doesn't exist, create a placeholder response
+        // The frontend can handle showing a message that the user will be added when they register
+        if (!invitedUser) {
+          // Just return an appropriate message
+          return res.status(200).json({ 
+            message: "User not registered. They'll be automatically added to the group when they register with this email." 
+          });
+        }
+        
+        // Check if user is already a member
+        const isAlreadyMember = members.some(member => member.userId === invitedUser!.id);
+        
+        if (isAlreadyMember) {
+          return res.status(400).json({ error: "User is already a member of this group" });
+        }
+        
+        // Add user to group
+        const membership = await storage.addUserToGroup({
+          groupId,
+          userId: invitedUser.id
         });
+        
+        // Log activity
+        await storage.logActivity({
+          groupId,
+          userId: req.user.id,
+          actionType: "add_member"
+        });
+        
+        res.status(201).json(membership);
+      } else {
+        // Create a shareable invite link
+        const invite = await storage.createGroupInvite({
+          groupId,
+          createdBy: req.user.id,
+          isActive: true,
+          // Set expiration if provided, otherwise leave it undefined
+          expiresAt: req.body.expiresAt ? new Date(req.body.expiresAt) : undefined
+        });
+        
+        // Log activity
+        await storage.logActivity({
+          groupId,
+          userId: req.user.id,
+          actionType: "create_invite_link"
+        });
+        
+        res.status(201).json(invite);
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to invite user to group" });
+    }
+  });
+  
+  // Get all active invites for a group
+  app.get("/api/groups/:id/invites", async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    try {
+      const groupId = parseInt(req.params.id);
+      
+      // Check if user is a member of this group
+      const members = await storage.getGroupMembers(groupId);
+      const isMember = members.some(member => member.userId === req.user.id);
+      
+      if (!isMember) {
+        return res.status(403).json({ error: "You are not a member of this group" });
+      }
+      
+      const invites = await storage.getGroupInvitesByGroupId(groupId);
+      
+      // Filter out inactive invites and those that have expired
+      const activeInvites = invites.filter(invite => {
+        if (!invite.isActive) return false;
+        if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) return false;
+        return true;
+      });
+      
+      res.json(activeInvites);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch group invites" });
+    }
+  });
+  
+  // Deactivate an invite
+  app.post("/api/groups/invites/:inviteId/deactivate", async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    try {
+      const inviteId = parseInt(req.params.inviteId);
+      const invite = await storage.getGroupInviteById(inviteId);
+      
+      if (!invite) {
+        return res.status(404).json({ error: "Invite not found" });
+      }
+      
+      // Check if user is a member of this group
+      const members = await storage.getGroupMembers(invite.groupId);
+      const isMember = members.some(member => member.userId === req.user.id);
+      
+      if (!isMember) {
+        return res.status(403).json({ error: "You are not a member of this group" });
+      }
+      
+      const success = await storage.deactivateGroupInvite(inviteId);
+      if (success) {
+        res.json({ message: "Invite deactivated successfully" });
+      } else {
+        res.status(500).json({ error: "Failed to deactivate invite" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to deactivate invite" });
+    }
+  });
+  
+  // Join a group via invite link
+  app.post("/api/groups/join/:inviteCode", async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    try {
+      const inviteCode = req.params.inviteCode;
+      const invite = await storage.getGroupInvite(inviteCode);
+      
+      if (!invite) {
+        return res.status(404).json({ error: "Invalid invite code" });
+      }
+      
+      if (!invite.isActive) {
+        return res.status(400).json({ error: "This invite link is no longer active" });
+      }
+      
+      if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
+        return res.status(400).json({ error: "This invite link has expired" });
       }
       
       // Check if user is already a member
-      const isAlreadyMember = members.some(member => member.userId === invitedUser!.id);
+      const members = await storage.getGroupMembers(invite.groupId);
+      const isAlreadyMember = members.some(member => member.userId === req.user.id);
       
       if (isAlreadyMember) {
-        return res.status(400).json({ error: "User is already a member of this group" });
+        return res.status(400).json({ error: "You are already a member of this group" });
       }
       
       // Add user to group
       const membership = await storage.addUserToGroup({
-        groupId,
-        userId: invitedUser.id
+        groupId: invite.groupId,
+        userId: req.user.id
       });
       
       // Log activity
       await storage.logActivity({
-        groupId,
+        groupId: invite.groupId,
         userId: req.user.id,
-        actionType: "add_member"
+        actionType: "join_via_invite"
       });
       
-      res.status(201).json(membership);
+      // Get the group details to return to the client
+      const group = await storage.getGroup(invite.groupId);
+      
+      res.status(200).json({
+        message: "Successfully joined the group",
+        group,
+        membership
+      });
     } catch (error) {
-      res.status(500).json({ error: "Failed to invite user to group" });
+      res.status(500).json({ error: "Failed to join group" });
     }
   });
   

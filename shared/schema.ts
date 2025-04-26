@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, numeric, foreignKey } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, numeric, foreignKey, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -65,6 +65,16 @@ export const activityLog = pgTable("activity_log", {
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
+export const groupInvites = pgTable("group_invites", {
+  id: serial("id").primaryKey(),
+  groupId: integer("group_id").notNull().references(() => groups.id),
+  inviteCode: text("invite_code").notNull().unique(),
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"),
+  isActive: boolean("is_active").notNull().default(true)
+});
+
 // Insert Schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -126,6 +136,12 @@ export const insertActivityLogSchema = createInsertSchema(activityLog).omit({
   createdAt: true
 });
 
+export const insertGroupInviteSchema = createInsertSchema(groupInvites).omit({
+  id: true,
+  createdAt: true,
+  inviteCode: true // Auto-generated
+});
+
 // Login schema
 export const loginUserSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -147,4 +163,6 @@ export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type ActivityLogEntry = typeof activityLog.$inferSelect;
 export type InsertActivityLogEntry = z.infer<typeof insertActivityLogSchema>;
+export type GroupInvite = typeof groupInvites.$inferSelect;
+export type InsertGroupInvite = z.infer<typeof insertGroupInviteSchema>;
 export type LoginUser = z.infer<typeof loginUserSchema>;

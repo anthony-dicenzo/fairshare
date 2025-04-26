@@ -1,4 +1,5 @@
 import session from "express-session";
+import crypto from "crypto";
 import { 
   User, InsertUser, 
   Group, InsertGroup, 
@@ -7,7 +8,8 @@ import {
   ExpenseParticipant, InsertExpenseParticipant,
   Payment, InsertPayment,
   ActivityLogEntry, InsertActivityLogEntry,
-  users, groups, groupMembers, expenses, expenseParticipants, payments, activityLog
+  GroupInvite, InsertGroupInvite,
+  users, groups, groupMembers, expenses, expenseParticipants, payments, activityLog, groupInvites
 } from "@shared/schema";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
@@ -28,6 +30,13 @@ export interface IStorage {
   getGroupsByUserId(userId: number): Promise<Group[]>;
   addUserToGroup(member: InsertGroupMember): Promise<GroupMember>;
   getGroupMembers(groupId: number): Promise<(GroupMember & { user: User })[]>;
+  
+  // Group invite operations
+  createGroupInvite(inviteData: InsertGroupInvite): Promise<GroupInvite>;
+  getGroupInvite(inviteCode: string): Promise<GroupInvite | undefined>;
+  getGroupInviteById(id: number): Promise<GroupInvite | undefined>;
+  getGroupInvitesByGroupId(groupId: number): Promise<GroupInvite[]>;
+  deactivateGroupInvite(inviteId: number): Promise<boolean>;
   
   // Expense operations
   createExpense(expense: InsertExpense): Promise<Expense>;
@@ -87,6 +96,59 @@ export class DatabaseStorage implements IStorage {
       pool,
       createTableIfMissing: true
     });
+  }
+  
+  // Helper method to generate a unique invite code
+  private generateInviteCode(length = 8): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+      const randomIndex = Math.floor(Math.random() * chars.length);
+      result += chars.charAt(randomIndex);
+    }
+    return result;
+  }
+  
+  async createGroupInvite(inviteData: InsertGroupInvite): Promise<GroupInvite> {
+    const inviteCode = this.generateInviteCode();
+    const result = await db.insert(groupInvites).values({
+      ...inviteData,
+      inviteCode
+    }).returning();
+    return result[0];
+  }
+  
+  async getGroupInvite(inviteCode: string): Promise<GroupInvite | undefined> {
+    const result = await db
+      .select()
+      .from(groupInvites)
+      .where(eq(groupInvites.inviteCode, inviteCode));
+    return result[0];
+  }
+  
+  async getGroupInviteById(id: number): Promise<GroupInvite | undefined> {
+    const result = await db
+      .select()
+      .from(groupInvites)
+      .where(eq(groupInvites.id, id));
+    return result[0];
+  }
+  
+  async getGroupInvitesByGroupId(groupId: number): Promise<GroupInvite[]> {
+    const result = await db
+      .select()
+      .from(groupInvites)
+      .where(eq(groupInvites.groupId, groupId));
+    return result;
+  }
+  
+  async deactivateGroupInvite(inviteId: number): Promise<boolean> {
+    const result = await db
+      .update(groupInvites)
+      .set({ isActive: false })
+      .where(eq(groupInvites.id, inviteId))
+      .returning();
+    return result.length > 0;
   }
   
   async getUser(id: number): Promise<User | undefined> {
