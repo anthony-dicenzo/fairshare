@@ -266,8 +266,8 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[500px] max-h-[100vh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader className="pb-2 sm:pb-4">
           <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
             <ShoppingBag className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             Add an Expense
@@ -395,29 +395,29 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                     <RadioGroup
                       onValueChange={field.onChange}
                       defaultValue={field.value}
-                      className="flex space-x-3 sm:space-x-4"
+                      className="flex space-x-3"
                     >
-                      <FormItem className="flex items-center space-x-1 sm:space-x-2 space-y-0">
+                      <FormItem className="flex items-center space-x-1 space-y-0">
                         <FormControl>
-                          <RadioGroupItem value="equal" className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                          <RadioGroupItem value="equal" className="h-3.5 w-3.5" />
                         </FormControl>
-                        <FormLabel className="font-normal text-xs sm:text-sm">
+                        <FormLabel className="font-normal text-xs">
                           Equal
                         </FormLabel>
                       </FormItem>
-                      <FormItem className="flex items-center space-x-1 sm:space-x-2 space-y-0">
+                      <FormItem className="flex items-center space-x-1 space-y-0">
                         <FormControl>
-                          <RadioGroupItem value="unequal" className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                          <RadioGroupItem value="unequal" className="h-3.5 w-3.5" />
                         </FormControl>
-                        <FormLabel className="font-normal text-xs sm:text-sm">
+                        <FormLabel className="font-normal text-xs">
                           Unequal
                         </FormLabel>
                       </FormItem>
-                      <FormItem className="flex items-center space-x-1 sm:space-x-2 space-y-0">
+                      <FormItem className="flex items-center space-x-1 space-y-0">
                         <FormControl>
-                          <RadioGroupItem value="percentage" className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                          <RadioGroupItem value="percentage" className="h-3.5 w-3.5" />
                         </FormControl>
-                        <FormLabel className="font-normal text-xs sm:text-sm">
+                        <FormLabel className="font-normal text-xs">
                           Percent
                         </FormLabel>
                       </FormItem>
@@ -428,9 +428,9 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
               )}
             />
 
-            <div>
+            <div className="mb-1">
               <FormLabel className="text-xs sm:text-sm">Split between</FormLabel>
-              <div className="mt-1 space-y-1.5">
+              <div className="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-x-2 gap-y-1">
                 {Array.isArray(groupMembers) && groupMembers.map((member) => {
                   // Skip if userId is not defined
                   if (!member?.userId) return null;
@@ -453,7 +453,7 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                       <Checkbox
                         id={`split-${member.userId}`}
                         checked={isSelected}
-                        className="h-3.5 w-3.5 sm:h-4 sm:w-4"
+                        className="h-3.5 w-3.5"
                         onCheckedChange={(checked) => {
                           if (checked) {
                             const newSelectedIds = [...selectedUserIds, member.userId];
@@ -471,14 +471,14 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                       <div className="flex items-center space-x-1.5 w-full">
                         <label
                           htmlFor={`split-${member.userId}`}
-                          className="text-xs sm:text-sm font-medium leading-none"
+                          className="text-xs font-medium leading-none truncate max-w-[90px]"
                         >
                           {member.userId === user?.id ? "You" : member?.user?.name || "Unknown User"}
                         </label>
                         
                         {/* Show amount for equal split (informational) */}
                         {isEqual && isSelected && (
-                          <div className="ml-auto text-xs sm:text-sm text-muted-foreground">
+                          <div className="ml-auto text-xs text-muted-foreground">
                             ${equalShare.toFixed(2)}
                           </div>
                         )}
@@ -491,7 +491,7 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                               <Input 
                                 type="text"
                                 placeholder="0.00"
-                                className="w-20 h-7 pl-6 text-xs"
+                                className="w-16 h-6 pl-5 text-xs"
                                 value={customAmounts[member.userId]?.toFixed(2) || equalShare.toFixed(2)}
                                 onChange={(e) => {
                                   const amount = parseFloat(e.target.value);
@@ -514,7 +514,7 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                               <Input 
                                 type="text"
                                 placeholder="0"
-                                className="w-20 h-7 pr-6 text-xs text-right"
+                                className="w-14 h-6 pr-5 text-xs text-right"
                                 value={customPercentages[member.userId]?.toString() || equalPercentage.toFixed(0)}
                                 onChange={(e) => {
                                   const percentage = parseInt(e.target.value);
