@@ -115,61 +115,62 @@ export function GroupInvite({ open, onOpenChange, groupId, members }: GroupInvit
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5 text-primary" />
+      <DialogContent className="sm:max-w-[550px] p-4 pt-10">
+        <DialogHeader className="mb-2 p-0">
+          <DialogTitle className="flex items-center gap-1 text-lg">
+            <UserPlus className="h-4 w-4 text-primary" />
             Invite Members
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-xs">
             Invite people to join your group and share expenses.
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="link" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="link" className="flex items-center gap-2">
-              <Link className="h-4 w-4" />
+        <Tabs defaultValue="link" value={activeTab} onValueChange={setActiveTab} className="mt-0">
+          <TabsList className="grid w-full grid-cols-2 h-8">
+            <TabsTrigger value="link" className="flex items-center gap-1 text-xs py-1 h-8">
+              <Link className="h-3 w-3" />
               Invite Link
             </TabsTrigger>
-            <TabsTrigger value="email" className="flex items-center gap-2">
-              <Mail className="h-4 w-4" />
+            <TabsTrigger value="email" className="flex items-center gap-1 text-xs py-1 h-8">
+              <Mail className="h-3 w-3" />
               Email Invite
             </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="link" className="py-4">
-            <div className="space-y-6">
+          <TabsContent value="link" className="py-2 mt-2">
+            <div className="space-y-3">
               <InviteLinkGenerator 
                 groupId={groupId} 
                 onLinkGenerated={handleInviteGenerated}
               />
               
               {inviteGenerated && (
-                <div className="pt-4">
-                  <Separator className="my-6" />
+                <div className="pt-2">
+                  <Separator className="my-2" />
                   <ActiveInvites groupId={groupId} />
                 </div>
               )}
             </div>
           </TabsContent>
           
-          <TabsContent value="email" className="py-4">
+          <TabsContent value="email" className="py-2 mt-2">
             <Form {...form}>
-              <form onSubmit={onSubmit} className="space-y-4">
+              <form onSubmit={onSubmit} className="space-y-2">
                 <FormField
                   control={form.control}
                   name="email"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email Address</FormLabel>
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs">Email Address</FormLabel>
                       <FormControl>
                         <Input 
                           placeholder="Enter email address" 
-                          {...field} 
+                          {...field}
+                          className="h-8 text-sm" 
                         />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-xs" />
                     </FormItem>
                   )}
                 />
@@ -177,7 +178,8 @@ export function GroupInvite({ open, onOpenChange, groupId, members }: GroupInvit
                 <Button 
                   type="submit"
                   disabled={inviteMutation.isPending}
-                  className="w-full"
+                  className="w-full h-8 text-xs mt-2"
+                  size="sm"
                 >
                   {inviteMutation.isPending ? "Sending invite..." : "Send Invite"}
                 </Button>
@@ -185,16 +187,16 @@ export function GroupInvite({ open, onOpenChange, groupId, members }: GroupInvit
             </Form>
             
             <div className="text-xs text-muted-foreground mt-2">
-              Users must register with the invited email to join the group.
+              Users must register with the invited email to join.
             </div>
           </TabsContent>
         </Tabs>
 
-        {Array.isArray(members) && members.length > 0 && (
+        {Array.isArray(members) && members.length > 0 && members.length < 5 && (
           <div className="mt-2">
-            <Separator className="my-4" />
-            <h3 className="text-sm font-medium mb-2">Current members</h3>
-            <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+            <Separator className="my-2" />
+            <h3 className="text-xs font-medium mb-1">Current members</h3>
+            <div className="space-y-1 max-h-20 overflow-y-auto pr-1">
               {members.map((member) => {
                 if (!member?.userId || !member?.user?.name) return null;
                 
@@ -206,14 +208,13 @@ export function GroupInvite({ open, onOpenChange, groupId, members }: GroupInvit
                   
                 return (
                   <div key={member.userId} className="flex items-center">
-                    <Avatar className="h-7 w-7 mr-2">
-                      <AvatarFallback className="text-xs">
+                    <Avatar className="h-5 w-5 mr-1">
+                      <AvatarFallback className="text-[10px]">
                         {initials}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="text-sm font-medium">{member.user.name}</p>
-                      <p className="text-xs text-muted-foreground">{member.user.email || "No email provided"}</p>
+                      <p className="text-xs font-medium">{member.user.name}</p>
                     </div>
                   </div>
                 );

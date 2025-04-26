@@ -96,62 +96,56 @@ export function InviteLinkGenerator({ groupId, onLinkGenerated }: InviteLinkGene
   };
   
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="text-xl">Invite People</CardTitle>
-        <CardDescription>Generate a shareable link to invite others to this group</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {inviteCode ? (
-          <div className="space-y-4">
-            <div className="p-3 bg-muted rounded-md break-all font-mono text-sm flex items-center gap-2">
-              <Link className="h-4 w-4 shrink-0" />
-              <span className="truncate">{`${window.location.origin}/invite/${inviteCode}`}</span>
-            </div>
-            
-            <div className="flex items-center justify-between space-x-2">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="expiration"
-                  checked={hasExpiration}
-                  onCheckedChange={setHasExpiration}
-                  disabled={loading}
-                />
-                <Label htmlFor="expiration">Expires after 7 days</Label>
-              </div>
-            </div>
+    <div className="w-full">
+      <div className="mb-2">
+        <h3 className="text-base font-medium">Invite People</h3>
+        <p className="text-muted-foreground text-xs">Generate a shareable link to invite others</p>
+      </div>
+      
+      {inviteCode ? (
+        <div className="space-y-2">
+          <div className="p-2 bg-muted rounded-md break-all font-mono text-xs flex items-center gap-1 min-h-9">
+            <Link className="h-3 w-3 shrink-0" />
+            <span className="truncate">{`${window.location.origin}/invite/${inviteCode}`}</span>
           </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center space-y-4 py-6">
-            <p className="text-muted-foreground text-center">
-              Generate a link that you can share with others to invite them to this group
-            </p>
+          
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="expiration"
+              checked={hasExpiration}
+              onCheckedChange={setHasExpiration}
+              disabled={loading}
+              className="scale-75"
+            />
+            <Label htmlFor="expiration" className="text-xs">Expires after 7 days</Label>
           </div>
-        )}
-      </CardContent>
-      <CardFooter className="flex justify-between border-t p-4">
-        {!inviteCode ? (
-          <Button onClick={generateLink} disabled={loading} className="w-full">
-            {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Link className="h-4 w-4 mr-2" />}
-            Generate Link
-          </Button>
-        ) : (
-          <div className="flex w-full gap-2">
-            <Button onClick={generateLink} variant="outline" disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Link className="h-4 w-4 mr-2" />}
+          
+          <div className="flex w-full gap-1 mt-2">
+            <Button onClick={generateLink} variant="outline" disabled={loading} size="sm" className="h-8 px-2 text-xs">
+              {loading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Link className="h-3 w-3 mr-1" />}
               New Link
             </Button>
-            <Button onClick={copyLink} variant="outline" disabled={loading}>
-              <Copy className="h-4 w-4 mr-2" />
+            <Button onClick={copyLink} variant="outline" disabled={loading} size="sm" className="h-8 px-2 text-xs">
+              <Copy className="h-3 w-3 mr-1" />
               {copied ? "Copied!" : "Copy"}
             </Button>
-            <Button onClick={shareLink} disabled={loading} className="flex-1">
-              <Share2 className="h-4 w-4 mr-2" />
+            <Button onClick={shareLink} disabled={loading} size="sm" className="flex-1 h-8 text-xs">
+              <Share2 className="h-3 w-3 mr-1" />
               Share
             </Button>
           </div>
-        )}
-      </CardFooter>
-    </Card>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <p className="text-muted-foreground text-xs">
+            Generate a link to invite others to this group
+          </p>
+          <Button onClick={generateLink} disabled={loading} size="sm" className="w-full h-8 text-xs">
+            {loading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Link className="h-3 w-3 mr-1" />}
+            Generate Link
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }

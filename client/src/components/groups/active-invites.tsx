@@ -75,82 +75,69 @@ export function ActiveInvites({ groupId }: ActiveInvitesProps) {
   
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">Active Invites</CardTitle>
-        </CardHeader>
-        <CardContent className="flex justify-center py-6">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
+      <div className="w-full">
+        <h3 className="text-base font-medium">Active Invites</h3>
+        <div className="flex justify-center py-3">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      </div>
     );
   }
   
   if (!invites || invites.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">Active Invites</CardTitle>
-          <CardDescription>No active invite links found</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center p-4 text-muted-foreground">
-            <p>Generate a new invite link to share with your friends</p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="w-full">
+        <h3 className="text-base font-medium">Active Invites</h3>
+        <p className="text-xs text-muted-foreground">No active invite links found</p>
+      </div>
     );
   }
   
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-xl">Active Invites</CardTitle>
-        <CardDescription>Manage your active invite links</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {invites.map((invite) => (
-            <div key={invite.id} className="flex items-center justify-between p-3 border rounded-md">
-              <div className="overflow-hidden">
-                <div className="font-medium truncate">
-                  {`${window.location.origin}/invite/${invite.inviteCode}`}
-                </div>
-                <div className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  Created: {format(new Date(invite.createdAt), "MMM d, yyyy")}
-                  {invite.expiresAt && (
-                    <span> · Expires: {format(new Date(invite.expiresAt), "MMM d, yyyy")}</span>
-                  )}
-                </div>
-              </div>
-              <div className="flex gap-2 ml-2 shrink-0">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => copyLink(invite)}
-                >
-                  <Copy className="h-4 w-4 mr-1" />
-                  {copiedId === invite.id ? "Copied!" : "Copy"}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => deactivateMutation.mutate(invite.id)}
-                  disabled={deactivateMutation.isPending}
-                >
-                  {deactivateMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                  ) : (
-                    <Link2Off className="h-4 w-4 mr-1" />
-                  )}
-                  Deactivate
-                </Button>
-              </div>
+    <div className="w-full">
+      <h3 className="text-base font-medium">Active Invites</h3>
+      <p className="text-xs text-muted-foreground mb-2">Manage your active invite links</p>
+      <div className="space-y-2">
+        {invites.map((invite) => (
+          <div key={invite.id} className="flex flex-col p-2 border rounded-md text-xs">
+            <div className="font-mono truncate text-xs">
+              {`${window.location.origin}/invite/${invite.inviteCode}`}
             </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+            <div className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
+              <Calendar className="h-3 w-3" />
+              <span>
+                Created: {format(new Date(invite.createdAt), "MMM d")}
+                {invite.expiresAt && ` · Expires: ${format(new Date(invite.expiresAt), "MMM d")}`}
+              </span>
+            </div>
+            <div className="flex gap-1 w-full">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => copyLink(invite)}
+                className="h-7 px-2 text-xs flex-1"
+              >
+                <Copy className="h-3 w-3 mr-1" />
+                {copiedId === invite.id ? "Copied" : "Copy"}
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => deactivateMutation.mutate(invite.id)}
+                disabled={deactivateMutation.isPending}
+                className="h-7 px-2 text-xs flex-1"
+              >
+                {deactivateMutation.isPending ? (
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                ) : (
+                  <Link2Off className="h-3 w-3 mr-1" />
+                )}
+                Deactivate
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
