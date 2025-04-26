@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/main-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,26 +25,39 @@ export default function GroupsPage() {
     queryKey: ["/api/groups"],
   });
   
+  // Use a ref to prevent duplicate fetches
+  const fetchedRef = useRef(false);
+
   // Fetch member counts for each group when groups data is available
   useEffect(() => {
+    // Function to get auth headers for requests
+    function getAuthHeaders(): Record<string, string> {
+      const headers: Record<string, string> = {};
+      try {
+        const authData = localStorage.getItem("fairshare_auth_state");
+        if (authData) {
+          const parsed = JSON.parse(authData);
+          if (parsed.userId && parsed.sessionId) {
+            headers["X-Session-Backup"] = parsed.sessionId;
+            headers["X-User-Id"] = parsed.userId.toString();
+          }
+        }
+      } catch (e) {
+        console.error("Error getting auth headers:", e);
+      }
+      return headers;
+    }
+    
+    // Main function to fetch and enhance groups with member counts
     async function enhanceGroupsWithMemberCounts() {
       if (!groups || groups.length === 0) return;
+      if (fetchedRef.current) return; // Prevent duplicate fetches
       
       try {
-        // Get auth headers for requests
-        const authHeaders: Record<string, string> = {};
-        try {
-          const authData = localStorage.getItem("fairshare_auth_state");
-          if (authData) {
-            const parsed = JSON.parse(authData);
-            if (parsed.userId && parsed.sessionId) {
-              authHeaders["X-Session-Backup"] = parsed.sessionId;
-              authHeaders["X-User-Id"] = parsed.userId.toString();
-            }
-          }
-        } catch (e) {
-          console.error("Error getting auth headers:", e);
-        }
+        console.log("Fetching member counts for groups");
+        fetchedRef.current = true;
+        
+        const authHeaders = getAuthHeaders();
         
         // Create enhanced groups with member counts
         const groupsWithDetails = await Promise.all(
@@ -62,10 +75,13 @@ export default function GroupsPage() {
               }
               
               const members = await membersResponse.json();
+              const memberCount = Array.isArray(members) ? members.length : 0;
+              
+              console.log(`Group ${group.name} has ${memberCount} members`);
               
               return {
                 ...group,
-                memberCount: Array.isArray(members) ? members.length : 0
+                memberCount
               };
             } catch (error) {
               console.error(`Error fetching members for group ${group.id}:`, error);
@@ -81,6 +97,11 @@ export default function GroupsPage() {
     }
     
     enhanceGroupsWithMemberCounts();
+    
+    // Clean up function to reset the fetched flag when component unmounts
+    return () => {
+      fetchedRef.current = false;
+    };
   }, [groups]);
 
   // Render loading skeleton cards
