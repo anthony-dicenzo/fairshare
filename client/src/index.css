@@ -3,48 +3,50 @@
 @tailwind utilities;
 
 :root {
-      --background: 0 0% 100%;
---foreground: 20 14.3% 4.1%;
---muted: 60 4.8% 95.9%;
---muted-foreground: 25 5.3% 44.7%;
---popover: 0 0% 100%;
---popover-foreground: 20 14.3% 4.1%;
---card: 0 0% 100%;
---card-foreground: 20 14.3% 4.1%;
---border: 20 5.9% 90%;
---input: 20 5.9% 90%;
---primary: 207 90% 54%;
---primary-foreground: 211 100% 99%;
---secondary: 60 4.8% 95.9%;
---secondary-foreground: 24 9.8% 10%;
---accent: 60 4.8% 95.9%;
---accent-foreground: 24 9.8% 10%;
---destructive: 0 84.2% 60.2%;
---destructive-foreground: 60 9.1% 97.8%;
---ring: 20 14.3% 4.1%;
---radius: 0.5rem;
+      /* Fairshare color system updated */
+      --background: 0 0% 98%; /* Mist White #FAFAFA */
+      --foreground: 222 34% 25%; /* Deep Night Blue #2B3A55 */
+      --muted: 0 0% 96%;
+      --muted-foreground: 25 5.3% 44.7%;
+      --popover: 0 0% 100%;
+      --popover-foreground: 222 34% 25%; /* Deep Night Blue #2B3A55 */
+      --card: 0 0% 100%; /* Pure white for cards */
+      --card-foreground: 222 34% 25%; /* Deep Night Blue #2B3A55 */
+      --border: 20 5.9% 90%;
+      --input: 20 5.9% 90%;
+      --primary: 23 64% 66%; /* Soft Mango Orange #E3976E */
+      --primary-foreground: 0 0% 100%; /* White text on primary */
+      --secondary: 210 100% 82%; /* Sky Mist Blue #A3D5FF */
+      --secondary-foreground: 222 34% 25%; /* Deep Night Blue #2B3A55 */
+      --accent: 92 51% 89%; /* Lime Cream #E6F4D5 */
+      --accent-foreground: 222 34% 25%; /* Deep Night Blue #2B3A55 */
+      --destructive: 0 84.2% 60.2%;
+      --destructive-foreground: 60 9.1% 97.8%;
+      --ring: 210 100% 82%; /* Sky Mist Blue #A3D5FF for focus states */
+      --radius: 0.5rem;
   }
   .dark {
-      --background: 240 10% 3.9%;
---foreground: 0 0% 98%;
---muted: 240 3.7% 15.9%;
---muted-foreground: 240 5% 64.9%;
---popover: 240 10% 3.9%;
---popover-foreground: 0 0% 98%;
---card: 240 10% 3.9%;
---card-foreground: 0 0% 98%;
---border: 240 3.7% 15.9%;
---input: 240 3.7% 15.9%;
---primary: 207 90% 54%;
---primary-foreground: 211 100% 99%;
---secondary: 240 3.7% 15.9%;
---secondary-foreground: 0 0% 98%;
---accent: 240 3.7% 15.9%;
---accent-foreground: 0 0% 98%;
---destructive: 0 62.8% 30.6%;
---destructive-foreground: 0 0% 98%;
---ring: 240 4.9% 83.9%;
---radius: 0.5rem;
+      /* Fairshare dark mode color system */
+      --background: 222 34% 18%; /* Darker version of Deep Night Blue */
+      --foreground: 0 0% 98%; /* Light text on dark background */
+      --muted: 222 30% 25%;
+      --muted-foreground: 210 20% 80%;
+      --popover: 222 34% 20%;
+      --popover-foreground: 0 0% 98%;
+      --card: 222 34% 22%;
+      --card-foreground: 0 0% 98%;
+      --border: 222 30% 30%;
+      --input: 222 30% 30%;
+      --primary: 23 64% 66%; /* Keeping Soft Mango Orange #E3976E */
+      --primary-foreground: 0 0% 100%;
+      --secondary: 210 90% 70%; /* Slightly darker Sky Mist Blue */
+      --secondary-foreground: 222 34% 25%;
+      --accent: 92 40% 80%; /* Slightly darker Lime Cream */
+      --accent-foreground: 222 34% 25%;
+      --destructive: 0 62.8% 30.6%;
+      --destructive-foreground: 0 0% 98%;
+      --ring: 210 100% 70%; /* Focus state in dark mode */
+      --radius: 0.5rem;
   }
 
 @layer base {

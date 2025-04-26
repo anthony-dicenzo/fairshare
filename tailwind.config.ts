@@ -19,6 +19,15 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       colors: {
+        // Fairshare brand color palette
+        fairshare: {
+          primary: "#E3976E",   // Soft Mango Orange
+          secondary: "#A3D5FF", // Sky Mist Blue
+          dark: "#2B3A55",      // Deep Night Blue
+          background: "#FAFAFA", // Mist White
+          accent: "#E6F4D5",    // Lime Cream
+          "primary-dark": "#D07F5A", // Darker Mango for hover states
+        },
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: {
