@@ -236,6 +236,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Verify invite code without requiring authentication
+  app.get("/api/invites/:inviteCode/verify", async (req, res) => {
+    try {
+      const inviteCode = req.params.inviteCode;
+      const invite = await storage.getGroupInvite(inviteCode);
+      
+      if (!invite) {
+        return res.status(404).json({ error: "Invalid invite code" });
+      }
+      
+      if (!invite.isActive) {
+        return res.status(400).json({ error: "This invite link is no longer active" });
+      }
+      
+      if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
+        return res.status(400).json({ error: "This invite link has expired" });
+      }
+      
+      // Get the group details to return to the client
+      const group = await storage.getGroup(invite.groupId);
+      
+      // Get the creator details
+      const creator = await storage.getUser(invite.createdBy);
+      
+      // Return limited information about the group and invite
+      res.json({
+        valid: true,
+        group: {
+          name: group?.name,
+          memberCount: (await storage.getGroupMembers(invite.groupId)).length
+        },
+        invitedBy: creator ? {
+          name: creator.name
+        } : null
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to verify invite" });
+    }
+  });
+
   // Join a group via invite link
   app.post("/api/groups/join/:inviteCode", async (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
