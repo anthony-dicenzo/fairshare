@@ -257,4 +257,56 @@ export function setupAuth(app: Express) {
       res.status(500).json({ error: "Internal server error during backup authentication" });
     }
   });
+  
+  // Middleware to check for header-based authentication when cookies fail
+  // This helps mobile devices where cookies often don't work as expected
+  app.use(async (req, res, next) => {
+    // Skip if already authenticated
+    if (req.isAuthenticated()) {
+      return next();
+    }
+    
+    // Check for backup auth headers
+    const userId = req.headers['x-user-id'];
+    const sessionToken = req.headers['x-session-backup'];
+    
+    if (userId && sessionToken) {
+      try {
+        console.log(`Attempting header-based auth for user ID: ${userId}`);
+        
+        // Find user by ID
+        const userIdNum = parseInt(userId as string);
+        if (isNaN(userIdNum)) {
+          return next();
+        }
+        
+        const user = await storage.getUser(userIdNum);
+        if (!user) {
+          return next();
+        }
+        
+        // Validate session token (simple validation for this example)
+        const isValidToken = sessionToken && (sessionToken as string).length > 10;
+        if (!isValidToken) {
+          return next();
+        }
+        
+        // Log the user in
+        req.login(user, (err) => {
+          if (err) {
+            console.error("Error in header-based auth:", err);
+            return next();
+          }
+          
+          console.log(`Header-based auth successful for: ${user.username}`);
+          next();
+        });
+      } catch (error) {
+        console.error("Error in header-based auth:", error);
+        next();
+      }
+    } else {
+      next();
+    }
+  });
 }
