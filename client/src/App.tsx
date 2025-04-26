@@ -11,6 +11,7 @@ import GroupsPage from "@/pages/groups-page";
 import ActivityPage from "@/pages/activity-page";
 import ProfilePage from "@/pages/profile-page";
 import AuthPage from "@/pages/auth-page";
+import InvitePage from "@/pages/invite-page";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -22,6 +23,7 @@ function Router() {
       <ProtectedRoute path="/activity" component={ActivityPage} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
       <Route path="/auth" component={AuthPage} />
+      <Route path="/invite/:inviteCode" component={InvitePage} />
       <Route component={NotFound} />
     </Switch>
   );
