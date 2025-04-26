@@ -26,9 +26,9 @@ export function Sidebar({ className }: SidebarProps) {
 
   return (
     <>
-      <div className={cn("flex flex-col h-full bg-background border-r", className)}>
-        <div className="flex h-16 items-center px-4 border-b">
-          <Link href="/" className="flex items-center font-bold text-xl text-primary">
+      <div className={cn("flex flex-col h-full bg-[#2B3A55] text-white border-r", className)}>
+        <div className="flex h-16 items-center px-4 border-b border-[#2B3A55]/30">
+          <Link href="/" className="flex items-center font-bold text-xl text-white">
             FairShare
           </Link>
         </div>
@@ -39,8 +39,8 @@ export function Sidebar({ className }: SidebarProps) {
                 className={cn(
                   "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium cursor-pointer",
                   location === "/"
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-accent"
+                    ? "bg-fairshare-primary text-white"
+                    : "text-white/80 hover:bg-white/10"
                 )}
               >
                 <Home className="h-5 w-5" />
@@ -52,8 +52,8 @@ export function Sidebar({ className }: SidebarProps) {
                 className={cn(
                   "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium cursor-pointer",
                   location === "/groups"
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-accent"
+                    ? "bg-fairshare-primary text-white"
+                    : "text-white/80 hover:bg-white/10"
                 )}
               >
                 <Users className="h-5 w-5" />
@@ -65,8 +65,8 @@ export function Sidebar({ className }: SidebarProps) {
                 className={cn(
                   "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium cursor-pointer",
                   location === "/activity"
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-accent"
+                    ? "bg-fairshare-primary text-white"
+                    : "text-white/80 hover:bg-white/10"
                 )}
               >
                 <BarChart4 className="h-5 w-5" />
@@ -75,10 +75,10 @@ export function Sidebar({ className }: SidebarProps) {
             </Link>
           </nav>
 
-          <Separator className="my-4" />
+          <Separator className="my-4 bg-white/20" />
 
           <div className="py-2">
-            <h3 className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            <h3 className="px-3 text-xs font-semibold text-white/60 uppercase tracking-wider">
               My Groups
             </h3>
             <div className="mt-2 space-y-1">
@@ -88,11 +88,11 @@ export function Sidebar({ className }: SidebarProps) {
                     className={cn(
                       "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium cursor-pointer",
                       location === `/group/${group.id}`
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:bg-accent"
+                        ? "bg-fairshare-primary text-white"
+                        : "text-white/80 hover:bg-white/10"
                     )}
                   >
-                    <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary">
+                    <div className="flex items-center justify-center w-6 h-6 rounded-full bg-fairshare-primary/90 text-white">
                       <span className="text-xs">{group.name.charAt(0)}</span>
                     </div>
                     <span>{group.name}</span>
@@ -101,7 +101,7 @@ export function Sidebar({ className }: SidebarProps) {
               ))}
               <button
                 onClick={() => setShowGroupModal(true)}
-                className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-primary hover:bg-accent"
+                className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-white/90 hover:bg-white/10"
               >
                 <PlusCircle className="h-5 w-5" />
                 Create New Group
@@ -110,7 +110,7 @@ export function Sidebar({ className }: SidebarProps) {
           </div>
         </ScrollArea>
 
-        <div className="flex items-center justify-between p-4 border-t mt-auto">
+        <div className="flex items-center justify-between p-4 border-t border-[#2B3A55]/30 mt-auto">
           <UserDropdown />
         </div>
       </div>

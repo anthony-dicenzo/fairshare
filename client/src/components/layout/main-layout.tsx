@@ -9,7 +9,7 @@ interface MainLayoutProps {
 
 export function MainLayout({ children }: MainLayoutProps) {
   return (
-    <div className="flex flex-col md:flex-row h-screen w-full overflow-hidden bg-muted/40">
+    <div className="flex flex-col md:flex-row h-screen w-full overflow-hidden bg-fairshare-background">
       {/* Mobile Header - Only visible on mobile */}
       <MobileHeader />
 
