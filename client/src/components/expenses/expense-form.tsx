@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { formatISO } from "date-fns";
 
@@ -415,66 +416,44 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="splitMethod"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs font-medium">Split Method</FormLabel>
-                  <FormControl>
+            <div className="flex flex-row items-center gap-2">
+              <FormLabel className="text-xs font-medium whitespace-nowrap">Split:</FormLabel>
+              <FormField
+                control={form.control}
+                name="splitMethod"
+                render={({ field }) => (
+                  <div className="flex-1">
                     <RadioGroup
                       onValueChange={field.onChange}
                       defaultValue={field.value}
                       className="flex space-x-4"
                     >
-                      <FormItem className="flex items-center space-x-1 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="equal" className="h-3.5 w-3.5" />
-                        </FormControl>
-                        <FormLabel className="font-normal text-xs">
-                          Equal
-                        </FormLabel>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-1 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="unequal" className="h-3.5 w-3.5" />
-                        </FormControl>
-                        <FormLabel className="font-normal text-xs">
-                          Unequal
-                        </FormLabel>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-1 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="percentage" className="h-3.5 w-3.5" />
-                        </FormControl>
-                        <FormLabel className="font-normal text-xs">
-                          Percent
-                        </FormLabel>
-                      </FormItem>
+                      <div className="flex items-center space-x-1">
+                        <RadioGroupItem value="equal" className="h-3.5 w-3.5" id="equal-split" />
+                        <FormLabel htmlFor="equal-split" className="text-xs cursor-pointer font-normal">Equal</FormLabel>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <RadioGroupItem value="unequal" className="h-3.5 w-3.5" id="unequal-split" />
+                        <FormLabel htmlFor="unequal-split" className="text-xs cursor-pointer font-normal">Unequal</FormLabel>
+                      </div>
                     </RadioGroup>
-                  </FormControl>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )}
-            />
+                  </div>
+                )}
+              />
+            </div>
 
-            <div>
-              <FormLabel className="text-xs font-medium">Split between</FormLabel>
-              <div className="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-x-2 gap-y-1">
+            <div className="border border-input rounded-md p-2 max-h-[120px] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-x-2 gap-y-1">
                 {Array.isArray(groupMembers) && groupMembers.map((member) => {
                   if (!member?.userId) return null;
                   
                   const isEqual = form.getValues("splitMethod") === "equal";
                   const isUnequal = form.getValues("splitMethod") === "unequal";
-                  const isPercentage = form.getValues("splitMethod") === "percentage";
                   const isSelected = selectedUserIds.includes(member.userId);
                   
                   const totalAmount = parseFloat(form.getValues("totalAmount")) || 0;
                   const equalShare = isSelected && selectedUserIds.length > 0 ? 
                     totalAmount / selectedUserIds.length : 0;
-                    
-                  const equalPercentage = isSelected && selectedUserIds.length > 0 ? 
-                    100 / selectedUserIds.length : 0;
                   
                   return (
                     <div key={member.userId} className="flex items-center space-x-1.5">
@@ -494,10 +473,10 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                           }
                         }}
                       />
-                      <div className="flex items-center space-x-1.5 w-full">
+                      <div className="flex items-center w-full">
                         <label
                           htmlFor={`split-${member.userId}`}
-                          className="text-xs font-medium leading-none truncate max-w-[90px]"
+                          className="text-xs font-medium leading-none truncate max-w-[80px]"
                         >
                           {member.userId === user?.id ? "You" : member?.user?.name || "Unknown User"}
                         </label>
@@ -511,11 +490,11 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                         {isUnequal && isSelected && (
                           <div className="ml-auto">
                             <div className="relative">
-                              <span className="absolute left-2 top-1.5 text-xs">$</span>
+                              <span className="absolute left-1.5 top-1.5 text-xs">$</span>
                               <Input 
                                 type="text"
                                 placeholder="0.00"
-                                className="w-16 h-6 pl-5 text-xs"
+                                className="w-14 h-6 pl-4 text-xs"
                                 value={customAmounts[member.userId]?.toFixed(2) || equalShare.toFixed(2)}
                                 onChange={(e) => {
                                   const amount = parseFloat(e.target.value);
@@ -530,48 +509,11 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                             </div>
                           </div>
                         )}
-                        
-                        {isPercentage && isSelected && (
-                          <div className="ml-auto">
-                            <div className="relative">
-                              <Input 
-                                type="text"
-                                placeholder="0"
-                                className="w-14 h-6 pr-5 text-xs text-right"
-                                value={customPercentages[member.userId]?.toString() || equalPercentage.toFixed(0)}
-                                onChange={(e) => {
-                                  const percentage = parseInt(e.target.value);
-                                  if (!isNaN(percentage)) {
-                                    setCustomPercentages({
-                                      ...customPercentages,
-                                      [member.userId]: percentage
-                                    });
-                                  }
-                                }}
-                              />
-                              <span className="absolute right-2 top-1.5 text-xs">%</span>
-                            </div>
-                          </div>
-                        )}
                       </div>
                     </div>
                   );
                 })}
               </div>
-              
-              {form.getValues("splitMethod") === "percentage" && selectedUserIds.length > 0 && (
-                <div className="mt-1 text-xs text-right">
-                  <span className={`${
-                    Object.values(customPercentages).reduce((acc, val) => acc + val, 0) === 100 
-                      ? "text-green-500" 
-                      : "text-red-500"
-                  }`}>
-                    Total: {Object.values(customPercentages).reduce((acc, val) => acc + val, 0)}%
-                    {Object.values(customPercentages).reduce((acc, val) => acc + val, 0) !== 100 && 
-                      " (should be 100%)"}
-                  </span>
-                </div>
-              )}
               
               {form.getValues("splitMethod") === "unequal" && selectedUserIds.length > 0 && (
                 <div className="mt-1 text-xs text-right">
@@ -582,9 +524,6 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                       : "text-red-500"
                   }`}>
                     Total: ${Object.values(customAmounts).reduce((acc, val) => acc + val, 0).toFixed(2)}
-                    {Math.abs(Object.values(customAmounts).reduce((acc, val) => acc + val, 0) - 
-                      parseFloat(form.getValues("totalAmount") || "0")) >= 0.01 && 
-                      ` (should be $${parseFloat(form.getValues("totalAmount") || "0").toFixed(2)})`}
                   </span>
                 </div>
               )}
