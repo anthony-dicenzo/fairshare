@@ -49,10 +49,20 @@ export default function AuthPage() {
   const [location, navigate] = useLocation();
   const { user, loginMutation, registerMutation } = useAuth();
 
-  // Redirect to home if already logged in
+  // Redirect to returnPath or home if already logged in
   useEffect(() => {
     if (user) {
-      navigate("/");
+      // Check if there's a saved return path in localStorage (for invite links)
+      const returnPath = localStorage.getItem('returnPath');
+      if (returnPath) {
+        // Clear the return path from localStorage
+        localStorage.removeItem('returnPath');
+        // Navigate to the saved path
+        navigate(returnPath);
+      } else {
+        // Default to home page
+        navigate("/");
+      }
     }
   }, [user, navigate]);
 

@@ -60,7 +60,8 @@ export default function InvitePage() {
       
       // Redirect to the group page after a brief delay
       setTimeout(() => {
-        setLocation(`/groups/${data?.group?.id}`);
+        // The correct group route is /group/id (singular), not /groups/id
+        setLocation(`/group/${data?.group?.id}`);
       }, 1500);
     },
     onError: (error: Error) => {
