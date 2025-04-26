@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -9,6 +9,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { ShoppingBag, Trash } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 import {
   Dialog,
@@ -55,6 +57,7 @@ const expenseEditSchema = z.object({
     .min(1, { message: "Payer is required" }),
   notes: z.string().optional(),
   date: z.string().min(1, { message: "Date is required" }),
+  splitMethod: z.enum(["equal", "unequal", "percentage"]).default("equal"),
 });
 
 type ExpenseEditValues = z.infer<typeof expenseEditSchema>;

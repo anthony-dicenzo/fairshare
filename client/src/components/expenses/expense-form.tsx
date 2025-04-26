@@ -426,6 +426,10 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                         <RadioGroupItem value="unequal" className="h-3.5 w-3.5" id="unequal-split" />
                         <FormLabel htmlFor="unequal-split" className="text-xs cursor-pointer font-normal">Unequal</FormLabel>
                       </div>
+                      <div className="flex items-center space-x-1">
+                        <RadioGroupItem value="percentage" className="h-3.5 w-3.5" id="percentage-split" />
+                        <FormLabel htmlFor="percentage-split" className="text-xs cursor-pointer font-normal">Percentage</FormLabel>
+                      </div>
                     </RadioGroup>
                   </FormControl>
                   <FormMessage className="text-xs" />
@@ -508,6 +512,85 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                         : "text-red-500"
                     }`}>
                       Total: ${Object.values(customAmounts).reduce((acc, val) => acc + val, 0).toFixed(2)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {form.getValues("splitMethod") === "percentage" && (
+              <div className="border border-input rounded-md p-2 max-h-[120px] overflow-y-auto">
+                <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+                  {Array.isArray(groupMembers) && groupMembers.map((member) => {
+                    if (!member?.userId) return null;
+                    
+                    const isSelected = selectedUserIds.includes(member.userId);
+                    const equalPercentage = isSelected && selectedUserIds.length > 0 ? 
+                      100 / selectedUserIds.length : 0;
+                    
+                    return (
+                      <div key={member.userId} className="flex items-center space-x-1.5">
+                        <Checkbox
+                          id={`split-percentage-${member.userId}`}
+                          checked={isSelected}
+                          className="h-3.5 w-3.5"
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              const newSelectedIds = [...selectedUserIds, member.userId];
+                              setSelectedUserIds(newSelectedIds);
+                              handleInitializeAmountsAndPercentages(newSelectedIds);
+                            } else {
+                              const newSelectedIds = selectedUserIds.filter(id => id !== member.userId);
+                              setSelectedUserIds(newSelectedIds);
+                              handleInitializeAmountsAndPercentages(newSelectedIds);
+                            }
+                          }}
+                        />
+                        <div className="flex items-center w-full">
+                          <label
+                            htmlFor={`split-percentage-${member.userId}`}
+                            className="text-xs font-medium leading-none truncate max-w-[80px]"
+                          >
+                            {member.userId === user?.id ? "You" : member?.user?.name || "Unknown User"}
+                          </label>
+                          
+                          {isSelected && (
+                            <div className="ml-auto">
+                              <div className="relative">
+                                <Input 
+                                  type="text"
+                                  placeholder="0"
+                                  className="w-10 h-6 pr-5 text-xs text-right"
+                                  autoFocus={false}
+                                  value={customPercentages[member.userId]?.toFixed(0) || equalPercentage.toFixed(0)}
+                                  onChange={(e) => {
+                                    const percentage = parseFloat(e.target.value);
+                                    if (!isNaN(percentage)) {
+                                      setCustomPercentages({
+                                        ...customPercentages,
+                                        [member.userId]: percentage
+                                      });
+                                    }
+                                  }}
+                                />
+                                <span className="absolute right-1.5 top-1.5 text-xs">%</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {selectedUserIds.length > 0 && (
+                  <div className="mt-1 text-xs text-right">
+                    <span className={`${
+                      Math.abs(Object.values(customPercentages).reduce((acc, val) => acc + val, 0) - 100) < 0.01
+                        ? "text-green-500" 
+                        : "text-red-500"
+                    }`}>
+                      Total: {Object.values(customPercentages).reduce((acc, val) => acc + val, 0).toFixed(0)}%
                     </span>
                   </div>
                 )}
