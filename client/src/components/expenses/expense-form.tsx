@@ -439,80 +439,92 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
             
             {form.getValues("splitMethod") === "unequal" && (
               <div className="border border-input rounded-md p-2 max-h-[120px] overflow-y-auto">
-                <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-                  {Array.isArray(groupMembers) && groupMembers.map((member) => {
-                    if (!member?.userId) return null;
-                    
-                    const isSelected = selectedUserIds.includes(member.userId);
-                    const totalAmount = parseFloat(form.getValues("totalAmount")) || 0;
-                    const equalShare = isSelected && selectedUserIds.length > 0 ? 
-                      totalAmount / selectedUserIds.length : 0;
-                    
-                    return (
-                      <div key={member.userId} className="flex items-center space-x-1.5">
-                        <Checkbox
-                          id={`split-${member.userId}`}
-                          checked={isSelected}
-                          className="h-3.5 w-3.5"
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              const newSelectedIds = [...selectedUserIds, member.userId];
-                              setSelectedUserIds(newSelectedIds);
-                              handleInitializeAmountsAndPercentages(newSelectedIds);
-                            } else {
-                              const newSelectedIds = selectedUserIds.filter(id => id !== member.userId);
-                              setSelectedUserIds(newSelectedIds);
-                              handleInitializeAmountsAndPercentages(newSelectedIds);
-                            }
-                          }}
-                        />
-                        <div className="flex items-center w-full">
-                          <label
-                            htmlFor={`split-${member.userId}`}
-                            className="text-xs font-medium leading-none truncate max-w-[80px]"
-                          >
-                            {member.userId === user?.id ? "You" : member?.user?.name || "Unknown User"}
-                          </label>
-                          
-                          {isSelected && (
-                            <div className="ml-auto">
-                              <div className="relative">
-                                <span className="absolute left-1.5 top-1.5 text-xs">$</span>
-                                <Input 
-                                  type="text"
-                                  placeholder="0.00"
-                                  className="w-14 h-6 pl-4 text-xs"
-                                  autoFocus={false}
-                                  value={customAmounts[member.userId]?.toFixed(2) || equalShare.toFixed(2)}
-                                  onChange={(e) => {
-                                    const amount = parseFloat(e.target.value);
-                                    if (!isNaN(amount)) {
-                                      setCustomAmounts({
-                                        ...customAmounts,
-                                        [member.userId]: amount
-                                      });
-                                    }
-                                  }}
-                                />
+                {!selectedGroupId ? (
+                  <div className="py-2 text-center text-xs text-muted-foreground">
+                    Please select a group to see member options
+                  </div>
+                ) : Array.isArray(groupMembers) && groupMembers.length > 0 ? (
+                <div>
+                  <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+                    {groupMembers.map((member) => {
+                      if (!member?.userId) return null;
+                      
+                      const isSelected = selectedUserIds.includes(member.userId);
+                      const totalAmount = parseFloat(form.getValues("totalAmount")) || 0;
+                      const equalShare = isSelected && selectedUserIds.length > 0 ? 
+                        totalAmount / selectedUserIds.length : 0;
+                      
+                      return (
+                        <div key={member.userId} className="flex items-center space-x-1.5">
+                          <Checkbox
+                            id={`split-${member.userId}`}
+                            checked={isSelected}
+                            className="h-3.5 w-3.5"
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                const newSelectedIds = [...selectedUserIds, member.userId];
+                                setSelectedUserIds(newSelectedIds);
+                                handleInitializeAmountsAndPercentages(newSelectedIds);
+                              } else {
+                                const newSelectedIds = selectedUserIds.filter(id => id !== member.userId);
+                                setSelectedUserIds(newSelectedIds);
+                                handleInitializeAmountsAndPercentages(newSelectedIds);
+                              }
+                            }}
+                          />
+                          <div className="flex items-center w-full">
+                            <label
+                              htmlFor={`split-${member.userId}`}
+                              className="text-xs font-medium leading-none truncate max-w-[80px]"
+                            >
+                              {member.userId === user?.id ? "You" : member?.user?.name || "Unknown User"}
+                            </label>
+                            
+                            {isSelected && (
+                              <div className="ml-auto">
+                                <div className="relative">
+                                  <span className="absolute left-1.5 top-1.5 text-xs">$</span>
+                                  <Input 
+                                    type="text"
+                                    placeholder="0.00"
+                                    className="w-14 h-6 pl-4 text-xs"
+                                    autoFocus={false}
+                                    value={customAmounts[member.userId]?.toFixed(2) || equalShare.toFixed(2)}
+                                    onChange={(e) => {
+                                      const amount = parseFloat(e.target.value);
+                                      if (!isNaN(amount)) {
+                                        setCustomAmounts({
+                                          ...customAmounts,
+                                          [member.userId]: amount
+                                        });
+                                      }
+                                    }}
+                                  />
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                
-                {selectedUserIds.length > 0 && (
-                  <div className="mt-1 text-xs text-right">
-                    <span className={`${
-                      Math.abs(Object.values(customAmounts).reduce((acc, val) => acc + val, 0) - 
-                        parseFloat(form.getValues("totalAmount") || "0")) < 0.01
-                        ? "text-green-500" 
-                        : "text-red-500"
-                    }`}>
-                      Total: ${Object.values(customAmounts).reduce((acc, val) => acc + val, 0).toFixed(2)}
-                    </span>
+                      );
+                    })}
+                  </div>
+                  
+                  {selectedUserIds.length > 0 && (
+                    <div className="mt-1 text-xs text-right">
+                      <span className={`${
+                        Math.abs(Object.values(customAmounts).reduce((acc, val) => acc + val, 0) - 
+                          parseFloat(form.getValues("totalAmount") || "0")) < 0.01
+                          ? "text-green-500" 
+                          : "text-red-500"
+                      }`}>
+                        Total: ${Object.values(customAmounts).reduce((acc, val) => acc + val, 0).toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+                  </div>
+                ) : (
+                  <div className="py-2 text-center text-xs text-muted-foreground">
+                    No members found in this group
                   </div>
                 )}
               </div>
@@ -520,78 +532,90 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
             
             {form.getValues("splitMethod") === "percentage" && (
               <div className="border border-input rounded-md p-2 max-h-[120px] overflow-y-auto">
-                <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-                  {Array.isArray(groupMembers) && groupMembers.map((member) => {
-                    if (!member?.userId) return null;
-                    
-                    const isSelected = selectedUserIds.includes(member.userId);
-                    const equalPercentage = isSelected && selectedUserIds.length > 0 ? 
-                      100 / selectedUserIds.length : 0;
-                    
-                    return (
-                      <div key={member.userId} className="flex items-center space-x-1.5">
-                        <Checkbox
-                          id={`split-percentage-${member.userId}`}
-                          checked={isSelected}
-                          className="h-3.5 w-3.5"
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              const newSelectedIds = [...selectedUserIds, member.userId];
-                              setSelectedUserIds(newSelectedIds);
-                              handleInitializeAmountsAndPercentages(newSelectedIds);
-                            } else {
-                              const newSelectedIds = selectedUserIds.filter(id => id !== member.userId);
-                              setSelectedUserIds(newSelectedIds);
-                              handleInitializeAmountsAndPercentages(newSelectedIds);
-                            }
-                          }}
-                        />
-                        <div className="flex items-center w-full">
-                          <label
-                            htmlFor={`split-percentage-${member.userId}`}
-                            className="text-xs font-medium leading-none truncate max-w-[80px]"
-                          >
-                            {member.userId === user?.id ? "You" : member?.user?.name || "Unknown User"}
-                          </label>
-                          
-                          {isSelected && (
-                            <div className="ml-auto">
-                              <div className="relative">
-                                <Input 
-                                  type="text"
-                                  placeholder="0"
-                                  className="w-10 h-6 pr-5 text-xs text-right"
-                                  autoFocus={false}
-                                  value={customPercentages[member.userId]?.toFixed(0) || equalPercentage.toFixed(0)}
-                                  onChange={(e) => {
-                                    const percentage = parseFloat(e.target.value);
-                                    if (!isNaN(percentage)) {
-                                      setCustomPercentages({
-                                        ...customPercentages,
-                                        [member.userId]: percentage
-                                      });
-                                    }
-                                  }}
-                                />
-                                <span className="absolute right-1.5 top-1.5 text-xs">%</span>
+                {!selectedGroupId ? (
+                  <div className="py-2 text-center text-xs text-muted-foreground">
+                    Please select a group to see member options
+                  </div>
+                ) : Array.isArray(groupMembers) && groupMembers.length > 0 ? (
+                <div>
+                  <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+                    {groupMembers.map((member) => {
+                      if (!member?.userId) return null;
+                      
+                      const isSelected = selectedUserIds.includes(member.userId);
+                      const equalPercentage = isSelected && selectedUserIds.length > 0 ? 
+                        100 / selectedUserIds.length : 0;
+                      
+                      return (
+                        <div key={member.userId} className="flex items-center space-x-1.5">
+                          <Checkbox
+                            id={`split-percentage-${member.userId}`}
+                            checked={isSelected}
+                            className="h-3.5 w-3.5"
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                const newSelectedIds = [...selectedUserIds, member.userId];
+                                setSelectedUserIds(newSelectedIds);
+                                handleInitializeAmountsAndPercentages(newSelectedIds);
+                              } else {
+                                const newSelectedIds = selectedUserIds.filter(id => id !== member.userId);
+                                setSelectedUserIds(newSelectedIds);
+                                handleInitializeAmountsAndPercentages(newSelectedIds);
+                              }
+                            }}
+                          />
+                          <div className="flex items-center w-full">
+                            <label
+                              htmlFor={`split-percentage-${member.userId}`}
+                              className="text-xs font-medium leading-none truncate max-w-[80px]"
+                            >
+                              {member.userId === user?.id ? "You" : member?.user?.name || "Unknown User"}
+                            </label>
+                            
+                            {isSelected && (
+                              <div className="ml-auto">
+                                <div className="relative">
+                                  <Input 
+                                    type="text"
+                                    placeholder="0"
+                                    className="w-10 h-6 pr-5 text-xs text-right"
+                                    autoFocus={false}
+                                    value={customPercentages[member.userId]?.toFixed(0) || equalPercentage.toFixed(0)}
+                                    onChange={(e) => {
+                                      const percentage = parseFloat(e.target.value);
+                                      if (!isNaN(percentage)) {
+                                        setCustomPercentages({
+                                          ...customPercentages,
+                                          [member.userId]: percentage
+                                        });
+                                      }
+                                    }}
+                                  />
+                                  <span className="absolute right-1.5 top-1.5 text-xs">%</span>
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
+                  
+                  {selectedUserIds.length > 0 && (
+                    <div className="mt-1 text-xs text-right">
+                      <span className={`${
+                        Math.abs(Object.values(customPercentages).reduce((acc, val) => acc + val, 0) - 100) < 0.01
+                          ? "text-green-500" 
+                          : "text-red-500"
+                      }`}>
+                        Total: {Object.values(customPercentages).reduce((acc, val) => acc + val, 0).toFixed(0)}%
+                      </span>
+                    </div>
+                  )}
                 </div>
-                
-                {selectedUserIds.length > 0 && (
-                  <div className="mt-1 text-xs text-right">
-                    <span className={`${
-                      Math.abs(Object.values(customPercentages).reduce((acc, val) => acc + val, 0) - 100) < 0.01
-                        ? "text-green-500" 
-                        : "text-red-500"
-                    }`}>
-                      Total: {Object.values(customPercentages).reduce((acc, val) => acc + val, 0).toFixed(0)}%
-                    </span>
+                ) : (
+                  <div className="py-2 text-center text-xs text-muted-foreground">
+                    No members found in this group
                   </div>
                 )}
               </div>
