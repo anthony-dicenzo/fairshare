@@ -246,26 +246,26 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
 
         <Form {...form}>
           <form onSubmit={handleSubmit} className="space-y-3 mt-1">
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs font-medium">Title</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="e.g. Groceries, Dinner" 
-                      {...field} 
-                      className="h-9"
-                      autoFocus={false}
-                    />
-                  </FormControl>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )}
-            />
-            
             <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium">Title</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="e.g. Groceries, Dinner" 
+                        {...field} 
+                        className="h-9"
+                        autoFocus={false}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+              
               <FormField
                 control={form.control}
                 name="paidBy"
@@ -302,9 +302,6 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
                   </FormItem>
                 )}
               />
-              
-              {/* This column is intentionally empty to match the layout of the payment form */}
-              <div></div>
             </div>
            
             <div className="grid grid-cols-2 gap-3">
@@ -338,7 +335,7 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
                   <FormItem>
                     <FormLabel className="text-xs font-medium">Date</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} className="h-9" />
+                      <Input type="date" {...field} className="h-9" autoFocus={false} />
                     </FormControl>
                     <FormMessage className="text-xs" />
                   </FormItem>

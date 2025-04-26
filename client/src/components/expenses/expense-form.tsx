@@ -282,13 +282,28 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
           <form onSubmit={handleSubmit} className="space-y-3 mt-1">
             <FormField
               control={form.control}
-              name="title"
+              name="groupId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs font-medium">Title</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g. Groceries, Dinner" {...field} className="h-9" autoFocus={false} />
-                  </FormControl>
+                  <FormLabel className="text-xs font-medium">Group</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Select a group" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {groups.map((group) => (
+                        <SelectItem key={group.id} value={group.id.toString()}>
+                          {group.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage className="text-xs" />
                 </FormItem>
               )}
@@ -297,28 +312,13 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
             <div className="grid grid-cols-2 gap-3">
               <FormField
                 control={form.control}
-                name="groupId"
+                name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-xs font-medium">Group</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      value={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="h-9">
-                          <SelectValue placeholder="Select a group" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {groups.map((group) => (
-                          <SelectItem key={group.id} value={group.id.toString()}>
-                            {group.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormLabel className="text-xs font-medium">Title</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. Groceries, Dinner" {...field} className="h-9" autoFocus={false} />
+                    </FormControl>
                     <FormMessage className="text-xs" />
                   </FormItem>
                 )}
@@ -393,7 +393,7 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                   <FormItem>
                     <FormLabel className="text-xs font-medium">Date</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} className="h-9" />
+                      <Input type="date" {...field} className="h-9" autoFocus={false} />
                     </FormControl>
                     <FormMessage className="text-xs" />
                   </FormItem>
