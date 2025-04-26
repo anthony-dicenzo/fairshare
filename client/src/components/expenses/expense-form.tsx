@@ -129,6 +129,10 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
     const subscription = form.watch((value) => {
       if (value.splitMethod || value.totalAmount) {
         handleInitializeAmountsAndPercentages(selectedUserIds);
+        // Force re-render when split method changes
+        if (value.splitMethod) {
+          setSelectedUserIds([...selectedUserIds]);
+        }
       }
     });
     return () => subscription.unsubscribe();
@@ -428,6 +432,87 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                 </FormItem>
               )}
             />
+            
+            {form.getValues("splitMethod") === "unequal" && (
+              <div className="border border-input rounded-md p-2 max-h-[120px] overflow-y-auto">
+                <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+                  {Array.isArray(groupMembers) && groupMembers.map((member) => {
+                    if (!member?.userId) return null;
+                    
+                    const isSelected = selectedUserIds.includes(member.userId);
+                    const totalAmount = parseFloat(form.getValues("totalAmount")) || 0;
+                    const equalShare = isSelected && selectedUserIds.length > 0 ? 
+                      totalAmount / selectedUserIds.length : 0;
+                    
+                    return (
+                      <div key={member.userId} className="flex items-center space-x-1.5">
+                        <Checkbox
+                          id={`split-${member.userId}`}
+                          checked={isSelected}
+                          className="h-3.5 w-3.5"
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              const newSelectedIds = [...selectedUserIds, member.userId];
+                              setSelectedUserIds(newSelectedIds);
+                              handleInitializeAmountsAndPercentages(newSelectedIds);
+                            } else {
+                              const newSelectedIds = selectedUserIds.filter(id => id !== member.userId);
+                              setSelectedUserIds(newSelectedIds);
+                              handleInitializeAmountsAndPercentages(newSelectedIds);
+                            }
+                          }}
+                        />
+                        <div className="flex items-center w-full">
+                          <label
+                            htmlFor={`split-${member.userId}`}
+                            className="text-xs font-medium leading-none truncate max-w-[80px]"
+                          >
+                            {member.userId === user?.id ? "You" : member?.user?.name || "Unknown User"}
+                          </label>
+                          
+                          {isSelected && (
+                            <div className="ml-auto">
+                              <div className="relative">
+                                <span className="absolute left-1.5 top-1.5 text-xs">$</span>
+                                <Input 
+                                  type="text"
+                                  placeholder="0.00"
+                                  className="w-14 h-6 pl-4 text-xs"
+                                  autoFocus={false}
+                                  value={customAmounts[member.userId]?.toFixed(2) || equalShare.toFixed(2)}
+                                  onChange={(e) => {
+                                    const amount = parseFloat(e.target.value);
+                                    if (!isNaN(amount)) {
+                                      setCustomAmounts({
+                                        ...customAmounts,
+                                        [member.userId]: amount
+                                      });
+                                    }
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {selectedUserIds.length > 0 && (
+                  <div className="mt-1 text-xs text-right">
+                    <span className={`${
+                      Math.abs(Object.values(customAmounts).reduce((acc, val) => acc + val, 0) - 
+                        parseFloat(form.getValues("totalAmount") || "0")) < 0.01
+                        ? "text-green-500" 
+                        : "text-red-500"
+                    }`}>
+                      Total: ${Object.values(customAmounts).reduce((acc, val) => acc + val, 0).toFixed(2)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
 
             <Button 
               type="submit"
