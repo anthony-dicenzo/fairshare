@@ -7,6 +7,7 @@ import { PaymentForm } from "@/components/expenses/payment-form";
 import { useAuth } from "@/hooks/use-auth";
 import { MainLayout } from "@/components/layout/main-layout";
 import { ActionButtons } from "@/components/dashboard/action-buttons";
+import { MobilePageHeader } from "@/components/layout/mobile-page-header";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -17,10 +18,20 @@ export default function HomePage() {
 
   return (
     <MainLayout>
+      <MobilePageHeader>
+        <div className="flex md:hidden">
+          <ActionButtons 
+            compact={true}
+            onAddExpense={() => setShowExpenseModal(true)}
+            onAddPayment={() => setShowPaymentModal(true)}
+          />
+        </div>
+      </MobilePageHeader>
+      
       <div className="px-3 py-3 sm:px-5 sm:py-6 md:px-6 lg:px-8 w-full">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-6">
-          <h1 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-0">Dashboard</h1>
-          <div className="flex justify-start sm:justify-end w-full sm:w-auto">
+          <h1 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-0 hidden md:block">Dashboard</h1>
+          <div className="hidden md:flex justify-start sm:justify-end w-full sm:w-auto">
             <ActionButtons 
               onAddExpense={() => setShowExpenseModal(true)}
               onAddPayment={() => setShowPaymentModal(true)}
