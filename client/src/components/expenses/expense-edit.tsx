@@ -233,125 +233,133 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ShoppingBag className="h-5 w-5 text-primary" />
+      <DialogContent className="sm:max-w-[500px] max-h-[100vh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader className="pb-2 sm:pb-4">
+          <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <ShoppingBag className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             Edit Expense
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-xs sm:text-sm">
             Update the details of your expense or delete it.
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Title</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g. Groceries, Dinner, Rent" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="totalAmount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Amount</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <span className="absolute left-3 top-2.5">$</span>
-                      <Input 
-                        type="text"
-                        placeholder="0.00" 
-                        className="pl-8" 
-                        {...field} 
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="paidBy"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Paid by</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    value={field.value}
-                  >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs sm:text-sm">Title</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select who paid" />
-                      </SelectTrigger>
+                      <Input 
+                        placeholder="e.g. Groceries, Dinner" 
+                        {...field} 
+                        className="h-8 sm:h-10 text-sm"
+                      />
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value={user?.id.toString() || ""}>
-                        You
-                      </SelectItem>
-                      {Array.isArray(groupMembers) && groupMembers
-                        .filter((member) => member?.userId !== user?.id)
-                        .map((member) => (
-                          <SelectItem 
-                            key={member?.userId} 
-                            value={(member?.userId || 0).toString()}
-                          >
-                            {member?.user?.name || "Unknown User"}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="date"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Date</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="totalAmount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs sm:text-sm">Amount</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1.5 sm:top-2.5 text-sm">$</span>
+                        <Input 
+                          type="text"
+                          placeholder="0.00" 
+                          className="pl-8 h-8 sm:h-10 text-sm" 
+                          {...field} 
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="paidBy"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs sm:text-sm">Paid by</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="h-8 sm:h-10 text-sm">
+                          <SelectValue placeholder="Select who paid" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={user?.id.toString() || ""}>
+                          You
+                        </SelectItem>
+                        {Array.isArray(groupMembers) && groupMembers
+                          .filter((member) => member?.userId !== user?.id)
+                          .map((member) => (
+                            <SelectItem 
+                              key={member?.userId} 
+                              value={(member?.userId || 0).toString()}
+                            >
+                              {member?.user?.name || "Unknown User"}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs sm:text-sm">Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} className="h-8 sm:h-10 text-sm" />
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Notes (optional)</FormLabel>
+                  <FormLabel className="text-xs sm:text-sm">Notes (optional)</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Add any details about this expense"
-                      className="resize-none"
+                      placeholder="Brief note about this expense"
+                      className="resize-none h-16 text-sm"
                       {...field}
                     />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-xs" />
                 </FormItem>
               )}
             />
 
-            <DialogFooter className="flex-col sm:flex-row gap-2">
+            <DialogFooter className="flex-col sm:flex-row gap-2 mt-2">
               <ConfirmDialog
                 title="Delete Expense"
                 description="Are you sure you want to delete this expense? This action cannot be undone."
@@ -361,10 +369,10 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
                   <Button
                     type="button"
                     variant="destructive"
-                    className="flex items-center gap-1"
+                    className="flex items-center gap-1 h-8 sm:h-9 text-xs sm:text-sm"
                     disabled={!canEdit || deleteExpenseMutation.isPending}
                   >
-                    <Trash className="h-4 w-4" />
+                    <Trash className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     Delete Expense
                   </Button>
                 }
@@ -374,12 +382,14 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
                   type="button"
                   variant="outline"
                   onClick={() => onOpenChange(false)}
+                  className="h-8 sm:h-9 text-xs sm:text-sm"
                 >
                   Cancel
                 </Button>
                 <Button 
                   type="submit"
                   disabled={!canEdit || updateExpenseMutation.isPending}
+                  className="h-8 sm:h-9 text-xs sm:text-sm"
                 >
                   {updateExpenseMutation.isPending ? "Saving..." : "Save Changes"}
                 </Button>
