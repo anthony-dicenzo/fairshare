@@ -5,7 +5,7 @@ import { MainLayout } from "@/components/layout/main-layout";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronLeft, Users, Plus } from "lucide-react";
+import { ChevronLeft, Users, Plus, PlusCircle, CreditCard } from "lucide-react";
 import { ExpenseForm } from "@/components/expenses/expense-form";
 import { PaymentForm } from "@/components/expenses/payment-form";
 import { GroupDetail } from "@/components/groups/group-detail";
@@ -217,11 +217,14 @@ export default function GroupPage() {
               <span className="hidden sm:inline">Invite Members</span>
               <span className="sm:hidden">Invite</span>
             </Button>
-            <ActionButtons 
-              onAddExpense={() => setShowExpenseModal(true)}
-              onAddPayment={() => setShowPaymentModal(true)}
-              compact 
-            />
+            {/* Only show action buttons on non-mobile screens */}
+            <div className="hidden sm:block">
+              <ActionButtons 
+                onAddExpense={() => setShowExpenseModal(true)}
+                onAddPayment={() => setShowPaymentModal(true)}
+                compact 
+              />
+            </div>
           </div>
         </div>
 
@@ -348,6 +351,25 @@ export default function GroupPage() {
             </TabsContent>
           </Tabs>
         </div>
+      </div>
+
+      {/* Mobile floating action buttons */}
+      <div className="fixed bottom-20 right-4 flex flex-col gap-3 sm:hidden">
+        <Button 
+          size="icon" 
+          className="h-14 w-14 rounded-full shadow-lg bg-fairshare-primary hover:bg-fairshare-primary-dark"
+          onClick={() => setShowExpenseModal(true)}
+        >
+          <PlusCircle className="h-6 w-6" />
+        </Button>
+        <Button 
+          size="icon" 
+          variant="outline" 
+          className="h-14 w-14 rounded-full shadow-lg border-fairshare-secondary"
+          onClick={() => setShowPaymentModal(true)}
+        >
+          <CreditCard className="h-6 w-6 text-fairshare-dark" />
+        </Button>
       </div>
 
       {/* Modals */}

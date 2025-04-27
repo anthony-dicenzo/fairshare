@@ -8,6 +8,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { MainLayout } from "@/components/layout/main-layout";
 import { ActionButtons } from "@/components/dashboard/action-buttons";
 import { MobilePageHeader } from "@/components/layout/mobile-page-header";
+import { Button } from "@/components/ui/button";
+import { PlusCircle, CreditCard } from "lucide-react";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -20,11 +22,7 @@ export default function HomePage() {
     <MainLayout>
       <MobilePageHeader>
         <div className="flex md:hidden">
-          <ActionButtons 
-            compact={true}
-            onAddExpense={() => setShowExpenseModal(true)}
-            onAddPayment={() => setShowPaymentModal(true)}
-          />
+          <h1 className="text-xl font-bold">Dashboard</h1>
         </div>
       </MobilePageHeader>
       
