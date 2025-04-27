@@ -62,6 +62,7 @@ export const activityLog = pgTable("activity_log", {
   actionType: text("action_type").notNull(), // 'add_expense', 'record_payment', etc.
   expenseId: integer("expense_id").references(() => expenses.id),
   paymentId: integer("payment_id").references(() => payments.id),
+  metadata: text("metadata"), // For additional data like removed user IDs
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 

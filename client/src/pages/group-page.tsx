@@ -34,6 +34,7 @@ export default function GroupPage() {
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   
   // Use refs to prevent duplicate db operations
   const addedMembersRef = useRef(false);
@@ -245,6 +246,14 @@ export default function GroupPage() {
               <span className="hidden sm:inline">Invite Members</span>
               <span className="sm:hidden">Invite</span>
             </Button>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setShowSettingsModal(true)}
+            >
+              <Settings className="h-4 w-4" />
+              <span className="hidden sm:inline ml-2">Settings</span>
+            </Button>
             {/* Only show action buttons on non-mobile screens */}
             <div className="hidden sm:block">
               <ActionButtons 
@@ -428,6 +437,14 @@ export default function GroupPage() {
         onOpenChange={setShowInviteModal}
         groupId={groupId}
         members={Array.isArray(members) ? members : []}
+      />
+      <GroupSettings
+        open={showSettingsModal}
+        onOpenChange={setShowSettingsModal}
+        groupId={groupId}
+        groupName={group?.name || ''}
+        members={Array.isArray(members) ? members : []}
+        createdBy={group?.createdBy}
       />
     </MainLayout>
   );
