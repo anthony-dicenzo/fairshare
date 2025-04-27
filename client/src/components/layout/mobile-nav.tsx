@@ -10,7 +10,7 @@ export function MobileNav() {
   
   return (
     <>
-      <div className="fixed bottom-0 left-0 right-0 w-full bg-white border-t z-50 md:hidden">
+      <div className="fixed bottom-0 left-0 right-0 w-full bg-fairshare-cream border-t z-50 md:hidden">
         <nav className="flex justify-around items-center px-2 py-3">
           <Link href="/">
             <div className="flex flex-col items-center gap-0.5 cursor-pointer">
