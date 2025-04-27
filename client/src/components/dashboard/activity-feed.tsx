@@ -174,6 +174,8 @@ function getActionText(activity: Activity) {
       return "added a new member to";
     case "create_group":
       return "created group";
+    case "join_via_invite":
+      return "joined";
     default:
       return `performed action "${activity.actionType}" in`;
   }

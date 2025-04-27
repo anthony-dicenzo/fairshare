@@ -326,7 +326,8 @@ export default function GroupPage() {
                               {item?.actionType === 'add_expense' && ' added expense '}
                               {item?.actionType === 'record_payment' && ' recorded payment '}
                               {item?.actionType === 'add_member' && ' added a new member '}
-                              {(!item?.actionType || !['add_expense', 'record_payment', 'add_member'].includes(item.actionType)) && 
+                              {item?.actionType === 'join_via_invite' && ' joined '}
+                              {(!item?.actionType || !['add_expense', 'record_payment', 'add_member', 'join_via_invite'].includes(item.actionType)) && 
                                 ' performed an action '}
                               
                               {item?.expense && <span className="font-medium">"{item.expense?.title || 'Untitled'}"</span>}
