@@ -184,6 +184,7 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ["/api/balances"] });
       queryClient.invalidateQueries({ queryKey: ["/api/activity"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/groups"] }); // Invalidate the groups list to update balances
       
       // Make sure to properly invalidate all group-related queries
       if (selectedGroupId) {
@@ -192,6 +193,7 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
         queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/expenses`] });
         queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/balances`] });
         queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/activity`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}`] }); // Invalidate the specific group details
         
         // Also invalidate the more general query patterns used in group-page.tsx
         queryClient.invalidateQueries({ queryKey: ["/api/groups", groupIdStr, "expenses"] });
