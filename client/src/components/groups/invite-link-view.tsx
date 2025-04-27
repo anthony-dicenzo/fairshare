@@ -33,21 +33,38 @@ export function InviteLinkView({ open, onOpenChange, groupName, inviteCode }: In
   // Share invite link using Web Share API if available
   const shareLink = () => {
     if (navigator.share) {
-      const shareText = `Hey friends! Join my group '${groupName}' on Splitwise: ${inviteLink}`;
-      
-      navigator.share({
-        title: `Join my ${groupName} group`,
-        text: shareText,
-        url: inviteLink
-      })
-      .catch((error) => {
-        console.log('Error sharing:', error);
+      try {
+        const shareText = `Hey friends! Join my group '${groupName}' on FairShare: ${inviteLink}`;
+        
+        navigator.share({
+          title: `Join my ${groupName} group on FairShare`,
+          text: shareText,
+          url: inviteLink
+        })
+        .catch((error) => {
+          console.log('Error sharing:', error);
+          // Don't show error if user cancelled
+          if (error.name !== 'AbortError') {
+            // Fallback to copying to clipboard
+            copyLink();
+            toast({
+              title: "Sharing cancelled",
+              description: "Link copied to clipboard instead",
+            });
+          }
+        });
+      } catch (error) {
+        console.error('Share API error:', error);
         // Fallback to copying to clipboard
         copyLink();
-      });
+      }
     } else {
       // Fallback to copying to clipboard
       copyLink();
+      toast({
+        title: "Sharing not supported",
+        description: "Link copied to clipboard instead",
+      });
     }
   };
   
@@ -65,6 +82,9 @@ export function InviteLinkView({ open, onOpenChange, groupName, inviteCode }: In
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="p-0 sm:max-w-[425px] border-none bg-background max-h-screen overflow-auto">
+        <DialogTitle className="sr-only">Invite Link for {groupName}</DialogTitle>
+        <DialogDescription className="sr-only">Share this invite link with others to join your group</DialogDescription>
+        
         {/* Header */}
         <div className="p-4 border-b flex items-center justify-between">
           <Button 
