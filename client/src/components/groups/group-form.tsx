@@ -99,9 +99,9 @@ export function GroupForm({ open, onOpenChange }: GroupFormProps) {
       form.reset();
       setInvitees([]);
       
-      // Invalidate queries
+      // Invalidate all groups-related queries
       queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
-      // Also invalidate the groups with balances query
+      // Force refetch any groups with balances queries
       queryClient.invalidateQueries({ queryKey: ["/api/groups", "with-balances"] });
     },
     onError: (error) => {

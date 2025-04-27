@@ -9,7 +9,7 @@ import { GroupForm } from "@/components/groups/group-form";
 import { Group } from "@shared/schema";
 import { Input } from "@/components/ui/input";
 
-// Define types for enhanced group data
+// Define enhanced group type
 type EnhancedGroup = Group & {
   memberCount?: number;
   balance?: number;
@@ -35,89 +35,25 @@ export default function GroupsPage() {
     })
   });
   
-  // Get groups with efficient batched fetching
-  const { data: groups, isLoading: isGroupsLoading, refetch: refetchGroups } = useQuery<Group[]>({
+  // Get groups - simplified approach like sidebar
+  const { data: groups = [], isLoading: isGroupsLoading } = useQuery<EnhancedGroup[]>({
     queryKey: ["/api/groups"],
-    // Set staleTime to 0 to ensure data is always fresh after creation
-    staleTime: 0
-  });
-  
-  // Get all group balances in a single query
-  const { data: groupsWithBalances, isLoading: isDetailsLoading, refetch: refetchGroupBalances } = useQuery<EnhancedGroup[]>({
-    queryKey: ["/api/groups", "with-balances"],
-    enabled: !!groups && !!userData,
-    // Set staleTime to 0 to ensure we always refetch on component mount
+    // Ensure fresh data by setting staleTime to 0
     staleTime: 0,
-    queryFn: async () => {
-      if (!groups || !userData) return [];
-      
-      // Process groups in batches of 2 to reduce concurrent requests
-      const result: EnhancedGroup[] = [];
-      const batchSize = 2;
-      
-      for (let i = 0; i < groups.length; i += batchSize) {
-        const batch = groups.slice(i, i + batchSize);
-        
-        // Process each batch in parallel
-        const batchPromises = batch.map(async (group) => {
-          try {
-            // Get balances for this group
-            const balanceResponse = await fetch(`/api/groups/${group.id}/balances`, {
-              credentials: "include"
-            });
-            
-            if (!balanceResponse.ok) {
-              return { ...group, balance: 0, memberCount: 0 };
-            }
-            
-            const balanceData = await balanceResponse.json();
-            
-            // Find current user's balance
-            const userBalance = Array.isArray(balanceData) ? 
-              balanceData.find((b: any) => b.user.id === userData.id) : null;
-              
-            // Get member count in the same request to avoid extra calls
-            const memberCount = Array.isArray(balanceData) ? balanceData.length : 0;
-            
-            return {
-              ...group,
-              balance: userBalance ? userBalance.balance : 0,
-              memberCount
-            };
-          } catch (error) {
-            console.error(`Error fetching balances for group ${group.id}:`, error);
-            return { ...group, balance: 0, memberCount: 0 };
-          }
-        });
-        
-        // Wait for this batch to complete
-        const batchResults = await Promise.all(batchPromises);
-        result.push(...batchResults);
-      }
-      
-      return result;
-    }
+    // Force refetch on window focus
+    refetchOnWindowFocus: true
   });
   
   // Apply search filter to groups
-  const filteredGroups = groupsWithBalances?.filter(group => 
+  const filteredGroups = groups?.filter(group => 
     searchTerm === "" || group.name.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
   
   // Calculate total balance correctly
   const totalOwed = balances?.totalOwes || 0;
   
-  // Effect to refetch data when component mounts
-  useEffect(() => {
-    // Refetch both queries to ensure latest data
-    refetchGroups();
-    if (groups && userData) {
-      refetchGroupBalances();
-    }
-  }, [refetchGroups, refetchGroupBalances, groups, userData]);
-  
   // Show loading skeleton while data is loading
-  const isLoading = isBalancesLoading || isGroupsLoading || isDetailsLoading;
+  const isLoading = isBalancesLoading || isGroupsLoading;
   
   if (isLoading) {
     return (
