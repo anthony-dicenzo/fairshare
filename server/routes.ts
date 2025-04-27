@@ -121,6 +121,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Remove a user from a group
+  app.delete("/api/groups/:groupId/members/:userId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    try {
+      const groupId = parseInt(req.params.groupId);
+      const userIdToRemove = parseInt(req.params.userId);
+      
+      // Get the group to check if current user is the creator
+      const group = await storage.getGroup(groupId);
+      if (!group) {
+        return res.status(404).json({ error: "Group not found" });
+      }
+      
+      // Check if current user is the group creator
+      if (group.createdBy !== req.user.id) {
+        return res.status(403).json({ error: "Only the group creator can remove members" });
+      }
+      
+      // Check if the user being removed is the group creator
+      if (userIdToRemove === group.createdBy) {
+        return res.status(403).json({ error: "The group creator cannot be removed" });
+      }
+      
+      // Check if the user has any outstanding balances
+      const hasOutstandingBalances = await storage.checkUserHasOutstandingBalances(groupId, userIdToRemove);
+      if (hasOutstandingBalances) {
+        return res.status(400).json({ 
+          error: "This user has outstanding debts with other group members. All balances must be settled before they can be removed."
+        });
+      }
+      
+      // Remove the user from the group
+      const removed = await storage.removeUserFromGroup(groupId, userIdToRemove);
+      
+      if (removed) {
+        // Log activity
+        await storage.logActivity({
+          groupId,
+          userId: req.user.id,
+          actionType: "remove_member",
+          metadata: JSON.stringify({ removedUserId: userIdToRemove })
+        });
+        
+        res.json({ success: true, message: "User has been removed from the group" });
+      } else {
+        res.status(404).json({ error: "User not found in this group" });
+      }
+    } catch (error) {
+      console.error("Error removing user from group:", error);
+      res.status(500).json({ error: error.message || "Failed to remove user from group" });
+    }
+  });
+  
   app.post("/api/groups/:id/invite", async (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     

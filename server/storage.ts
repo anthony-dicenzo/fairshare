@@ -647,6 +647,81 @@ export class DatabaseStorage implements IStorage {
     }));
   }
   
+  async checkUserHasOutstandingBalances(groupId: number, userId: number): Promise<boolean> {
+    try {
+      console.log(`Checking outstanding balances for user ${userId} in group ${groupId}`);
+      
+      // Get the cached balances between this user and other group members
+      const userBalances = await this.getUserBalancesBetweenUsers(groupId, userId);
+      
+      // Check if the user has any non-zero balances with other members
+      const hasOutstandingBalances = userBalances.some(balance => 
+        Math.abs(balance.amount) > 0.009 // Using a small threshold to handle floating point precision issues
+      );
+      
+      console.log(`User ${userId} has outstanding balances in group ${groupId}: ${hasOutstandingBalances}`);
+      return hasOutstandingBalances;
+    } catch (error) {
+      console.error(`Error checking if user has outstanding balances: ${error}`);
+      throw error;
+    }
+  }
+  
+  async removeUserFromGroup(groupId: number, userId: number): Promise<boolean> {
+    try {
+      console.log(`Starting removal of user ${userId} from group ${groupId}`);
+      
+      // Check if user has any outstanding balances with group members
+      const hasOutstandingBalances = await this.checkUserHasOutstandingBalances(groupId, userId);
+      
+      if (hasOutstandingBalances) {
+        console.log(`Cannot remove user ${userId} from group ${groupId} due to outstanding balances`);
+        throw new Error("User has outstanding debts with other group members. All balances must be settled before they can be removed.");
+      }
+      
+      // First, delete any balance cache records for this user in this group
+      console.log(`Removing balance cache records for user ${userId} in group ${groupId}`);
+      await db
+        .delete(userBalances)
+        .where(and(
+          eq(userBalances.userId, userId),
+          eq(userBalances.groupId, groupId)
+        ));
+      
+      // Delete user-to-user balance records involving this user
+      console.log(`Removing user-to-user balance records for user ${userId} in group ${groupId}`);
+      await db
+        .delete(userBalancesBetweenUsers)
+        .where(
+          and(
+            eq(userBalancesBetweenUsers.groupId, groupId),
+            or(
+              eq(userBalancesBetweenUsers.fromUserId, userId),
+              eq(userBalancesBetweenUsers.toUserId, userId)
+            )
+          )
+        );
+      
+      // Now remove the user from the group
+      console.log(`Removing user ${userId} from group members for group ${groupId}`);
+      const result = await db
+        .delete(groupMembers)
+        .where(
+          and(
+            eq(groupMembers.groupId, groupId),
+            eq(groupMembers.userId, userId)
+          )
+        )
+        .returning();
+      
+      console.log(`User removal complete. Results: ${JSON.stringify(result)}`);
+      return result.length > 0;
+    } catch (error) {
+      console.error(`Error in removeUserFromGroup: ${error}`);
+      throw error;
+    }
+  }
+  
   async createExpense(expenseData: InsertExpense): Promise<Expense> {
     const result = await db.insert(expenses).values(expenseData).returning();
     return result[0];
