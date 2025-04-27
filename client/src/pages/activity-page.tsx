@@ -54,8 +54,8 @@ export default function ActivityPage() {
   const { data: rawExpenseActivity, isLoading: isLoadingExpense } = useQuery({
     queryKey: ["/api/activity", "expenses"],
     queryFn: async () => {
-      const response = await apiRequest("/api/activity?type=expenses");
-      return response as Activity[];
+      const response = await apiRequest("GET", "/api/activity?type=expenses");
+      return await response.json() as Activity[];
     },
     enabled: activeTab === "expenses",
   });
@@ -64,8 +64,8 @@ export default function ActivityPage() {
   const { data: rawPaymentActivity, isLoading: isLoadingPayment } = useQuery({
     queryKey: ["/api/activity", "payments"],
     queryFn: async () => {
-      const response = await apiRequest("/api/activity?type=payments");
-      return response as Activity[];
+      const response = await apiRequest("GET", "/api/activity?type=payments");
+      return await response.json() as Activity[];
     },
     enabled: activeTab === "payments",
   });
