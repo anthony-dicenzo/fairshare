@@ -417,7 +417,7 @@ export class DatabaseStorage implements IStorage {
     // Map to the required format
     return balances.map(balance => {
       const amount = Math.abs(Number(balance.balanceAmount));
-      const direction = Number(balance.balanceAmount) > 0 ? 'owes' : 'owed';
+      const direction = Number(balance.balanceAmount) > 0 ? 'owes' as const : 'owed' as const;
       const otherUser = otherUsers.find(u => u?.id === balance.toUserId);
       
       return {
@@ -450,7 +450,8 @@ export class DatabaseStorage implements IStorage {
       .where(eq(userBalancesBetweenUsers.fromUserId, userId));
     
     // Get all relevant users
-    const otherUserIds = [...new Set(betweenUserBalances.map(b => b.toUserId))];
+    const otherUserIdsSet = new Set(betweenUserBalances.map(b => b.toUserId));
+    const otherUserIds = Array.from(otherUserIdsSet);
     const otherUsers = await Promise.all(
       otherUserIds.map(id => this.getUser(id))
     );

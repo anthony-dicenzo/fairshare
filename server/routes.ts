@@ -761,6 +761,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     
     try {
+      // Try to get cached balances first
+      try {
+        const cachedBalances = await storage.getUserCachedTotalBalance(req.user.id);
+        res.json(cachedBalances);
+        return;
+      } catch (cacheError) {
+        console.log("Cache miss or error, falling back to calculated balances", cacheError);
+      }
+      
+      // Fallback to calculated balances if there's a cache miss
       const balances = await storage.getUserTotalBalance(req.user.id);
       res.json(balances);
     } catch (error) {
@@ -782,10 +792,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "You are not a member of this group" });
       }
       
+      // Try to get cached balances first
+      try {
+        const cachedBalances = await storage.getCachedGroupBalances(groupId);
+        res.json(cachedBalances);
+        return;
+      } catch (cacheError) {
+        console.log(`Cache miss or error for group ${groupId} balances, falling back to calculated balances`, cacheError);
+      }
+      
+      // Fallback to calculated balances if there's a cache miss
       const balances = await storage.getGroupBalances(groupId);
+      
+      // Try to update the cache for next time
+      try {
+        await storage.updateAllBalancesInGroup(groupId);
+      } catch (updateError) {
+        console.log(`Failed to update balance cache for group ${groupId}`, updateError);
+      }
+      
       res.json(balances);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch group balances" });
+    }
+  });
+  
+  // New endpoint to recalculate and update all cached balances
+  app.post("/api/groups/:id/refresh-balances", async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    try {
+      const groupId = parseInt(req.params.id);
+      
+      // Check if user is a member of this group
+      const members = await storage.getGroupMembers(groupId);
+      const isMember = members.some(member => member.userId === req.user.id);
+      
+      if (!isMember) {
+        return res.status(403).json({ error: "You are not a member of this group" });
+      }
+      
+      // Force recalculation of all balances
+      const success = await storage.updateAllBalancesInGroup(groupId);
+      
+      if (success) {
+        res.status(200).json({ message: "Balances refreshed successfully" });
+      } else {
+        res.status(500).json({ error: "Failed to refresh balances" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to refresh balances" });
     }
   });
 
