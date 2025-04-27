@@ -152,7 +152,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         res.status(201).json(membership);
       } else {
-        // Create a shareable invite link
+        // Check for existing active invites first
+        const existingInvites = await storage.getGroupInvitesByGroupId(groupId);
+        
+        // Filter to find active invites
+        const activeInvites = existingInvites.filter(invite => {
+          if (!invite.isActive) return false;
+          if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) return false;
+          return true;
+        });
+        
+        // If there's an active invite, use that
+        if (activeInvites.length > 0) {
+          res.status(200).json(activeInvites[0]);
+          return;
+        }
+        
+        // Otherwise create a new shareable invite link
         const invite = await storage.createGroupInvite({
           groupId,
           createdBy: req.user.id,

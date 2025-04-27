@@ -57,7 +57,7 @@ const inviteFormSchema = z.object({
 
 type InviteFormValues = z.infer<typeof inviteFormSchema>;
 
-export function GroupInvite({ open, onOpenChange, groupId, members = [] }: GroupInviteProps) {
+export function GroupInviteNew({ open, onOpenChange, groupId, members = [] }: GroupInviteProps) {
   // State for managing tabs, loading, and invite code
   const [activeTab, setActiveTab] = useState("link"); // 'link' or 'email'
   const { toast } = useToast();
