@@ -210,6 +210,96 @@ export function setupAuth(app: Express) {
     res.json(userWithoutPassword);
   });
   
+  // Update user profile endpoint
+  app.put("/api/user", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      // Get the current user
+      const currentUser = req.user;
+      const userId = currentUser.id;
+      
+      console.log(`Profile update requested for user ID: ${userId}`);
+      console.log(`Update data:`, req.body);
+      
+      // Create a schema for profile updates
+      const updateProfileSchema = z.object({
+        name: z.string().optional(),
+        email: z.string().email().optional(),
+        currentPassword: z.string(),
+        newPassword: z.string().optional(),
+        confirmNewPassword: z.string().optional(),
+      }).refine(data => {
+        // If newPassword is provided, confirmNewPassword must match
+        if (data.newPassword && data.newPassword !== data.confirmNewPassword) {
+          return false;
+        }
+        return true;
+      }, {
+        message: "New passwords do not match",
+        path: ["confirmNewPassword"]
+      });
+      
+      // Validate the request data
+      const validatedData = updateProfileSchema.parse(req.body);
+      
+      // Verify current password
+      const isPasswordValid = await comparePasswords(validatedData.currentPassword, currentUser.password);
+      if (!isPasswordValid) {
+        return res.status(401).json({ error: "Current password is incorrect" });
+      }
+      
+      // Check if email is being changed and if it's already in use
+      if (validatedData.email && validatedData.email !== currentUser.email) {
+        const existingUserWithEmail = await storage.getUserByEmail(validatedData.email);
+        if (existingUserWithEmail && existingUserWithEmail.id !== userId) {
+          return res.status(400).json({ error: "Email already in use" });
+        }
+      }
+      
+      // Create update object
+      const updates: Partial<User> = {};
+      
+      if (validatedData.name) {
+        updates.name = validatedData.name;
+      }
+      
+      if (validatedData.email) {
+        updates.email = validatedData.email;
+      }
+      
+      if (validatedData.newPassword) {
+        updates.password = await hashPassword(validatedData.newPassword);
+      }
+      
+      // Update the user
+      const updatedUser = await storage.updateUser(userId, updates);
+      
+      // Remove password from response
+      const { password, ...userWithoutPassword } = updatedUser;
+      
+      // Update the session
+      req.login(updatedUser, (err) => {
+        if (err) return next(err);
+        
+        res.status(200).json({
+          ...userWithoutPassword,
+          message: "Profile updated successfully"
+        });
+      });
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      
+      next(error);
+    }
+  });
+  
   // Enhanced backup authentication endpoint for mobile devices that have session issues
   app.get("/api/users/:userId", async (req, res) => {
     try {

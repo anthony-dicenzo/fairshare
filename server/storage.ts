@@ -22,6 +22,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(userId: number, updates: Partial<User>): Promise<User>;
   
   // Group operations
   createGroup(group: InsertGroup): Promise<Group>;
@@ -168,6 +169,30 @@ export class DatabaseStorage implements IStorage {
   async createUser(userData: InsertUser): Promise<User> {
     const result = await db.insert(users).values(userData).returning();
     return result[0];
+  }
+  
+  async updateUser(userId: number, updates: Partial<User>): Promise<User> {
+    console.log(`Starting user update for user ID: ${userId}`);
+    console.log(`Update data:`, updates);
+    
+    try {
+      // Remove fields that should not be updated
+      const { id, createdAt, ...validUpdates } = updates as any;
+      
+      console.log(`Sanitized update data:`, validUpdates);
+      
+      const result = await db
+        .update(users)
+        .set(validUpdates)
+        .where(eq(users.id, userId))
+        .returning();
+      
+      console.log(`User update successful, returning:`, result[0]);
+      return result[0];
+    } catch (error) {
+      console.error(`Error in updateUser: ${error}`);
+      throw error;
+    }
   }
   
   async createGroup(groupData: InsertGroup): Promise<Group> {
