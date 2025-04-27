@@ -135,8 +135,7 @@ export default function GroupPage() {
   const refreshBalancesMutation = useMutation({
     mutationFn: async () => {
       const url = `/api/groups/${groupIdStr}/refresh-balances`;
-      const options = { method: 'POST' };
-      return await apiRequest(url, options);
+      return await apiRequest('POST', url);
     },
     onSuccess: () => {
       // Refetch balances after successful refresh
