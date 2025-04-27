@@ -4,6 +4,9 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 
 import {
   Dialog,
@@ -27,7 +30,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { UserMinus, Settings, AlertTriangle } from "lucide-react";
+import { 
+  UserMinus, 
+  Settings, 
+  AlertTriangle, 
+  Trash2, 
+  Edit, 
+  Save, 
+  X, 
+  RotateCcw 
+} from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
 type Member = {
   userId: number;
@@ -47,6 +61,13 @@ type GroupSettingsProps = {
   createdBy?: number;
 };
 
+// Form schema for updating group name
+const updateGroupSchema = z.object({
+  name: z.string().min(1, "Group name is required").max(50, "Group name is too long"),
+});
+
+type UpdateGroupFormValues = z.infer<typeof updateGroupSchema>;
+
 export function GroupSettings({ open, onOpenChange, groupId, groupName, members, createdBy }: GroupSettingsProps) {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -57,9 +78,19 @@ export function GroupSettings({ open, onOpenChange, groupId, groupName, members,
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [showRemoveConfirmation, setShowRemoveConfirmation] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
+  const [showDeleteGroupConfirmation, setShowDeleteGroupConfirmation] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
   
   // Check if current user is the group creator/admin
   const isCreator = user?.id === createdBy;
+  
+  // Form for updating group name
+  const updateGroupForm = useForm<UpdateGroupFormValues>({
+    resolver: zodResolver(updateGroupSchema),
+    defaultValues: {
+      name: groupName,
+    },
+  });
   
   // Mutation for removing a member from the group
   const removeMemberMutation = useMutation({
@@ -96,6 +127,72 @@ export function GroupSettings({ open, onOpenChange, groupId, groupName, members,
     }
   });
   
+  // Mutation for updating group name
+  const updateGroupMutation = useMutation({
+    mutationFn: async (values: UpdateGroupFormValues) => {
+      return await apiRequest('PATCH', `/api/groups/${groupId}`, values);
+    },
+    onSuccess: () => {
+      // Show success toast
+      toast({
+        title: "Group updated",
+        description: "Group name has been updated successfully.",
+      });
+      
+      // Exit edit mode
+      setIsEditingName(false);
+      
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/groups`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}/activity`] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update group name. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+  
+  // Mutation for deleting the group
+  const deleteGroupMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest('DELETE', `/api/groups/${groupId}`);
+    },
+    onSuccess: () => {
+      // Show success toast
+      toast({
+        title: "Group deleted",
+        description: "The group has been deleted successfully.",
+      });
+      
+      // Invalidate queries
+      queryClient.invalidateQueries({ queryKey: [`/api/groups`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/activity`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/balances`] });
+      
+      // Close the dialog and redirect to home
+      onOpenChange(false);
+      navigate("/");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete group. Please ensure all balances are settled.",
+        variant: "destructive"
+      });
+      
+      setShowDeleteGroupConfirmation(false);
+    }
+  });
+  
+  // Handle updating group name
+  const onSubmitUpdateGroup = (values: UpdateGroupFormValues) => {
+    updateGroupMutation.mutate(values);
+  };
+  
   // Handle remove member button click
   const handleRemoveMember = (member: Member) => {
     setSelectedMember(member);
@@ -107,6 +204,12 @@ export function GroupSettings({ open, onOpenChange, groupId, groupName, members,
     if (selectedMember) {
       removeMemberMutation.mutate({ groupId, userId: selectedMember.userId });
     }
+  };
+  
+  // Handle cancel editing group name
+  const handleCancelEdit = () => {
+    updateGroupForm.reset({ name: groupName });
+    setIsEditingName(false);
   };
   
   return (
@@ -123,6 +226,79 @@ export function GroupSettings({ open, onOpenChange, groupId, groupName, members,
             </DialogDescription>
           </DialogHeader>
           
+          {/* Group name section */}
+          {isCreator && (
+            <div className="py-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium">Group name</h3>
+                {!isEditingName ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsEditingName(true)}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
+                ) : (
+                  <div className="flex space-x-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCancelEdit}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={updateGroupForm.handleSubmit(onSubmitUpdateGroup)}
+                      className="text-green-600 hover:text-green-700"
+                      disabled={updateGroupMutation.isPending}
+                    >
+                      {updateGroupMutation.isPending ? (
+                        <RotateCcw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </div>
+              
+              {!isEditingName ? (
+                <p className="text-sm">{groupName}</p>
+              ) : (
+                <Form {...updateGroupForm}>
+                  <form onSubmit={updateGroupForm.handleSubmit(onSubmitUpdateGroup)}>
+                    <FormField
+                      control={updateGroupForm.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input 
+                              placeholder="Group name" 
+                              {...field} 
+                              autoFocus 
+                              className="text-sm"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </form>
+                </Form>
+              )}
+            </div>
+          )}
+          
+          <Separator />
+          
+          {/* Group members section */}
           <div className="py-4">
             <h3 className="text-sm font-medium mb-3">Group members</h3>
             <div className="space-y-4">
@@ -157,7 +333,26 @@ export function GroupSettings({ open, onOpenChange, groupId, groupName, members,
             </div>
           </div>
           
-          <Separator />
+          {/* Delete group section */}
+          {isCreator && (
+            <>
+              <Separator />
+              <div className="py-4">
+                <h3 className="text-sm font-medium text-red-500 mb-3">Danger zone</h3>
+                <Button 
+                  variant="outline" 
+                  className="border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600 w-full justify-start"
+                  onClick={() => setShowDeleteGroupConfirmation(true)}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete group
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2">
+                  This will permanently delete the group and all associated data. All balances must be settled first.
+                </p>
+              </div>
+            </>
+          )}
           
           <DialogFooter className="mt-4">
             <DialogClose asChild>

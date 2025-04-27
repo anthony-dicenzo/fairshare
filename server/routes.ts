@@ -101,6 +101,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Update group - For changing group name
+  app.patch("/api/groups/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    try {
+      const groupId = parseInt(req.params.id);
+      const group = await storage.getGroup(groupId);
+      
+      if (!group) {
+        return res.status(404).json({ error: "Group not found" });
+      }
+      
+      // Check if user is the creator of this group
+      if (group.createdBy !== req.user.id) {
+        return res.status(403).json({ error: "Only the group creator can update group details" });
+      }
+      
+      // Only allow updating specific fields like name for now
+      const allowedUpdates = { name: req.body.name };
+      const updatedGroup = await storage.updateGroup(groupId, allowedUpdates);
+      
+      // Log activity
+      await storage.logActivity({
+        groupId,
+        userId: req.user.id,
+        actionType: "update_group",
+        metadata: JSON.stringify({ previousName: group.name, newName: allowedUpdates.name })
+      });
+      
+      res.json(updatedGroup);
+    } catch (error) {
+      console.error("Error updating group:", error);
+      res.status(500).json({ error: "Failed to update group" });
+    }
+  });
+  
+  // Delete group
+  app.delete("/api/groups/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    try {
+      const groupId = parseInt(req.params.id);
+      const group = await storage.getGroup(groupId);
+      
+      if (!group) {
+        return res.status(404).json({ error: "Group not found" });
+      }
+      
+      // Check if user is the creator of this group
+      if (group.createdBy !== req.user.id) {
+        return res.status(403).json({ error: "Only the group creator can delete the group" });
+      }
+      
+      // Check if any users have outstanding balances
+      const members = await storage.getGroupMembers(groupId);
+      
+      for (const member of members) {
+        const hasBalance = await storage.checkUserHasOutstandingBalances(groupId, member.userId);
+        if (hasBalance) {
+          return res.status(400).json({ 
+            error: "Cannot delete group. There are outstanding balances between members. All debts must be settled first."
+          });
+        }
+      }
+      
+      // Delete the group and all related data
+      const deleted = await storage.deleteGroup(groupId);
+      
+      if (deleted) {
+        res.json({ success: true, message: "Group has been deleted" });
+      } else {
+        res.status(500).json({ error: "Failed to delete group" });
+      }
+    } catch (error) {
+      console.error("Error deleting group:", error);
+      res.status(500).json({ error: "Failed to delete group" });
+    }
+  });
+  
   app.get("/api/groups/:id/members", async (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     

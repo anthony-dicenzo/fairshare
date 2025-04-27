@@ -628,6 +628,79 @@ export class DatabaseStorage implements IStorage {
     return result.map(r => r.group);
   }
   
+  async updateGroup(groupId: number, updates: Partial<Group>): Promise<Group> {
+    const result = await db
+      .update(groups)
+      .set(updates)
+      .where(eq(groups.id, groupId))
+      .returning();
+      
+    if (result.length === 0) {
+      throw new Error("Group not found");
+    }
+    
+    return result[0];
+  }
+  
+  async deleteGroup(groupId: number): Promise<boolean> {
+    try {
+      // First delete all related data
+      
+      // Delete all expense participants for expenses in this group
+      const groupExpenses = await this.getExpensesByGroupId(groupId);
+      for (const expense of groupExpenses) {
+        await db
+          .delete(expenseParticipants)
+          .where(eq(expenseParticipants.expenseId, expense.id));
+      }
+      
+      // Delete all expenses
+      await db
+        .delete(expenses)
+        .where(eq(expenses.groupId, groupId));
+      
+      // Delete all payments
+      await db
+        .delete(payments)
+        .where(eq(payments.groupId, groupId));
+      
+      // Delete all activity log entries
+      await db
+        .delete(activityLog)
+        .where(eq(activityLog.groupId, groupId));
+      
+      // Delete all group invites
+      await db
+        .delete(groupInvites)
+        .where(eq(groupInvites.groupId, groupId));
+      
+      // Delete all user balances
+      await db
+        .delete(userBalances)
+        .where(eq(userBalances.groupId, groupId));
+      
+      // Delete all balances between users
+      await db
+        .delete(userBalancesBetweenUsers)
+        .where(eq(userBalancesBetweenUsers.groupId, groupId));
+      
+      // Delete all group members
+      await db
+        .delete(groupMembers)
+        .where(eq(groupMembers.groupId, groupId));
+      
+      // Finally delete the group itself
+      const result = await db
+        .delete(groups)
+        .where(eq(groups.id, groupId));
+      
+      return true;
+    } catch (error) {
+      console.error(`Error deleting group ${groupId}:`, error);
+      return false;
+    }
+  }
+  
   async addUserToGroup(memberData: InsertGroupMember): Promise<GroupMember> {
     const result = await db.insert(groupMembers).values(memberData).returning();
     return result[0];
