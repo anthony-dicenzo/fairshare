@@ -28,8 +28,7 @@ export default function GroupsPage() {
   const [, setLocation] = useLocation();
   const [enhancedGroups, setEnhancedGroups] = useState<EnhancedGroup[]>([]);
   const [loadingDetails, setLoadingDetails] = useState(true);
-  // Default to showing all groups initially
-  const [showSettledGroups, setShowSettledGroups] = useState(true);
+  // Always show all groups - no toggle functionality
   const [searchTerm, setSearchTerm] = useState("");
   
   // Fetch groups
@@ -157,34 +156,27 @@ export default function GroupsPage() {
   
   console.log("Display groups before filtering:", displayGroups);
   
-  // Filter out settled groups if needed and apply search
+  // Only apply search filter - always show all groups
   const filteredGroups = displayGroups.filter((group: EnhancedGroup) => {
     // Apply search filter if search term exists
     const matchesSearch = searchTerm === "" || 
       group.name.toLowerCase().includes(searchTerm.toLowerCase());
     
-    // Filter by settled status if showing only active groups
-    // A group is settled if the balance is exactly 0 or very close to 0
+    // For debugging - identify settled groups
     const isSettled = Math.abs(group.balance || 0) < 0.01;
     
-    // Debug logging
-    console.log(`Group ${group.name} (id: ${group.id}): matchesSearch=${matchesSearch}, isSettled=${isSettled}, showSettledGroups=${showSettledGroups}, balance=${group.balance}`);
+    // Log for debugging
+    console.log(`Group ${group.name} (id: ${group.id}): matchesSearch=${matchesSearch}, isSettled=${isSettled}, balance=${group.balance}`);
     
-    // Only show settled groups if requested
-    const shouldShow = matchesSearch && (showSettledGroups || !isSettled);
-    return shouldShow;
+    // Always show all groups that match the search
+    return matchesSearch;
   });
   
   console.log("Filtered groups:", filteredGroups);
   
   // Use the official balances from the API rather than calculating from groups
   // This ensures consistency with the home page
-  const totalOwed = balances?.totalOwed || 0;
-  
-  // Count settled groups for the button text
-  const settledGroupsCount = displayGroups.filter(
-    (group: EnhancedGroup) => (group.balance === 0) || Math.abs(group.balance || 0) < 0.01
-  ).length;
+  const totalOwed = balances?.totalOwes || 0;
   
   // Generate group-specific balances
   const renderUserBalancesForGroup = (group: EnhancedGroup) => {
@@ -333,21 +325,6 @@ export default function GroupsPage() {
                   </div>
                 );
               })}
-              
-              {/* Button to show/hide settled groups */}
-              {settledGroupsCount > 0 && (
-                <div className="mt-6 text-center">
-                  <Button 
-                    variant="outline"
-                    className="w-full border-fairshare-primary text-fairshare-primary hover:bg-fairshare-primary/10"
-                    onClick={() => setShowSettledGroups(!showSettledGroups)}
-                  >
-                    {showSettledGroups 
-                      ? `Hide ${settledGroupsCount} settled-up group${settledGroupsCount !== 1 ? 's' : ''}` 
-                      : `Show settled-up groups`}
-                  </Button>
-                </div>
-              )}
             </>
           )}
         </div>
