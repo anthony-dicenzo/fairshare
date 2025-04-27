@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/main-layout";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -36,14 +36,18 @@ export default function GroupsPage() {
   });
   
   // Get groups with efficient batched fetching
-  const { data: groups, isLoading: isGroupsLoading } = useQuery<Group[]>({
-    queryKey: ["/api/groups"]
+  const { data: groups, isLoading: isGroupsLoading, refetch: refetchGroups } = useQuery<Group[]>({
+    queryKey: ["/api/groups"],
+    // Set staleTime to 0 to ensure data is always fresh after creation
+    staleTime: 0
   });
   
   // Get all group balances in a single query
-  const { data: groupsWithBalances, isLoading: isDetailsLoading } = useQuery<EnhancedGroup[]>({
+  const { data: groupsWithBalances, isLoading: isDetailsLoading, refetch: refetchGroupBalances } = useQuery<EnhancedGroup[]>({
     queryKey: ["/api/groups", "with-balances"],
     enabled: !!groups && !!userData,
+    // Set staleTime to 0 to ensure we always refetch on component mount
+    staleTime: 0,
     queryFn: async () => {
       if (!groups || !userData) return [];
       
@@ -81,6 +85,7 @@ export default function GroupsPage() {
               memberCount
             };
           } catch (error) {
+            console.error(`Error fetching balances for group ${group.id}:`, error);
             return { ...group, balance: 0, memberCount: 0 };
           }
         });
@@ -101,6 +106,15 @@ export default function GroupsPage() {
   
   // Calculate total balance correctly
   const totalOwed = balances?.totalOwes || 0;
+  
+  // Effect to refetch data when component mounts
+  useEffect(() => {
+    // Refetch both queries to ensure latest data
+    refetchGroups();
+    if (groups && userData) {
+      refetchGroupBalances();
+    }
+  }, [refetchGroups, refetchGroupBalances, groups, userData]);
   
   // Show loading skeleton while data is loading
   const isLoading = isBalancesLoading || isGroupsLoading || isDetailsLoading;
