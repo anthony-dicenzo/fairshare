@@ -43,21 +43,19 @@ import { Group } from "@shared/schema";
 
 // Define a schema for expense editing
 const expenseEditSchema = z.object({
-  title: z
-    .string()
-    .min(1, { message: "Title is required" }),
-  totalAmount: z
-    .string()
-    .min(1, { message: "Amount is required" })
-    .refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
-      message: "Amount must be a positive number",
-    }),
-  paidBy: z
-    .string()
-    .min(1, { message: "Payer is required" }),
+  title: z.string().min(1, "Title is required"),
+  totalAmount: z.string().min(1, "Amount is required").refine(
+    (val) => {
+      const amount = parseFloat(val);
+      return !isNaN(amount) && amount > 0;
+    },
+    { message: "Amount must be a positive number" }
+  ),
+  paidBy: z.string().min(1, "Payer is required"),
+  splitMethod: z.enum(["equal", "unequal", "percentage"]),
+  // Use string for date to avoid type issues with the input field
+  date: z.string().min(1, "Date is required"),
   notes: z.string().optional(),
-  date: z.string().min(1, { message: "Date is required" }),
-  splitMethod: z.enum(["equal", "unequal", "percentage"]).default("equal"),
 });
 
 type ExpenseEditValues = z.infer<typeof expenseEditSchema>;
@@ -73,10 +71,21 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
+  // Track custom amounts for unequal splits
+  const [customAmounts, setCustomAmounts] = useState<Record<number, number>>({});
+  // Track custom percentages for percentage splits
+  const [customPercentages, setCustomPercentages] = useState<Record<number, number>>({});
   
   // Fetch expense details
   const { data: expense, isLoading: isLoadingExpense } = useQuery({
     queryKey: [`/api/expenses/${expenseId}`],
+    enabled: open && expenseId > 0,
+  });
+
+  // Fetch expense participants
+  const { data: expenseParticipants = [], isLoading: isLoadingParticipants } = useQuery({
+    queryKey: [`/api/expenses/${expenseId}/participants`],
     enabled: open && expenseId > 0,
   });
 
@@ -93,6 +102,7 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
       title: "",
       totalAmount: "",
       paidBy: user?.id.toString() || "",
+      splitMethod: "equal",
       date: formatISO(new Date(), { representation: "date" }),
       notes: "",
     },
@@ -101,31 +111,107 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
   // Auto-populate form when expense data is loaded
   const [formPopulated, setFormPopulated] = useState(false);
   
-  // This runs when expense data changes
-  if (expense && !formPopulated && form) {
-    try {
-      if (typeof expense === 'object') {
-        // Update all form fields
-        const title = expense.title ? String(expense.title) : '';
-        const amount = expense.totalAmount ? String(expense.totalAmount) : '0';
-        const payer = expense.paidBy ? String(expense.paidBy) : user?.id?.toString() || '';
-        const expenseDate = expense.date ? String(expense.date) : formatISO(new Date(), { representation: "date" });
-        const notes = expense.notes ? String(expense.notes) : '';
-        
-        // Update the form
-        setTimeout(() => {
+  // Initialize selectedUserIds with participants when expense data is loaded
+  useEffect(() => {
+    if (expense && groupMembers.length > 0 && !formPopulated) {
+      try {
+        if (typeof expense === 'object') {
+          // Update all form fields
+          const title = expense.title ? String(expense.title) : '';
+          const amount = expense.totalAmount ? String(expense.totalAmount) : '0';
+          const payer = expense.paidBy ? String(expense.paidBy) : user?.id?.toString() || '';
+          const expenseDate = expense.date ? String(expense.date) : formatISO(new Date(), { representation: "date" });
+          const notes = expense.notes ? String(expense.notes) : '';
+          const splitMethod = "equal"; // Default to equal - we'll determine actual split later
+          
+          // Set selected user IDs from participants
+          const participantIds = Array.isArray(expenseParticipants) 
+            ? expenseParticipants.map((p: any) => p.userId)
+            : [];
+          
+          setSelectedUserIds(participantIds.length > 0 ? participantIds : 
+            groupMembers.map((m: any) => m.userId));
+          
+          // Update the form
           form.setValue('title', title);
           form.setValue('totalAmount', amount);
           form.setValue('paidBy', payer);
           form.setValue('date', expenseDate);
           form.setValue('notes', notes);
+          form.setValue('splitMethod', splitMethod);
+          
+          // Initialize amounts and percentages based on participants
+          if (Array.isArray(expenseParticipants) && expenseParticipants.length > 0) {
+            const totalAmount = parseFloat(amount);
+            const newAmounts: Record<number, number> = {};
+            const newPercentages: Record<number, number> = {};
+            
+            // Determine if it's an equal split or custom split
+            const firstAmount = expenseParticipants[0]?.amountOwed;
+            const isEqualSplit = expenseParticipants.every((p: any) => 
+              Math.abs(p.amountOwed - firstAmount) < 0.01);
+            
+            if (isEqualSplit) {
+              form.setValue('splitMethod', 'equal');
+            } else {
+              // Determine if it's percentage or custom amount
+              const totalOwed = expenseParticipants.reduce((sum: number, p: any) => 
+                sum + parseFloat(p.amountOwed), 0);
+              
+              if (Math.abs(totalOwed - totalAmount) < 0.01) {
+                form.setValue('splitMethod', 'unequal');
+              } else {
+                form.setValue('splitMethod', 'percentage');
+              }
+            }
+            
+            // Set custom amounts and percentages
+            expenseParticipants.forEach((p: any) => {
+              newAmounts[p.userId] = parseFloat(p.amountOwed);
+              newPercentages[p.userId] = (parseFloat(p.amountOwed) / totalAmount) * 100;
+            });
+            
+            setCustomAmounts(newAmounts);
+            setCustomPercentages(newPercentages);
+          } else {
+            handleInitializeAmountsAndPercentages();
+          }
+          
           setFormPopulated(true);
-        }, 0);
+        }
+      } catch (error) {
+        console.error('Error populating form:', error);
       }
-    } catch (error) {
-      console.error('Error populating form:', error);
     }
-  }
+  }, [expense, expenseParticipants, groupMembers, form, formPopulated]);
+  
+  // Initialize or update custom amounts and percentages when users change
+  useEffect(() => {
+    if (formPopulated && selectedUserIds.length > 0) {
+      handleInitializeAmountsAndPercentages();
+    }
+  }, [selectedUserIds, form.watch('splitMethod'), form.watch('totalAmount')]);
+  
+  // Function to initialize custom amounts and percentages
+  const handleInitializeAmountsAndPercentages = () => {
+    if (selectedUserIds.length === 0) return;
+    
+    const totalAmount = parseFloat(form.getValues("totalAmount") || "0");
+    const equalAmount = totalAmount / selectedUserIds.length;
+    const equalPercentage = 100 / selectedUserIds.length;
+    
+    // Initialize custom amounts
+    const newAmounts: Record<number, number> = {};
+    const newPercentages: Record<number, number> = {};
+    
+    selectedUserIds.forEach(userId => {
+      newAmounts[userId] = equalAmount;
+      newPercentages[userId] = equalPercentage;
+    });
+    
+    setCustomAmounts(newAmounts);
+    setCustomPercentages(newPercentages);
+  };
 
   // Update expense mutation
   const updateExpenseMutation = useMutation({
