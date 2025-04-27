@@ -6,6 +6,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Form,
   FormControl,
@@ -47,6 +49,7 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 export default function AuthPage() {
   const [location, navigate] = useLocation();
   const { user, loginMutation, registerMutation } = useAuth();
+  const isMobile = useIsMobile();
 
   // Redirect to returnPath or home if already logged in
   useEffect(() => {
@@ -94,6 +97,238 @@ export default function AuthPage() {
     registerMutation.mutate(data);
   };
 
+  // Mobile-optimized login page that matches the wireframe
+  if (isMobile) {
+    return (
+      <div className="min-h-screen flex flex-col bg-fairshare-cream">
+        <div className="flex-1 flex flex-col justify-center p-6">
+          {/* Logo and tagline section */}
+          <div className="text-center mb-12">
+            <div className="flex justify-center items-center mb-2">
+              <div className="text-fairshare-primary text-3xl mr-2">
+                <span className="text-4xl">✻</span> 
+              </div>
+              <h1 className="text-3xl font-bold text-fairshare-dark">FairShare</h1>
+            </div>
+            <h2 className="text-4xl font-serif font-medium text-fairshare-dark mt-10 mb-2">
+              Your expenses,<br />simplified
+            </h2>
+            <p className="text-fairshare-dark/80 text-lg">
+              Split expenses fairly with friends.
+            </p>
+          </div>
+
+          {/* Login form section */}
+          <div className="bg-white rounded-3xl p-6 shadow-sm">
+            <Tabs defaultValue="login" className="w-full">
+              <TabsList className="hidden">
+                <TabsTrigger value="login">Login</TabsTrigger>
+                <TabsTrigger value="register">Register</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="login">
+                <Form {...loginForm}>
+                  <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
+                    {/* Email/Username field */}
+                    <FormField
+                      control={loginForm.control}
+                      name="username"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input 
+                              placeholder="Enter your username" 
+                              className="h-12 rounded-xl border-fairshare-dark/20 bg-white" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Password field */}
+                    <FormField
+                      control={loginForm.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input 
+                              type="password" 
+                              placeholder="Enter your password" 
+                              className="h-12 rounded-xl border-fairshare-dark/20 bg-white" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Login button */}
+                    <Button 
+                      type="submit" 
+                      className="w-full h-12 rounded-xl mt-4 bg-fairshare-dark text-white hover:bg-fairshare-dark/90"
+                      disabled={loginMutation.isPending}
+                    >
+                      {loginMutation.isPending ? "Logging in..." : "Continue with email"}
+                    </Button>
+                  </form>
+                </Form>
+
+                {/* OR Separator */}
+                <div className="relative flex items-center my-6">
+                  <div className="flex-grow border-t border-gray-300"></div>
+                  <span className="flex-shrink mx-4 text-gray-500 text-sm uppercase">OR</span>
+                  <div className="flex-grow border-t border-gray-300"></div>
+                </div>
+
+                {/* Register option */}
+                <div className="text-center">
+                  <p className="text-fairshare-dark/80 mb-4">Don't have an account?</p>
+                  <Button 
+                    variant="outline" 
+                    className="w-full h-12 rounded-xl border-fairshare-dark/20 text-fairshare-dark hover:bg-fairshare-dark/5"
+                    onClick={() => {
+                      // Switch to register tab
+                      const registerTab = document.querySelector('[data-value="register"]') as HTMLElement;
+                      if (registerTab) registerTab.click();
+                    }}
+                  >
+                    Create an account
+                  </Button>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="register">
+                <Form {...registerForm}>
+                  <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
+                    <FormField
+                      control={registerForm.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input 
+                              placeholder="Full Name" 
+                              className="h-12 rounded-xl border-fairshare-dark/20 bg-white"
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={registerForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input 
+                              type="email" 
+                              placeholder="Email" 
+                              className="h-12 rounded-xl border-fairshare-dark/20 bg-white"
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={registerForm.control}
+                      name="username"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input 
+                              placeholder="Username" 
+                              className="h-12 rounded-xl border-fairshare-dark/20 bg-white"
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={registerForm.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input 
+                              type="password" 
+                              placeholder="Password" 
+                              className="h-12 rounded-xl border-fairshare-dark/20 bg-white"
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={registerForm.control}
+                      name="confirmPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input 
+                              type="password" 
+                              placeholder="Confirm Password" 
+                              className="h-12 rounded-xl border-fairshare-dark/20 bg-white"
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <Button 
+                      type="submit" 
+                      className="w-full h-12 rounded-xl mt-4 bg-fairshare-dark text-white hover:bg-fairshare-dark/90"
+                      disabled={registerMutation.isPending}
+                    >
+                      {registerMutation.isPending ? "Creating account..." : "Create account"}
+                    </Button>
+                  </form>
+                </Form>
+
+                {/* OR Separator */}
+                <div className="relative flex items-center my-6">
+                  <div className="flex-grow border-t border-gray-300"></div>
+                  <span className="flex-shrink mx-4 text-gray-500 text-sm uppercase">OR</span>
+                  <div className="flex-grow border-t border-gray-300"></div>
+                </div>
+
+                {/* Login option */}
+                <div className="text-center">
+                  <p className="text-fairshare-dark/80 mb-4">Already have an account?</p>
+                  <Button 
+                    variant="outline" 
+                    className="w-full h-12 rounded-xl border-fairshare-dark/20 text-fairshare-dark hover:bg-fairshare-dark/5"
+                    onClick={() => {
+                      // Switch to login tab
+                      const loginTab = document.querySelector('[data-value="login"]') as HTMLElement;
+                      if (loginTab) loginTab.click();
+                    }}
+                  >
+                    Log in
+                  </Button>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop version remains unchanged
   return (
     <div className="min-h-screen flex flex-col bg-muted/40">
       <header className="flex items-center justify-between p-4 bg-background border-b">
