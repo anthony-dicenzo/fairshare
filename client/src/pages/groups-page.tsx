@@ -100,8 +100,7 @@ export default function GroupsPage() {
           </div>
           <Button 
             onClick={() => setShowGroupModal(true)}
-            className="ml-2 whitespace-nowrap text-fairshare-primary border-fairshare-primary bg-transparent hover:bg-fairshare-primary/10"
-            variant="outline"
+            className="ml-2 whitespace-nowrap text-white bg-fairshare-primary hover:bg-fairshare-primary/90 rounded-xl"
           >
             Create group
           </Button>
@@ -126,7 +125,7 @@ export default function GroupsPage() {
               <p className="text-fairshare-dark/60">No groups found</p>
               <Button 
                 onClick={() => setShowGroupModal(true)}
-                className="mt-4"
+                className="mt-4 bg-fairshare-primary hover:bg-fairshare-primary/90 text-white rounded-xl"
               >
                 <PlusCircle className="h-4 w-4 mr-2" />
                 Create New Group

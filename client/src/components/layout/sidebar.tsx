@@ -28,7 +28,7 @@ export function Sidebar({ className }: SidebarProps) {
     <>
       <div className={cn("flex flex-col h-full bg-fairshare-cream text-fairshare-dark border-r", className)}>
         <div className="flex h-16 items-center px-4 border-b border-fairshare-cream/30">
-          <Link href="/" className="flex items-center font-bold text-xl text-fairshare-dark">
+          <Link href="/" className="flex items-center font-bold text-xl text-fairshare-primary">
             FairShare
           </Link>
         </div>

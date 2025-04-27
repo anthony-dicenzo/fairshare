@@ -18,7 +18,7 @@ export function MobileHeader() {
             <Sidebar />
           </SheetContent>
         </Sheet>
-        <span className="font-bold text-xl text-fairshare-dark">FairShare</span>
+        <span className="font-bold text-xl text-fairshare-primary">FairShare</span>
       </div>
       <UserDropdown />
     </header>
