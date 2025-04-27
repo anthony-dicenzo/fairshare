@@ -59,6 +59,7 @@ export default function AuthPage() {
   const isMobile = useIsMobile();
   const [loginStep, setLoginStep] = useState<1 | 2>(1);
   const [loginUsername, setLoginUsername] = useState("");
+  const [activeTab, setActiveTab] = useState<"login" | "register">("login");
 
   // Redirect to returnPath or home if already logged in
   useEffect(() => {
@@ -144,7 +145,10 @@ export default function AuthPage() {
 
           {/* Login form section */}
           <div className="bg-white rounded-3xl p-6 shadow-sm">
-            <Tabs defaultValue="login" className="w-full tabs">
+            <Tabs 
+              value={activeTab} 
+              onValueChange={(value) => setActiveTab(value as "login" | "register")} 
+              className="w-full tabs">
               <TabsList className="hidden">
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="register">Register</TabsTrigger>
@@ -197,21 +201,7 @@ export default function AuthPage() {
                       <Button 
                         variant="outline" 
                         className="w-full h-12 rounded-xl border-fairshare-dark/20 text-fairshare-dark hover:bg-fairshare-dark/5"
-                        onClick={() => {
-                          // Switch to register tab directly
-                          const tabsContainer = document.querySelector('.tabs');
-                          if (tabsContainer) {
-                            // Set tabs value to register
-                            const tabsObj = (tabsContainer as any).__tabs;
-                            if (tabsObj?.setValue) {
-                              tabsObj.setValue('register');
-                            } else {
-                              // Fallback to clicking the element
-                              const registerTab = document.querySelector('[data-value="register"]') as HTMLElement;
-                              if (registerTab) registerTab.click();
-                            }
-                          }
-                        }}
+                        onClick={() => setActiveTab("register")}
                       >
                         Create an account
                       </Button>
@@ -386,21 +376,7 @@ export default function AuthPage() {
                   <Button 
                     variant="outline" 
                     className="w-full h-12 rounded-xl border-fairshare-dark/20 text-fairshare-dark hover:bg-fairshare-dark/5"
-                    onClick={() => {
-                      // Switch to login tab directly
-                      const tabsContainer = document.querySelector('.tabs');
-                      if (tabsContainer) {
-                        // Set tabs value to login
-                        const tabsObj = (tabsContainer as any).__tabs;
-                        if (tabsObj?.setValue) {
-                          tabsObj.setValue('login');
-                        } else {
-                          // Fallback to clicking the element
-                          const loginTab = document.querySelector('[data-value="login"]') as HTMLElement;
-                          if (loginTab) loginTab.click();
-                        }
-                      }
-                    }}
+                    onClick={() => setActiveTab("login")}
                   >
                     Log in
                   </Button>
@@ -431,7 +407,10 @@ export default function AuthPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="login" className="w-full tabs">
+              <Tabs 
+                value={activeTab} 
+                onValueChange={(value) => setActiveTab(value as "login" | "register")} 
+                className="w-full tabs">
                 <TabsList className="grid w-full grid-cols-2 mb-4">
                   <TabsTrigger value="login">Login</TabsTrigger>
                   <TabsTrigger value="register">Register</TabsTrigger>
