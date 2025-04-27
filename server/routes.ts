@@ -572,6 +572,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         paymentId: payment.id
       });
       
+      // Update cached balances
+      await storage.updateAllBalancesInGroup(groupId);
+      
       res.status(201).json(payment);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -662,6 +665,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedPayment = await storage.updatePayment(paymentId, updateData);
       console.log(`Payment updated successfully:`, updatedPayment);
       
+      // Update cached balances
+      await storage.updateAllBalancesInGroup(payment.groupId);
+      
       res.json(updatedPayment);
     } catch (error) {
       console.error("Error updating payment:", error);
@@ -695,10 +701,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "You cannot delete this payment" });
       }
       
+      const groupId = payment.groupId;
+      
       // Delete the payment
       console.log(`Proceeding to delete payment ${paymentId}`);
       const result = await storage.deletePayment(paymentId);
       console.log(`Delete result: ${result}`);
+      
+      // Update cached balances
+      await storage.updateAllBalancesInGroup(groupId);
       
       res.status(200).json({ message: "Payment deleted successfully" });
     } catch (error) {
