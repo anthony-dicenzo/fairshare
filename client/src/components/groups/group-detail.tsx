@@ -49,13 +49,9 @@ export function GroupDetail({ group, members = [], balances = [], expenses = [],
   const membersCount = members.length || 1;
   const fairSharePerUser = totalExpenseAmount / membersCount;
   
-  // Calculate the user's actual balance
-  // If the user paid more than their fair share, they are owed money (positive balance)
-  // If the user paid less than their fair share, they owe money (negative balance)
-  const calculatedBalance = userExpenseAmount - fairSharePerUser + paymentsReceived - paymentsMade;
-  
-  // For safety, use the calculated balance if it makes sense, otherwise fall back to API balance
-  const userBalance = (totalExpenseAmount > 0) ? calculatedBalance : apiUserBalance;
+  // Always use the cached balance from the API for consistency across the app
+  // This ensures the same balance is shown everywhere
+  const userBalance = apiUserBalance;
   
   return (
     <Card>
