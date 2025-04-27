@@ -59,12 +59,14 @@ export default function ActivityPage() {
     enabled: activeTab === "payments",
   });
 
-  // Filter activities by type when needed
+  // Filter activities by type when needed and remove "create_invite" activities
+  const filteredActivities = allActivity?.filter(a => a.actionType !== "create_invite") || [];
+  
   const activities = activeTab === "expenses" 
-    ? (expenseActivity || allActivity?.filter(a => a.actionType === "add_expense")) 
+    ? (expenseActivity || filteredActivities.filter(a => a.actionType === "add_expense")) 
     : activeTab === "payments"
-      ? (paymentActivity || allActivity?.filter(a => a.actionType === "record_payment"))
-      : allActivity;
+      ? (paymentActivity || filteredActivities.filter(a => a.actionType === "record_payment"))
+      : filteredActivities;
   
   const isLoading = activeTab === "all" 
     ? isLoadingAll 

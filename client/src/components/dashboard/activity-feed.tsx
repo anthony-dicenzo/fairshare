@@ -45,7 +45,10 @@ export function ActivityFeed() {
     return <ActivityFeedSkeleton />;
   }
 
-  if (!activities || activities.length === 0) {
+  // Filter out "create_invite" activities
+  const filteredActivities = activities?.filter(a => a.actionType !== "create_invite") || [];
+  
+  if (!filteredActivities.length) {
     return (
       <Card className="w-full">
         <CardHeader className="px-4 pt-4 pb-2">
@@ -65,7 +68,7 @@ export function ActivityFeed() {
       </CardHeader>
       <CardContent className="p-0">
         <div className="divide-y">
-          {activities.map((activity) => (
+          {filteredActivities.map((activity) => (
             <div key={activity.id} className="px-3 sm:px-5 py-3 sm:py-4 hover:bg-accent transition-colors">
               <ActivityItemAction 
                 actionType={activity.actionType}
