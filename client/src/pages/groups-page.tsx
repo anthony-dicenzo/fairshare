@@ -33,13 +33,7 @@ export default function GroupsPage() {
   
   // Fetch groups
   const { data: groups, isLoading } = useQuery<Group[]>({
-    queryKey: ["/api/groups"],
-    onSuccess: (data) => {
-      console.log("Groups loaded from API:", data);
-    },
-    onError: (error) => {
-      console.error("Error loading groups from API:", error);
-    }
+    queryKey: ["/api/groups"]
   });
   
   // Fetch user balances
@@ -62,7 +56,22 @@ export default function GroupsPage() {
   
   // Fetch group details when groups data is available
   useEffect(() => {
-    if (!groups || groups.length === 0 || detailsLoaded || !userData) return;
+    if (!groups || groups.length === 0 || !userData) {
+      // Reset when dependencies change to prevent stale data
+      if (enhancedGroups.length > 0) {
+        setEnhancedGroups([]);
+        setDetailsLoaded(false);
+      }
+      return;
+    }
+    
+    // Reset loaded state when groups change
+    if (detailsLoaded && enhancedGroups.length !== groups.length) {
+      setDetailsLoaded(false);
+    }
+    
+    // Don't refetch if details are already loaded unless groups have changed
+    if (detailsLoaded) return;
     
     // Main function to fetch and enhance groups with details
     async function fetchGroupDetails() {
@@ -81,7 +90,7 @@ export default function GroupsPage() {
               
               if (!balancesResponse.ok) {
                 console.warn(`Could not fetch balances for group ${group.id}: ${balancesResponse.status}`);
-                return { ...group, balance: 0 };
+                return { ...group, balance: 0, memberCount: 0 };
               }
               
               const balanceData = await balancesResponse.json();
@@ -116,15 +125,19 @@ export default function GroupsPage() {
           })
         );
         
-        setEnhancedGroups(groupsWithDetails);
-        setDetailsLoaded(true);
+        // Only update if we still have data
+        if (groupsWithDetails.length > 0) {
+          setEnhancedGroups(groupsWithDetails);
+          setDetailsLoaded(true);
+          console.log("Updated enhanced groups:", groupsWithDetails);
+        }
       } catch (error) {
         console.error("Error enhancing groups with details:", error);
       }
     }
     
     fetchGroupDetails();
-  }, [groups, detailsLoaded, userData]);
+  }, [groups, userData, enhancedGroups.length, detailsLoaded]);
   
   // Get the actual groups to display with balance info
   const displayGroups = enhancedGroups.length > 0 
