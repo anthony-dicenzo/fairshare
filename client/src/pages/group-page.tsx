@@ -164,9 +164,9 @@ export default function GroupPage() {
         <div className="px-4 py-6 md:px-6 lg:px-8">
           <div className="flex items-center mb-6">
             <Button variant="ghost" size="sm" asChild className="mr-2">
-              <Link href="/">
+              <Link href="/groups">
                 <ChevronLeft className="h-4 w-4 mr-1" />
-                Back
+                Back to Groups
               </Link>
             </Button>
             <h1 className="text-2xl font-bold">Group Not Found</h1>
@@ -183,7 +183,7 @@ export default function GroupPage() {
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Button asChild>
-                <Link href="/">Go to Dashboard</Link>
+                <Link href="/groups">Go to Groups</Link>
               </Button>
             </div>
           </div>
@@ -198,9 +198,9 @@ export default function GroupPage() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
           <div className="flex items-center mb-4 md:mb-0">
             <Button variant="ghost" size="sm" asChild className="mr-2">
-              <Link href="/">
+              <Link href="/groups">
                 <ChevronLeft className="h-4 w-4 mr-1" />
-                Back
+                Back to Groups
               </Link>
             </Button>
             <h1 className="text-2xl font-bold">
