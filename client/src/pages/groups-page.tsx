@@ -27,6 +27,7 @@ export default function GroupsPage() {
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [, setLocation] = useLocation();
   const [enhancedGroups, setEnhancedGroups] = useState<EnhancedGroup[]>([]);
+  const [loadingDetails, setLoadingDetails] = useState(true);
   // Default to showing all groups initially
   const [showSettledGroups, setShowSettledGroups] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -68,10 +69,17 @@ export default function GroupsPage() {
     // Reset loaded state when groups change
     if (detailsLoaded && enhancedGroups.length !== groups.length) {
       setDetailsLoaded(false);
+      setLoadingDetails(true);
     }
     
     // Don't refetch if details are already loaded unless groups have changed
-    if (detailsLoaded) return;
+    if (detailsLoaded) {
+      setLoadingDetails(false);
+      return;
+    }
+    
+    // Set loading state
+    setLoadingDetails(true);
     
     // Main function to fetch and enhance groups with details
     async function fetchGroupDetails() {
@@ -133,6 +141,8 @@ export default function GroupsPage() {
         }
       } catch (error) {
         console.error("Error enhancing groups with details:", error);
+      } finally {
+        setLoadingDetails(false);
       }
     }
     
@@ -140,9 +150,10 @@ export default function GroupsPage() {
   }, [groups, userData, enhancedGroups.length, detailsLoaded]);
   
   // Get the actual groups to display with balance info
-  const displayGroups = enhancedGroups.length > 0 
+  // Only provide blank placeholder data when we know we're still loading details
+  const displayGroups = enhancedGroups.length > 0 || !loadingDetails
     ? enhancedGroups 
-    : (groups || []).map(g => ({ ...g, balance: 0, memberCount: 0 })) as EnhancedGroup[];
+    : [];
   
   console.log("Display groups before filtering:", displayGroups);
   
@@ -153,10 +164,11 @@ export default function GroupsPage() {
       group.name.toLowerCase().includes(searchTerm.toLowerCase());
     
     // Filter by settled status if showing only active groups
-    const isSettled = (group.balance === 0) || Math.abs(group.balance || 0) < 0.01;
+    // A group is settled if the balance is exactly 0 or very close to 0
+    const isSettled = Math.abs(group.balance || 0) < 0.01;
     
     // Debug logging
-    console.log(`Group ${group.name} (id: ${group.id}): matchesSearch=${matchesSearch}, isSettled=${isSettled}, showSettledGroups=${showSettledGroups}`);
+    console.log(`Group ${group.name} (id: ${group.id}): matchesSearch=${matchesSearch}, isSettled=${isSettled}, showSettledGroups=${showSettledGroups}, balance=${group.balance}`);
     
     // Only show settled groups if requested
     const shouldShow = matchesSearch && (showSettledGroups || !isSettled);
@@ -200,8 +212,8 @@ export default function GroupsPage() {
     ));
   };
   
-  // Render loading skeleton
-  if (isLoading) {
+  // Render loading skeleton for initial data fetch or details loading
+  if (isLoading || loadingDetails) {
     return (
       <MainLayout>
         <div className="p-4">
@@ -298,18 +310,18 @@ export default function GroupsPage() {
                       <div className="text-right">
                         {isSettled ? (
                           <span className="text-fairshare-dark/60 text-sm">settled up</span>
-                        ) : group.balance && group.balance < 0 ? (
-                          <div className="text-right">
-                            <p className="text-sm text-fairshare-dark/70">you owe</p>
-                            <p className="font-medium text-fairshare-primary">
-                              ${Math.abs(group.balance).toFixed(2)}
-                            </p>
-                          </div>
-                        ) : (
+                        ) : (group.balance || 0) > 0 ? (
                           <div className="text-right">
                             <p className="text-sm text-fairshare-dark/70">you are owed</p>
                             <p className="font-medium text-emerald-500">
                               ${(group.balance || 0).toFixed(2)}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="text-right">
+                            <p className="text-sm text-fairshare-dark/70">you owe</p>
+                            <p className="font-medium text-fairshare-primary">
+                              ${Math.abs(group.balance || 0).toFixed(2)}
                             </p>
                           </div>
                         )}
