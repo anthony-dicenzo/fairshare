@@ -27,12 +27,19 @@ export default function GroupsPage() {
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [, setLocation] = useLocation();
   const [enhancedGroups, setEnhancedGroups] = useState<EnhancedGroup[]>([]);
-  const [showSettledGroups, setShowSettledGroups] = useState(false);
+  // Default to showing all groups initially
+  const [showSettledGroups, setShowSettledGroups] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   
   // Fetch groups
   const { data: groups, isLoading } = useQuery<Group[]>({
     queryKey: ["/api/groups"],
+    onSuccess: (data) => {
+      console.log("Groups loaded from API:", data);
+    },
+    onError: (error) => {
+      console.error("Error loading groups from API:", error);
+    }
   });
   
   // Fetch user balances
@@ -124,6 +131,8 @@ export default function GroupsPage() {
     ? enhancedGroups 
     : (groups || []).map(g => ({ ...g, balance: 0, memberCount: 0 })) as EnhancedGroup[];
   
+  console.log("Display groups before filtering:", displayGroups);
+  
   // Filter out settled groups if needed and apply search
   const filteredGroups = displayGroups.filter((group: EnhancedGroup) => {
     // Apply search filter if search term exists
@@ -133,9 +142,15 @@ export default function GroupsPage() {
     // Filter by settled status if showing only active groups
     const isSettled = (group.balance === 0) || Math.abs(group.balance || 0) < 0.01;
     
+    // Debug logging
+    console.log(`Group ${group.name} (id: ${group.id}): matchesSearch=${matchesSearch}, isSettled=${isSettled}, showSettledGroups=${showSettledGroups}`);
+    
     // Only show settled groups if requested
-    return matchesSearch && (showSettledGroups || !isSettled);
+    const shouldShow = matchesSearch && (showSettledGroups || !isSettled);
+    return shouldShow;
   });
+  
+  console.log("Filtered groups:", filteredGroups);
   
   // Calculate the total balance the user owes across all groups
   const calculateTotalOwed = () => {
@@ -312,8 +327,8 @@ export default function GroupsPage() {
                     onClick={() => setShowSettledGroups(!showSettledGroups)}
                   >
                     {showSettledGroups 
-                      ? "Hide settled-up groups" 
-                      : `Show ${settledGroupsCount} settled-up group${settledGroupsCount !== 1 ? 's' : ''}`}
+                      ? `Hide ${settledGroupsCount} settled-up group${settledGroupsCount !== 1 ? 's' : ''}` 
+                      : `Show settled-up groups`}
                   </Button>
                 </div>
               )}
