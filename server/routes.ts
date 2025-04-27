@@ -673,7 +673,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      const type = req.query.type as string | undefined;
+      
+      // Get all activities for the user
       const activities = await storage.getActivityByUserId(req.user.id, limit);
+      
+      // Filter activities by type if specified
+      if (type === 'expenses') {
+        const expenseActivities = activities.filter(a => a.actionType === 'add_expense');
+        return res.json(expenseActivities);
+      } else if (type === 'payments') {
+        const paymentActivities = activities.filter(a => a.actionType === 'record_payment');
+        return res.json(paymentActivities);
+      }
+      
+      // Return all activities if no type specified
       res.json(activities);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch activity" });

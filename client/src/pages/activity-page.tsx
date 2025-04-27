@@ -52,12 +52,14 @@ export default function ActivityPage() {
   // Fetch activity data for expense tab
   const { data: rawExpenseActivity, isLoading: isLoadingExpense } = useQuery<Activity[]>({
     queryKey: ["/api/activity", "expenses"],
+    queryFn: () => apiRequest("/api/activity?type=expenses"),
     enabled: activeTab === "expenses",
   });
   
   // Fetch activity data for payment tab
   const { data: rawPaymentActivity, isLoading: isLoadingPayment } = useQuery<Activity[]>({
     queryKey: ["/api/activity", "payments"],
+    queryFn: () => apiRequest("/api/activity?type=payments"),
     enabled: activeTab === "payments",
   });
 
@@ -68,12 +70,12 @@ export default function ActivityPage() {
   
   // Filter expense activities to remove invite-related actions
   const filteredExpenseActivities = rawExpenseActivity?.filter(a => 
-    !a.actionType.includes("create_invite") && a.actionType === "add_expense"
+    !a.actionType.includes("create_invite")
   ) || [];
   
   // Filter payment activities to remove invite-related actions
   const filteredPaymentActivities = rawPaymentActivity?.filter(a => 
-    !a.actionType.includes("create_invite") && a.actionType === "record_payment"
+    !a.actionType.includes("create_invite")
   ) || [];
   
   // Choose which filtered set to display based on active tab
