@@ -3,15 +3,13 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Sidebar } from "./sidebar";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface MobilePageHeaderProps {
   title?: string;
   children?: ReactNode;
-  useBrandColor?: boolean;
 }
 
-export function MobilePageHeader({ title, children, useBrandColor = true }: MobilePageHeaderProps) {
+export function MobilePageHeader({ title, children }: MobilePageHeaderProps) {
   return (
     <div className="flex items-center justify-between border-b p-3 md:hidden bg-fairshare-cream">
       <div className="flex items-center">
@@ -26,10 +24,7 @@ export function MobilePageHeader({ title, children, useBrandColor = true }: Mobi
           </SheetContent>
         </Sheet>
         
-        <span className={cn(
-          "font-bold text-xl", 
-          useBrandColor ? "text-fairshare-primary" : ""
-        )}>
+        <span className="font-bold text-xl text-fairshare-primary">
           {title || "FairShare"}
         </span>
       </div>

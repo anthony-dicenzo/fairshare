@@ -32,7 +32,7 @@ export default function ProfilePage() {
 
   return (
     <MainLayout>
-      <MobilePageHeader title="Profile" useBrandColor={false} />
+      <MobilePageHeader title="Profile" />
       
       <div className="px-4 py-4 sm:py-6 md:px-6 lg:px-8 max-w-4xl mx-auto">
         <div className="hidden md:flex items-center mb-6">
