@@ -188,12 +188,13 @@ export function GroupInvite({ open, onOpenChange, groupId, members = [] }: Group
   });
 
   // Show the link view if we have a link to share
-  if (inviteCode && group?.name) {
+  if (inviteCode) {
+    console.log("Showing invite link view with code:", inviteCode);
     return (
       <InviteLinkView
         open={open}
         onOpenChange={onOpenChange}
-        groupName={group.name}
+        groupName={group?.name || "Group"} // Fallback name if group object is not available
         inviteCode={inviteCode}
       />
     );
