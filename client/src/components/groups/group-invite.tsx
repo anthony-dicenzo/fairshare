@@ -64,25 +64,25 @@ export function GroupInvite({ open, onOpenChange, groupId, members }: GroupInvit
     queryKey: ['/api/groups', groupId],
     enabled: !!groupId && open,
     queryFn: async () => {
-      const res = await apiRequest(`/api/groups/${groupId}`);
+      const res = await apiRequest<GroupInfo>(`/api/groups/${groupId}`);
       return res;
     }
   });
 
   // Fetch existing invites when the modal opens
-  const { data: invites, isLoading: isLoadingInvites } = useQuery({
+  const { data: invites, isLoading: isLoadingInvites } = useQuery<any[]>({
     queryKey: ['/api/groups', groupId, 'invites'],
     queryFn: async () => {
-      const res = await apiRequest(`/api/groups/${groupId}/invites`);
+      const res = await apiRequest<any[]>(`/api/groups/${groupId}/invites`);
       return res;
     },
     enabled: !!groupId && open,
   });
 
-  // Generate link mutation
+  // Generate link mutation (only used if no active invites exist)
   const generateLinkMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/groups/${groupId}/invite`, {});
+      const res = await apiRequest<{ inviteCode: string }>("POST", `/api/groups/${groupId}/invite`, {});
       return res;
     },
     onSuccess: (data) => {
@@ -113,7 +113,7 @@ export function GroupInvite({ open, onOpenChange, groupId, members }: GroupInvit
   // Invite user mutation
   const inviteMutation = useMutation({
     mutationFn: async (data: { email: string }) => {
-      const res = await apiRequest("POST", `/api/groups/${groupId}/invite`, data);
+      const res = await apiRequest<{ message?: string }>("POST", `/api/groups/${groupId}/invite`, data);
       return res;
     },
     onSuccess: (data) => {

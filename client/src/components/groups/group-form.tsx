@@ -60,11 +60,18 @@ export function GroupForm({ open, onOpenChange }: GroupFormProps) {
       const res = await apiRequest("POST", "/api/groups", data);
       return res.json();
     },
-    onSuccess: (newGroup) => {
+    onSuccess: async (newGroup) => {
       toast({
         title: "Group created",
         description: `${newGroup.name} has been created successfully.`,
       });
+      
+      // Create a default invite link for the group
+      try {
+        await apiRequest("POST", `/api/groups/${newGroup.id}/invite`, {});
+      } catch (error) {
+        console.error("Failed to create default invite link", error);
+      }
       
       // If there are invitees, invite them
       if (invitees.length > 0) {

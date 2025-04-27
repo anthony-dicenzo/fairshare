@@ -1,9 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Link, Clipboard, Share } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { X } from "lucide-react";
+import { Link, Clipboard, Share, ChevronLeft } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface InviteLinkViewProps {
   open: boolean;
@@ -65,65 +64,70 @@ export function InviteLinkView({ open, onOpenChange, groupName, inviteCode }: In
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="p-0 sm:max-w-[425px] border-none bg-background">
-        <DialogHeader className="p-4 border-b flex items-center justify-between">
-          <DialogTitle className="text-lg font-medium">Invite link</DialogTitle>
+      <DialogContent className="p-0 sm:max-w-[425px] border-none bg-background max-h-screen overflow-auto">
+        {/* Header */}
+        <div className="p-4 border-b flex items-center justify-between">
           <Button 
             variant="ghost" 
             size="icon" 
-            className="h-7 w-7" 
+            className="h-8 w-8 mr-2" 
             onClick={() => onOpenChange(false)}
           >
-            <X className="h-4 w-4" />
+            <ChevronLeft className="h-4 w-4" />
           </Button>
-        </DialogHeader>
+          <h2 className="text-lg font-medium flex-1 text-center">Invite link</h2>
+          <div className="w-8"></div> {/* Spacer for centering */}
+        </div>
         
-        <div className="p-4 space-y-4">
-          <div className="flex items-center justify-center">
+        <div className="p-6 space-y-6">
+          {/* Icon and link */}
+          <div className="flex flex-col items-center space-y-4">
             <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
               <Link className="h-8 w-8 text-green-500" />
             </div>
+            
+            <a 
+              href={inviteLink} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="font-mono text-primary text-sm block text-center break-all hover:underline"
+            >
+              {inviteLink}
+            </a>
           </div>
           
-          <a 
-            href={inviteLink} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="font-mono text-primary text-sm block text-center break-all hover:underline"
-          >
-            {inviteLink}
-          </a>
-          
-          <p className="text-sm text-center mt-2">
+          {/* Description text */}
+          <p className="text-sm text-center">
             Anyone can follow this link to join "{groupName}". 
             Only share it with people you trust.
           </p>
           
-          <div className="space-y-2 pt-2">
+          {/* Action buttons */}
+          <div className="space-y-3 pt-3">
             <Button
               variant="outline"
-              className="w-full justify-start h-10"
+              className="w-full justify-start h-12 text-base"
               onClick={shareLink}
             >
-              <Share className="h-4 w-4 mr-3" />
+              <Share className="h-5 w-5 mr-3 text-gray-500" />
               Share link
             </Button>
             
             <Button
               variant="outline"
-              className="w-full justify-start h-10"
+              className="w-full justify-start h-12 text-base"
               onClick={copyLink}
             >
-              <Clipboard className="h-4 w-4 mr-3" />
+              <Clipboard className="h-5 w-5 mr-3 text-gray-500" />
               Copy link
             </Button>
             
             <Button
               variant="outline"
-              className="w-full justify-start h-10 text-destructive hover:text-destructive"
+              className="w-full justify-start h-12 text-base text-red-500"
               onClick={changeLink}
             >
-              <Link className="h-4 w-4 mr-3" />
+              <Link className="h-5 w-5 mr-3 text-red-500" />
               Change link
             </Button>
           </div>
