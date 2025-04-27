@@ -25,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Users, Plus, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
+import { useLocation } from "wouter";
 
 type GroupFormProps = {
   open: boolean;
@@ -43,6 +44,7 @@ const emailSchema = z.string().email("Invalid email address");
 
 export function GroupForm({ open, onOpenChange }: GroupFormProps) {
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const [email, setEmail] = useState("");
   const [invitees, setInvitees] = useState<string[]>([]);
   const [emailError, setEmailError] = useState("");
@@ -90,12 +92,17 @@ export function GroupForm({ open, onOpenChange }: GroupFormProps) {
         });
       }
       
+      // Navigate to the newly created group
+      navigate(`/group/${newGroup.id}`);
+      
       onOpenChange(false);
       form.reset();
       setInvitees([]);
       
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
+      // Also invalidate the groups with balances query
+      queryClient.invalidateQueries({ queryKey: ["/api/groups", "with-balances"] });
     },
     onError: (error) => {
       toast({
