@@ -238,8 +238,10 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
         title: "Expense updated",
         description: "Your expense has been updated successfully.",
       });
-      onOpenChange(false);
+      // Reset form and close modal
       form.reset();
+      setFormPopulated(false);
+      onOpenChange(false);
       
       // Invalidate all relevant queries
       invalidateQueries();
@@ -265,6 +267,9 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
         title: "Expense deleted",
         description: "Your expense has been deleted successfully.",
       });
+      // Reset the form and close modal
+      form.reset();
+      setFormPopulated(false);
       onOpenChange(false);
       
       // Invalidate all relevant queries
@@ -529,7 +534,7 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
               className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white"
               disabled={!canEdit || updateExpenseMutation.isPending}
             >
-              {updateExpenseMutation.isPending ? "Saving..." : "Save Expense"}
+              {updateExpenseMutation.isPending ? "Saving..." : "Save Changes"}
             </Button>
             
             <Button
