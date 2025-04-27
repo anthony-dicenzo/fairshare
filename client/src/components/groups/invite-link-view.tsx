@@ -15,7 +15,7 @@ export function InviteLinkView({ open, onOpenChange, groupName, inviteCode }: In
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   
-  const inviteLink = `${window.location.origin}/invite/${inviteCode}`;
+  const inviteLink = `https://fairshare.my/invite/${inviteCode}`;
   
   // Copy the invite link to clipboard
   const copyLink = () => {
