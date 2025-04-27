@@ -251,15 +251,7 @@ export default function GroupPage() {
               <span className="hidden sm:inline">Invite Members</span>
               <span className="sm:hidden">Invite</span>
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setShowExpenseModal(true)}
-              className="sm:hidden bg-[#E3976E] hover:bg-[#D38761] text-white border-[#E3976E] rounded-md"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add
-            </Button>
+
             <Button 
               variant="ghost" 
               size="sm"
@@ -424,10 +416,10 @@ export default function GroupPage() {
         <Button 
           size="icon" 
           variant="outline" 
-          className="h-14 w-14 rounded-full shadow-lg bg-[#E3976E] hover:bg-[#D38761] border-[#E3976E] text-white"
+          className="h-14 w-14 rounded-full shadow-lg border-fairshare-secondary"
           onClick={() => setShowPaymentModal(true)}
         >
-          <CreditCard className="h-6 w-6" />
+          <CreditCard className="h-6 w-6 text-fairshare-dark" />
         </Button>
       </div>
 
