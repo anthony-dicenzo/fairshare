@@ -163,9 +163,10 @@ export default function AuthPage() {
                           <FormItem>
                             <FormControl>
                               <Input 
-                                placeholder="Enter your username or email" 
+                                placeholder="Enter your email" 
                                 className="h-12 rounded-xl border-fairshare-dark/20 bg-white" 
-                                autoComplete="username"
+                                autoComplete="email"
+                                type="email"
                                 {...field} 
                               />
                             </FormControl>
@@ -424,9 +425,9 @@ export default function AuthPage() {
                         name="username"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Username</FormLabel>
+                            <FormLabel>Email or Username</FormLabel>
                             <FormControl>
-                              <Input placeholder="Username" {...field} />
+                              <Input placeholder="Email or username" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
