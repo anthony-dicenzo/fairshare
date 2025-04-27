@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { initializeBalanceCache } from "./init-balance-cache";
 
 const app = express();
 app.use(express.json());
@@ -66,5 +67,13 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    
+    // Initialize the balance cache in the background
+    // This won't block server startup but ensures balances are up-to-date
+    setTimeout(() => {
+      initializeBalanceCache().catch(err => {
+        console.error("Error during balance cache initialization:", err);
+      });
+    }, 5000); // Wait 5 seconds after server startup to begin initialization
   });
 })();
