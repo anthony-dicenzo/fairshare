@@ -306,7 +306,9 @@ export default function GroupPage() {
                   </div>
                 ) : (
                   <div className="divide-y">
-                    {activity.map((item: any) => (
+                    {activity
+                      .filter((item: any) => item.actionType !== "create_invite")
+                      .map((item: any) => (
                       <div key={item?.id || 'unknown'} className="p-4 hover:bg-muted transition-colors">
                         <div className="flex">
                           <div className="flex-shrink-0 mr-4">
