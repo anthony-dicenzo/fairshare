@@ -45,8 +45,10 @@ export function ActivityFeed() {
     return <ActivityFeedSkeleton />;
   }
 
-  // Filter out "create_invite" activities
-  const filteredActivities = activities?.filter(a => a.actionType !== "create_invite") || [];
+  // Filter out all "create_invite" and "create_invite_link" activities
+  const filteredActivities = activities?.filter(a => 
+    !a.actionType.includes("create_invite")
+  ) || [];
   
   if (!filteredActivities.length) {
     return (
