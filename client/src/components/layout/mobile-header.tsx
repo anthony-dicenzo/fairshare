@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 
 export function MobileHeader() {
   return (
-    <header className="sticky top-0 z-50 flex h-16 w-full items-center justify-between border-b bg-[#2B3A55] text-white px-3 md:hidden">
+    <header className="sticky top-0 z-50 flex h-16 w-full items-center justify-between border-b bg-fairshare-cream text-fairshare-dark px-3 md:hidden">
       <div className="flex items-center gap-2">
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-9 w-9 text-white hover:bg-[#2B3A55]/80" aria-label="Open menu">
+            <Button variant="ghost" size="icon" className="h-9 w-9 text-fairshare-dark hover:bg-fairshare-cream/80" aria-label="Open menu">
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
@@ -18,7 +18,7 @@ export function MobileHeader() {
             <Sidebar />
           </SheetContent>
         </Sheet>
-        <span className="font-bold text-xl text-white">FairShare</span>
+        <span className="font-bold text-xl text-fairshare-dark">FairShare</span>
       </div>
       <UserDropdown />
     </header>

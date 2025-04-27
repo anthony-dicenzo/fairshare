@@ -4,16 +4,16 @@
 
 :root {
       /* Fairshare color system updated */
-      --background: 0 0% 98%; /* Mist White #FAFAFA */
+      --background: 42 21% 90%; /* Cream color #EDE9DE from image */
       --foreground: 222 34% 25%; /* Deep Night Blue #2B3A55 */
-      --muted: 0 0% 96%;
+      --muted: 42 21% 93%;
       --muted-foreground: 25 5.3% 44.7%;
-      --popover: 0 0% 100%;
+      --popover: 42 21% 90%; /* Cream color #EDE9DE from image */
       --popover-foreground: 222 34% 25%; /* Deep Night Blue #2B3A55 */
       --card: 0 0% 100%; /* Pure white for cards */
       --card-foreground: 222 34% 25%; /* Deep Night Blue #2B3A55 */
-      --border: 20 5.9% 90%;
-      --input: 20 5.9% 90%;
+      --border: 42 21% 85%; /* Slightly darker cream for borders */
+      --input: 42 21% 85%; /* Slightly darker cream for borders */
       --primary: 23 64% 66%; /* Soft Mango Orange #E3976E */
       --primary-foreground: 0 0% 100%; /* White text on primary */
       --secondary: 210 100% 82%; /* Sky Mist Blue #A3D5FF */
