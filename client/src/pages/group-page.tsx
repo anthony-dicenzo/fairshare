@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, Users, Plus, PlusCircle, CreditCard, RefreshCw, Settings } from "lucide-react";
 import { ExpenseForm } from "@/components/expenses/expense-form";
+import { ExpenseEdit } from "@/components/expenses/expense-edit";
 import { PaymentForm } from "@/components/expenses/payment-form";
 import { GroupDetail } from "@/components/groups/group-detail";
 import { GroupSettings } from "@/components/groups/group-settings";
@@ -17,6 +18,7 @@ import { GroupInvite } from "@/components/groups/group-invite";
 import { ActionButtons } from "@/components/dashboard/action-buttons";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function GroupPage() {
   // Get the group ID from the URL parameters
@@ -35,9 +37,14 @@ export default function GroupPage() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showExpenseEditModal, setShowExpenseEditModal] = useState(false);
+  const [selectedExpenseId, setSelectedExpenseId] = useState<number | null>(null);
   
   // Use refs to prevent duplicate db operations
   const addedMembersRef = useRef(false);
+  
+  // User authentication data
+  const { user } = useAuth();
 
   // Define the Group type with expected fields to help TypeScript
   interface GroupData {
@@ -315,27 +322,44 @@ export default function GroupPage() {
                 </div>
               ) : (
                 <div className="bg-white dark:bg-gray-800 rounded-lg border shadow-sm divide-y">
-                  {Array.isArray(expenses) && expenses.map((expense: any) => (
-                    <div key={expense?.id || 'unknown'} className="p-4 hover:bg-muted transition-colors">
-                      <div className="flex justify-between">
-                        <div>
-                          <h3 className="font-medium">{expense?.title || 'Untitled Expense'}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            Added on {expense?.date ? new Date(expense.date).toLocaleDateString() : 'Unknown date'}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium">
-                            ${expense?.totalAmount ? parseFloat(expense.totalAmount.toString()).toFixed(2) : '0.00'}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Paid by {Array.isArray(members) && 
-                              members.find((m: any) => m?.userId === expense?.paidBy)?.user?.name || 'Unknown'}
-                          </p>
+                  {Array.isArray(expenses) && expenses.map((expense: any) => {
+                    // Check if user is the one who paid this expense (only the payer can edit)
+                    const isPayer = user?.id === expense?.paidBy;
+                    
+                    return (
+                      <div 
+                        key={expense?.id || 'unknown'} 
+                        className={`p-4 hover:bg-muted transition-colors ${isPayer ? 'cursor-pointer' : ''}`}
+                        onClick={() => {
+                          if (isPayer && expense?.id) {
+                            setSelectedExpenseId(expense.id);
+                            setShowExpenseEditModal(true);
+                          }
+                        }}
+                      >
+                        <div className="flex justify-between">
+                          <div>
+                            <h3 className="font-medium">
+                              {expense?.title || 'Untitled Expense'}
+                              {isPayer && <span className="ml-2 text-xs text-muted-foreground">(Click to edit)</span>}
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              Added on {expense?.date ? new Date(expense.date).toLocaleDateString() : 'Unknown date'}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-medium">
+                              ${expense?.totalAmount ? parseFloat(expense.totalAmount.toString()).toFixed(2) : '0.00'}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Paid by {Array.isArray(members) && 
+                                members.find((m: any) => m?.userId === expense?.paidBy)?.user?.name || 'Unknown'}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </TabsContent>
@@ -448,6 +472,15 @@ export default function GroupPage() {
         members={Array.isArray(members) ? members : []}
         createdBy={group?.createdBy}
       />
+      {/* Expense Edit Modal */}
+      {selectedExpenseId && (
+        <ExpenseEdit
+          open={showExpenseEditModal}
+          onOpenChange={setShowExpenseEditModal}
+          expenseId={selectedExpenseId}
+          groupId={groupId}
+        />
+      )}
     </MainLayout>
   );
 }

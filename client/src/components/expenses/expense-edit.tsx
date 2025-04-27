@@ -113,15 +113,16 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
   
   // Initialize selectedUserIds with participants when expense data is loaded
   useEffect(() => {
-    if (expense && groupMembers.length > 0 && !formPopulated) {
+    if (expense && Array.isArray(groupMembers) && groupMembers.length > 0 && !formPopulated) {
       try {
         if (typeof expense === 'object') {
           // Update all form fields
-          const title = expense.title ? String(expense.title) : '';
-          const amount = expense.totalAmount ? String(expense.totalAmount) : '0';
-          const payer = expense.paidBy ? String(expense.paidBy) : user?.id?.toString() || '';
-          const expenseDate = expense.date ? String(expense.date) : formatISO(new Date(), { representation: "date" });
-          const notes = expense.notes ? String(expense.notes) : '';
+          const expenseObj = expense as any;
+          const title = expenseObj.title ? String(expenseObj.title) : '';
+          const amount = expenseObj.totalAmount ? String(expenseObj.totalAmount) : '0';
+          const payer = expenseObj.paidBy ? String(expenseObj.paidBy) : user?.id?.toString() || '';
+          const expenseDate = expenseObj.date ? String(expenseObj.date) : formatISO(new Date(), { representation: "date" });
+          const notes = expenseObj.notes ? String(expenseObj.notes) : '';
           const splitMethod = "equal"; // Default to equal - we'll determine actual split later
           
           // Set selected user IDs from participants
@@ -221,6 +222,7 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
       paidBy: number;
       date: string;
       notes?: string;
+      participants: { userId: number; amountOwed: number }[];
     }) => {
       console.log("Sending update with data:", data);
       const res = await apiRequest("PATCH", `/api/expenses/${expenseId}`, data);
@@ -298,12 +300,62 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
   };
 
   const handleSubmit = form.handleSubmit((values) => {
+    // Calculate split amounts based on method
+    const totalAmount = parseFloat(values.totalAmount);
+    
+    // Ensure we have at least one participant (even if it's just the current user)
+    let participantIds = [...selectedUserIds];
+    
+    // If no users are selected, add the current user as the only participant
+    if (participantIds.length === 0 && user?.id) {
+      participantIds = [user.id];
+    }
+    
+    const splitMethod = values.splitMethod;
+    
+    // Calculate amount owed based on split method
+    const participants = participantIds.map((userId) => {
+      let amountOwed = 0;
+      
+      if (splitMethod === "equal") {
+        // Equal split
+        amountOwed = totalAmount / participantIds.length;
+      } 
+      else if (splitMethod === "unequal") {
+        // Unequal split - use custom amounts if available
+        if (customAmounts[userId]) {
+          amountOwed = customAmounts[userId];
+        } else {
+          // Fall back to equal split if no custom amount
+          amountOwed = totalAmount / participantIds.length;
+        }
+      } 
+      else if (splitMethod === "percentage") {
+        // Percentage split - use custom percentages if available
+        if (customPercentages[userId]) {
+          amountOwed = (totalAmount * customPercentages[userId]) / 100;
+        } else {
+          // Fall back to equal percentage split
+          amountOwed = totalAmount / participantIds.length;
+        }
+      }
+      
+      return {
+        userId,
+        amountOwed,
+      };
+    });
+
+    // The date is already in the correct format from the input field
+    const formattedDate = values.date;
+
     updateExpenseMutation.mutate({
       title: values.title,
-      totalAmount: parseFloat(values.totalAmount),
+      totalAmount,
       paidBy: parseInt(values.paidBy),
-      date: values.date,
+      date: formattedDate,
       notes: values.notes,
+      participants,
     });
   });
 
@@ -432,6 +484,136 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
                   </FormItem>
                 )}
               />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="splitMethod"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs font-medium">Split:</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      value={field.value}
+                      className="flex space-x-4"
+                    >
+                      <div className="flex items-center space-x-1">
+                        <RadioGroupItem value="equal" className="h-3.5 w-3.5" id="equal-split" />
+                        <FormLabel htmlFor="equal-split" className="text-xs cursor-pointer font-normal">Equal</FormLabel>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <RadioGroupItem value="unequal" className="h-3.5 w-3.5" id="unequal-split" />
+                        <FormLabel htmlFor="unequal-split" className="text-xs cursor-pointer font-normal">Unequal</FormLabel>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <RadioGroupItem value="percentage" className="h-3.5 w-3.5" id="percentage-split" />
+                        <FormLabel htmlFor="percentage-split" className="text-xs cursor-pointer font-normal">Percentage</FormLabel>
+                      </div>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage className="text-xs" />
+                </FormItem>
+              )}
+            />
+
+            {/* Display members with checkboxes */}
+            <div className="bg-muted/30 p-3 rounded-md">
+              <h4 className="text-xs font-medium mb-2">Split between:</h4>
+              <div className="space-y-2">
+                {Array.isArray(groupMembers) && groupMembers.map((member: any) => {
+                  const userId = member?.userId;
+                  const isSelected = selectedUserIds.includes(userId);
+                  const name = member?.user?.name || "Unknown User";
+                  
+                  // Calculate what to display based on split method
+                  let secondaryText = "";
+                  if (form.watch("splitMethod") === "equal" && isSelected && selectedUserIds.length > 0) {
+                    const amount = parseFloat(form.watch("totalAmount") || "0") / selectedUserIds.length;
+                    secondaryText = `$${amount.toFixed(2)}`;
+                  } else if (form.watch("splitMethod") === "unequal" && isSelected) {
+                    const amount = customAmounts[userId] || 0;
+                    secondaryText = `$${amount.toFixed(2)}`;
+                  } else if (form.watch("splitMethod") === "percentage" && isSelected) {
+                    const percentage = customPercentages[userId] || 0;
+                    secondaryText = `${percentage.toFixed(1)}%`;
+                  }
+                  
+                  return (
+                    <div key={userId} className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id={`user-${userId}`}
+                          checked={isSelected}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedUserIds(prev => [...prev, userId]);
+                            } else {
+                              setSelectedUserIds(prev => prev.filter(id => id !== userId));
+                            }
+                          }}
+                          className="h-4 w-4"
+                        />
+                        <label htmlFor={`user-${userId}`} className="text-xs cursor-pointer">{name}</label>
+                      </div>
+                      
+                      {isSelected && form.watch("splitMethod") !== "equal" && (
+                        <div className="flex items-center">
+                          {form.watch("splitMethod") === "unequal" && (
+                            <div className="relative">
+                              <span className="absolute left-2 top-1.5 text-xs">$</span>
+                              <Input 
+                                type="number"
+                                value={customAmounts[userId] || 0}
+                                onChange={(e) => {
+                                  const newAmount = parseFloat(e.target.value);
+                                  if (!isNaN(newAmount)) {
+                                    setCustomAmounts(prev => ({
+                                      ...prev,
+                                      [userId]: newAmount
+                                    }));
+                                  }
+                                }}
+                                className="w-20 h-7 text-xs pl-6"
+                                step="0.01"
+                                min="0"
+                              />
+                            </div>
+                          )}
+                          
+                          {form.watch("splitMethod") === "percentage" && (
+                            <div className="relative">
+                              <Input 
+                                type="number"
+                                value={customPercentages[userId] || 0}
+                                onChange={(e) => {
+                                  const newPercentage = parseFloat(e.target.value);
+                                  if (!isNaN(newPercentage)) {
+                                    setCustomPercentages(prev => ({
+                                      ...prev,
+                                      [userId]: newPercentage
+                                    }));
+                                  }
+                                }}
+                                className="w-16 h-7 text-xs pr-6"
+                                step="0.1"
+                                min="0"
+                                max="100"
+                              />
+                              <span className="absolute right-2 top-1.5 text-xs">%</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {isSelected && form.watch("splitMethod") === "equal" && (
+                        <span className="text-xs text-muted-foreground">{secondaryText}</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="mt-3">
