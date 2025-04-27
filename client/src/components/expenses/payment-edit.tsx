@@ -183,9 +183,11 @@ export function PaymentEdit({ open, onOpenChange, paymentId, groupId }: PaymentE
     queryClient.invalidateQueries({ queryKey: ["/api/balances"] });
     queryClient.invalidateQueries({ queryKey: ["/api/activity"] });
     queryClient.invalidateQueries({ queryKey: ["/api/activity", "payments"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/groups"] }); // Invalidate the groups list to update balances
     
     // Group specific queries
     const groupIdStr = groupId.toString();
+    queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}`] }); // Invalidate group details
     queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/payments`] });
     queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/balances`] });
     queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/activity`] });

@@ -196,9 +196,11 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
     queryClient.invalidateQueries({ queryKey: ["/api/balances"] });
     queryClient.invalidateQueries({ queryKey: ["/api/activity"] });
     queryClient.invalidateQueries({ queryKey: ["/api/activity", "expenses"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/groups"] }); // Invalidate the groups list
     
     // Group specific queries
     const groupIdStr = groupId.toString();
+    queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}`] }); // Invalidate group details
     queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/expenses`] });
     queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/balances`] });
     queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/activity`] });
