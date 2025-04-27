@@ -224,27 +224,41 @@ export default function GroupPage() {
   return (
     <MainLayout>
       <div className="px-4 py-6 md:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-          <div className="flex items-center mb-4 md:mb-0">
-            <Button variant="ghost" size="sm" asChild className="mr-2">
+        <div className="flex flex-col mb-6">
+          <div className="mb-4">
+            <h1 className="text-2xl font-bold">
+              {group ? group.name : 'Loading group...'}
+            </h1>
+          </div>
+          <div className="flex items-center gap-2 overflow-x-auto">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              asChild
+            >
               <Link href="/groups">
                 <ChevronLeft className="h-4 w-4 mr-1" />
                 Back to Groups
               </Link>
             </Button>
-            <h1 className="text-2xl font-bold">
-              {group ? group.name : 'Loading group...'}
-            </h1>
-          </div>
-          <div className="flex items-center gap-2">
             <Button 
               variant="outline" 
               size="sm"
               onClick={() => setShowInviteModal(true)}
+              className="bg-amber-100 hover:bg-amber-200 text-amber-900 border-amber-300"
             >
               <Users className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Invite Members</span>
               <span className="sm:hidden">Invite</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowExpenseModal(true)}
+              className="sm:hidden"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add
             </Button>
             <Button 
               variant="ghost" 
@@ -402,15 +416,8 @@ export default function GroupPage() {
         </div>
       </div>
 
-      {/* Mobile floating action buttons */}
-      <div className="fixed bottom-20 right-4 flex flex-col gap-3 sm:hidden">
-        <Button 
-          size="icon" 
-          className="h-14 w-14 rounded-full shadow-lg bg-fairshare-primary hover:bg-fairshare-primary-dark"
-          onClick={() => setShowExpenseModal(true)}
-        >
-          <PlusCircle className="h-6 w-6" />
-        </Button>
+      {/* Mobile action button */}
+      <div className="fixed bottom-20 right-4 sm:hidden">
         <Button 
           size="icon" 
           variant="outline" 
