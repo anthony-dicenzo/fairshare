@@ -8,7 +8,10 @@ import {
   Payment, InsertPayment,
   ActivityLogEntry, InsertActivityLogEntry,
   GroupInvite, InsertGroupInvite,
-  users, groups, groupMembers, expenses, expenseParticipants, payments, activityLog, groupInvites
+  UserBalance, InsertUserBalance,
+  UserBalanceBetweenUsers, InsertUserBalanceBetweenUsers,
+  users, groups, groupMembers, expenses, expenseParticipants, payments, 
+  activityLog, groupInvites, userBalances, userBalancesBetweenUsers
 } from "@shared/schema";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
@@ -69,7 +72,7 @@ export interface IStorage {
     payment?: Payment 
   })[]>;
   
-  // Balance calculations
+  // Balance calculations - original methods (kept for backward compatibility)
   getUserBalanceInGroup(userId: number, groupId: number): Promise<number>;
   getUserTotalBalance(userId: number): Promise<{
     totalOwed: number;
@@ -84,6 +87,30 @@ export interface IStorage {
     balance: number;
   }[]>;
   
+  // New cached balance operations
+  getUserCachedBalance(userId: number, groupId: number): Promise<UserBalance | undefined>;
+  saveUserBalance(balance: InsertUserBalance): Promise<UserBalance>;
+  updateUserBalance(userId: number, groupId: number, balanceAmount: number | string): Promise<UserBalance>;
+  updateAllBalancesInGroup(groupId: number): Promise<boolean>;
+  getCachedGroupBalances(groupId: number): Promise<{
+    userId: number;
+    user: User;
+    balance: number;
+  }[]>;
+  getUserBalancesBetweenUsers(groupId: number, userId: number): Promise<{
+    otherUserId: number;
+    otherUser: User;
+    amount: number;
+    direction: 'owes' | 'owed';
+  }[]>;
+  getUserCachedTotalBalance(userId: number): Promise<{
+    totalOwed: number;
+    totalOwes: number;
+    netBalance: number;
+    owedByUsers: { user: User; amount: number }[];
+    owesToUsers: { user: User; amount: number }[];
+  }>;
+  
   // Session store
   sessionStore: any; // Using 'any' for the session store type
 }
@@ -96,6 +123,376 @@ export class DatabaseStorage implements IStorage {
       pool,
       createTableIfMissing: true
     });
+  }
+
+  // Helper function to ensure a user balance record exists
+  private async ensureUserBalanceExists(userId: number, groupId: number): Promise<UserBalance> {
+    const existingBalance = await this.getUserCachedBalance(userId, groupId);
+    
+    if (existingBalance) {
+      return existingBalance;
+    }
+    
+    // If it doesn't exist, create it with a balance of 0
+    return await this.saveUserBalance({
+      userId,
+      groupId,
+      balanceAmount: "0"
+    });
+  }
+  
+  // Get user balance from the cache
+  async getUserCachedBalance(userId: number, groupId: number): Promise<UserBalance | undefined> {
+    const result = await db
+      .select()
+      .from(userBalances)
+      .where(
+        and(
+          eq(userBalances.userId, userId),
+          eq(userBalances.groupId, groupId)
+        )
+      );
+    
+    return result[0];
+  }
+  
+  // Save a new user balance
+  async saveUserBalance(balance: InsertUserBalance): Promise<UserBalance> {
+    // First check if this balance already exists
+    const existingBalance = await this.getUserCachedBalance(balance.userId, balance.groupId);
+    
+    if (existingBalance) {
+      // Update the existing balance
+      return this.updateUserBalance(balance.userId, balance.groupId, balance.balanceAmount);
+    }
+    
+    // Create a new balance record
+    const result = await db
+      .insert(userBalances)
+      .values({
+        ...balance,
+        lastUpdated: new Date()
+      })
+      .returning();
+    
+    return result[0];
+  }
+  
+  // Update a user's balance
+  async updateUserBalance(userId: number, groupId: number, balanceAmount: number | string): Promise<UserBalance> {
+    const stringBalance = typeof balanceAmount === 'number' ? balanceAmount.toString() : balanceAmount;
+    
+    const result = await db
+      .update(userBalances)
+      .set({ 
+        balanceAmount: stringBalance,
+        lastUpdated: new Date()
+      })
+      .where(
+        and(
+          eq(userBalances.userId, userId),
+          eq(userBalances.groupId, groupId)
+        )
+      )
+      .returning();
+    
+    if (result.length === 0) {
+      // If no record was updated, create a new one
+      return this.saveUserBalance({
+        userId,
+        groupId,
+        balanceAmount: stringBalance
+      });
+    }
+    
+    return result[0];
+  }
+  
+  // Update all user balances in a group
+  async updateAllBalancesInGroup(groupId: number): Promise<boolean> {
+    try {
+      console.log(`Starting recalculation of all balances in group ${groupId}`);
+      
+      // Get all members in the group
+      const members = await this.getGroupMembers(groupId);
+      if (members.length === 0) {
+        console.log(`No members found in group ${groupId}`);
+        return false;
+      }
+      
+      // Get all expenses in the group
+      const expenses = await this.getExpensesByGroupId(groupId);
+      
+      // Get all expense participants
+      const expenseParticipantsPromises = expenses.map(expense => 
+        this.getExpenseParticipants(expense.id)
+      );
+      const expenseParticipantsArrays = await Promise.all(expenseParticipantsPromises);
+      const expenseParticipants = expenseParticipantsArrays.flat();
+      
+      // Get all payments in the group
+      const payments = await this.getPaymentsByGroupId(groupId);
+      
+      // Calculate balance for each member
+      for (const member of members) {
+        const userId = member.userId;
+        
+        // Calculate balance using existing method (this uses the same computation logic as before)
+        const balance = await this.getUserBalanceInGroup(userId, groupId);
+        
+        // Update or create balance in the cache
+        await this.updateUserBalance(userId, groupId, balance);
+        
+        console.log(`Updated balance for user ${userId} in group ${groupId}: ${balance}`);
+      }
+      
+      // Update balances between users
+      await this.updateUserBalancesBetweenUsers(groupId);
+      
+      return true;
+    } catch (error) {
+      console.error(`Error updating all balances in group ${groupId}:`, error);
+      return false;
+    }
+  }
+  
+  // Get cached balances for all members in a group
+  async getCachedGroupBalances(groupId: number): Promise<{
+    userId: number;
+    user: User;
+    balance: number;
+  }[]> {
+    // Get all members in the group with their users
+    const members = await this.getGroupMembers(groupId);
+    
+    // Get all cached balances
+    const balances = await db
+      .select()
+      .from(userBalances)
+      .where(eq(userBalances.groupId, groupId));
+    
+    // Map to required output format
+    return members.map(member => {
+      const cachedBalance = balances.find(b => b.userId === member.userId);
+      return {
+        userId: member.userId,
+        user: member.user,
+        balance: cachedBalance ? Number(cachedBalance.balanceAmount) : 0
+      };
+    });
+  }
+  
+  // Update the user-to-user balances in a group
+  private async updateUserBalancesBetweenUsers(groupId: number): Promise<void> {
+    // Get all members in the group
+    const members = await this.getGroupMembers(groupId);
+    
+    // For each pair of users, calculate how much they owe each other
+    for (let i = 0; i < members.length; i++) {
+      for (let j = i + 1; j < members.length; j++) {
+        const userA = members[i].userId;
+        const userB = members[j].userId;
+        
+        // Calculate how much userA owes userB directly
+        const balanceAtoB = await this.calculateDirectBalance(groupId, userA, userB);
+        
+        // Update or create the balance record for A to B
+        await db
+          .insert(userBalancesBetweenUsers)
+          .values({
+            groupId,
+            fromUserId: userA,
+            toUserId: userB,
+            balanceAmount: balanceAtoB.toString(),
+            lastUpdated: new Date()
+          })
+          .onConflictDoUpdate({
+            target: [
+              userBalancesBetweenUsers.groupId,
+              userBalancesBetweenUsers.fromUserId,
+              userBalancesBetweenUsers.toUserId
+            ],
+            set: {
+              balanceAmount: balanceAtoB.toString(),
+              lastUpdated: new Date()
+            }
+          });
+        
+        // The inverse balance (B to A) is just the negative of A to B
+        await db
+          .insert(userBalancesBetweenUsers)
+          .values({
+            groupId,
+            fromUserId: userB,
+            toUserId: userA,
+            balanceAmount: (-balanceAtoB).toString(),
+            lastUpdated: new Date()
+          })
+          .onConflictDoUpdate({
+            target: [
+              userBalancesBetweenUsers.groupId,
+              userBalancesBetweenUsers.fromUserId,
+              userBalancesBetweenUsers.toUserId
+            ],
+            set: {
+              balanceAmount: (-balanceAtoB).toString(),
+              lastUpdated: new Date()
+            }
+          });
+      }
+    }
+  }
+  
+  // Helper method to calculate how much one user directly owes another in a group
+  private async calculateDirectBalance(groupId: number, fromUserId: number, toUserId: number): Promise<number> {
+    // Get all expenses in the group
+    const expenses = await this.getExpensesByGroupId(groupId);
+    
+    let balance = 0;
+    
+    // Calculate from expenses
+    for (const expense of expenses) {
+      // If toUserId paid for the expense
+      if (expense.paidBy === toUserId) {
+        // Get how much fromUserId owes for this expense
+        const participants = await this.getExpenseParticipants(expense.id);
+        const fromUserParticipant = participants.find(p => p.userId === fromUserId);
+        
+        if (fromUserParticipant) {
+          balance += Number(fromUserParticipant.amountOwed);
+        }
+      }
+      // If fromUserId paid for the expense
+      else if (expense.paidBy === fromUserId) {
+        // Get how much toUserId owes for this expense
+        const participants = await this.getExpenseParticipants(expense.id);
+        const toUserParticipant = participants.find(p => p.userId === toUserId);
+        
+        if (toUserParticipant) {
+          balance -= Number(toUserParticipant.amountOwed);
+        }
+      }
+    }
+    
+    // Calculate from payments
+    const payments = await this.getPaymentsByGroupId(groupId);
+    for (const payment of payments) {
+      // If fromUserId paid toUserId
+      if (payment.paidBy === fromUserId && payment.paidTo === toUserId) {
+        balance -= Number(payment.amount);
+      }
+      // If toUserId paid fromUserId
+      else if (payment.paidBy === toUserId && payment.paidTo === fromUserId) {
+        balance += Number(payment.amount);
+      }
+    }
+    
+    return balance;
+  }
+  
+  // Get balances between a user and all other users in a group
+  async getUserBalancesBetweenUsers(groupId: number, userId: number): Promise<{
+    otherUserId: number;
+    otherUser: User;
+    amount: number;
+    direction: 'owes' | 'owed';
+  }[]> {
+    // Get all balances where this user is involved
+    const balances = await db
+      .select()
+      .from(userBalancesBetweenUsers)
+      .where(
+        and(
+          eq(userBalancesBetweenUsers.groupId, groupId),
+          eq(userBalancesBetweenUsers.fromUserId, userId)
+        )
+      );
+    
+    // Get all users for reference
+    const otherUserIds = balances.map(b => b.toUserId);
+    const otherUsers = await Promise.all(
+      otherUserIds.map(id => this.getUser(id))
+    );
+    
+    // Map to the required format
+    return balances.map(balance => {
+      const amount = Math.abs(Number(balance.balanceAmount));
+      const direction = Number(balance.balanceAmount) > 0 ? 'owes' : 'owed';
+      const otherUser = otherUsers.find(u => u?.id === balance.toUserId);
+      
+      return {
+        otherUserId: balance.toUserId,
+        otherUser: otherUser!,
+        amount,
+        direction
+      };
+    }).filter(b => b.amount > 0); // Only return non-zero balances
+  }
+  
+  // Get a user's total balance across all groups from the cache
+  async getUserCachedTotalBalance(userId: number): Promise<{
+    totalOwed: number;
+    totalOwes: number;
+    netBalance: number;
+    owedByUsers: { user: User; amount: number }[];
+    owesToUsers: { user: User; amount: number }[];
+  }> {
+    // Get all user's balances across groups
+    const balances = await db
+      .select()
+      .from(userBalances)
+      .where(eq(userBalances.userId, userId));
+    
+    // Get all between-user balances
+    const betweenUserBalances = await db
+      .select()
+      .from(userBalancesBetweenUsers)
+      .where(eq(userBalancesBetweenUsers.fromUserId, userId));
+    
+    // Get all relevant users
+    const otherUserIds = [...new Set(betweenUserBalances.map(b => b.toUserId))];
+    const otherUsers = await Promise.all(
+      otherUserIds.map(id => this.getUser(id))
+    );
+    
+    // Calculate totals
+    let totalOwed = 0;
+    let totalOwes = 0;
+    const owedByUsers: { user: User; amount: number }[] = [];
+    const owesToUsers: { user: User; amount: number }[] = [];
+    
+    // Process all between-user balances
+    for (const balance of betweenUserBalances) {
+      const otherUser = otherUsers.find(u => u?.id === balance.toUserId);
+      if (!otherUser) continue;
+      
+      const amount = Math.abs(Number(balance.balanceAmount));
+      if (amount === 0) continue;
+      
+      if (Number(balance.balanceAmount) > 0) {
+        // User owes other user
+        totalOwes += amount;
+        owesToUsers.push({
+          user: otherUser,
+          amount
+        });
+      } else {
+        // Other user owes this user
+        totalOwed += amount;
+        owedByUsers.push({
+          user: otherUser,
+          amount
+        });
+      }
+    }
+    
+    return {
+      totalOwed,
+      totalOwes,
+      netBalance: totalOwed - totalOwes,
+      owedByUsers,
+      owesToUsers
+    };
   }
   
   // Helper method to generate a unique invite code

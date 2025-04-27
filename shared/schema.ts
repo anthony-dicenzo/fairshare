@@ -161,6 +161,24 @@ export const insertGroupInviteSchema = createInsertSchema(groupInvites).omit({
   inviteCode: true // Auto-generated
 });
 
+export const insertUserBalanceSchema = createInsertSchema(userBalances, {
+  balanceAmount: z.union([z.string(), z.number()]).transform(val => 
+    typeof val === 'string' ? val : val.toString()
+  )
+}).omit({
+  id: true,
+  lastUpdated: true
+});
+
+export const insertUserBalanceBetweenUsersSchema = createInsertSchema(userBalancesBetweenUsers, {
+  balanceAmount: z.union([z.string(), z.number()]).transform(val => 
+    typeof val === 'string' ? val : val.toString()
+  )
+}).omit({
+  id: true,
+  lastUpdated: true
+});
+
 // Login schema
 export const loginUserSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -184,4 +202,8 @@ export type ActivityLogEntry = typeof activityLog.$inferSelect;
 export type InsertActivityLogEntry = z.infer<typeof insertActivityLogSchema>;
 export type GroupInvite = typeof groupInvites.$inferSelect;
 export type InsertGroupInvite = z.infer<typeof insertGroupInviteSchema>;
+export type UserBalance = typeof userBalances.$inferSelect;
+export type InsertUserBalance = z.infer<typeof insertUserBalanceSchema>;
+export type UserBalanceBetweenUsers = typeof userBalancesBetweenUsers.$inferSelect;
+export type InsertUserBalanceBetweenUsers = z.infer<typeof insertUserBalanceBetweenUsersSchema>;
 export type LoginUser = z.infer<typeof loginUserSchema>;
