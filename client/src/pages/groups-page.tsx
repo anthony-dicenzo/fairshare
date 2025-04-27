@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 // Define types for enhanced group data
-interface EnhancedGroup extends Group {
+type EnhancedGroup = Group & {
   memberCount?: number;
   balance?: number;
 }
@@ -48,14 +48,20 @@ export default function GroupsPage() {
   // Track if the group details have been loaded
   const [detailsLoaded, setDetailsLoaded] = useState(false);
 
+  // Fetch user data
+  const { data: userData } = useQuery<{ id: number; username: string; name: string }>({
+    queryKey: ["/api/user"]
+  });
+  
   // Fetch group details when groups data is available
   useEffect(() => {
-    if (!groups || groups.length === 0 || detailsLoaded) return;
+    if (!groups || groups.length === 0 || detailsLoaded || !userData) return;
     
     // Main function to fetch and enhance groups with details
     async function fetchGroupDetails() {
       try {
         console.log("Fetching member counts for groups");
+        console.log("Current user data:", userData);
         
         // Create enhanced groups with details
         const groupsWithDetails = await Promise.all(
@@ -72,10 +78,11 @@ export default function GroupsPage() {
               }
               
               const balanceData = await balancesResponse.json();
+              console.log(`Balances for group ${group.id}:`, balanceData);
               
               // Find current user's balance in this group
               const userBalance = Array.isArray(balanceData) ? 
-                balanceData.find((b: any) => b.user.id === (window as any).currentUser?.id) : null;
+                balanceData.find((b: any) => b.user.id === userData?.id) : null;
               
               const balance = userBalance ? userBalance.balance : 0;
               
@@ -110,19 +117,21 @@ export default function GroupsPage() {
     }
     
     fetchGroupDetails();
-  }, [groups, detailsLoaded]);
+  }, [groups, detailsLoaded, userData]);
   
   // Get the actual groups to display with balance info
-  const displayGroups = enhancedGroups.length > 0 ? enhancedGroups : (groups || []);
+  const displayGroups = enhancedGroups.length > 0 
+    ? enhancedGroups 
+    : (groups || []).map(g => ({ ...g, balance: 0, memberCount: 0 })) as EnhancedGroup[];
   
   // Filter out settled groups if needed and apply search
-  const filteredGroups = displayGroups.filter(group => {
+  const filteredGroups = displayGroups.filter((group: EnhancedGroup) => {
     // Apply search filter if search term exists
     const matchesSearch = searchTerm === "" || 
       group.name.toLowerCase().includes(searchTerm.toLowerCase());
     
     // Filter by settled status if showing only active groups
-    const isSettled = group.balance === 0 || Math.abs(group.balance || 0) < 0.01;
+    const isSettled = (group.balance === 0) || Math.abs(group.balance || 0) < 0.01;
     
     // Only show settled groups if requested
     return matchesSearch && (showSettledGroups || !isSettled);
@@ -131,7 +140,7 @@ export default function GroupsPage() {
   // Calculate the total balance the user owes across all groups
   const calculateTotalOwed = () => {
     let total = 0;
-    displayGroups.forEach(group => {
+    displayGroups.forEach((group: EnhancedGroup) => {
       if (group.balance && group.balance < 0) {
         total += Math.abs(group.balance);
       }
@@ -143,7 +152,7 @@ export default function GroupsPage() {
   
   // Count settled groups for the button text
   const settledGroupsCount = displayGroups.filter(
-    group => group.balance === 0 || Math.abs(group.balance || 0) < 0.01
+    (group: EnhancedGroup) => (group.balance === 0) || Math.abs(group.balance || 0) < 0.01
   ).length;
   
   // Generate group-specific balances
