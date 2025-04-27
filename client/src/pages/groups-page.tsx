@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/main-layout";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -8,7 +8,6 @@ import { useLocation } from "wouter";
 import { GroupForm } from "@/components/groups/group-form";
 import { Group } from "@shared/schema";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 
 // Define types for enhanced group data
 type EnhancedGroup = Group & {
@@ -16,28 +15,18 @@ type EnhancedGroup = Group & {
   balance?: number;
 }
 
-// Define a balance data type for a user's balance with another user
-interface UserBalance {
-  userId: number;
-  userName: string;
-  amount: number;
-}
-
 export default function GroupsPage() {
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [, setLocation] = useLocation();
-  const [enhancedGroups, setEnhancedGroups] = useState<EnhancedGroup[]>([]);
-  const [loadingDetails, setLoadingDetails] = useState(true);
-  // Always show all groups - no toggle functionality
   const [searchTerm, setSearchTerm] = useState("");
   
-  // Fetch groups
-  const { data: groups, isLoading } = useQuery<Group[]>({
-    queryKey: ["/api/groups"]
+  // Get user data
+  const { data: userData } = useQuery<{ id: number; username: string; name: string }>({
+    queryKey: ["/api/user"]
   });
   
-  // Fetch user balances
-  const { data: balances } = useQuery({
+  // Get user's overall balance
+  const { data: balances, isLoading: isBalancesLoading } = useQuery({
     queryKey: ["/api/balances"],
     select: (data: any) => ({
       ...data,
@@ -46,166 +35,77 @@ export default function GroupsPage() {
     })
   });
   
-  // Track if the group details have been loaded
-  const [detailsLoaded, setDetailsLoaded] = useState(false);
-
-  // Fetch user data
-  const { data: userData } = useQuery<{ id: number; username: string; name: string }>({
-    queryKey: ["/api/user"]
+  // Get groups with efficient batched fetching
+  const { data: groups, isLoading: isGroupsLoading } = useQuery<Group[]>({
+    queryKey: ["/api/groups"]
   });
   
-  // Fetch group details when groups data is available
-  useEffect(() => {
-    if (!groups || groups.length === 0 || !userData) {
-      // Reset when dependencies change to prevent stale data
-      if (enhancedGroups.length > 0) {
-        setEnhancedGroups([]);
-        setDetailsLoaded(false);
-      }
-      return;
-    }
-    
-    // Reset loaded state when groups change
-    if (detailsLoaded && enhancedGroups.length !== groups.length) {
-      setDetailsLoaded(false);
-      setLoadingDetails(true);
-    }
-    
-    // Don't refetch if details are already loaded unless groups have changed
-    if (detailsLoaded) {
-      setLoadingDetails(false);
-      return;
-    }
-    
-    // Set loading state
-    setLoadingDetails(true);
-    
-    // Main function to fetch and enhance groups with details
-    async function fetchGroupDetails() {
-      try {
-        console.log("Fetching member counts for groups");
-        console.log("Current user data:", userData);
+  // Get all group balances in a single query
+  const { data: groupsWithBalances, isLoading: isDetailsLoading } = useQuery<EnhancedGroup[]>({
+    queryKey: ["/api/groups", "with-balances"],
+    enabled: !!groups && !!userData,
+    queryFn: async () => {
+      if (!groups || !userData) return [];
+      
+      // Process groups in batches of 2 to reduce concurrent requests
+      const result: EnhancedGroup[] = [];
+      const batchSize = 2;
+      
+      for (let i = 0; i < groups.length; i += batchSize) {
+        const batch = groups.slice(i, i + batchSize);
         
-        // Create enhanced groups with details
-        const groupsWithDetails = await Promise.all(
-          (groups || []).map(async (group) => {
-            try {
-              // Fetch balances for this group
-              const balancesResponse = await fetch(`/api/groups/${group.id}/balances`, {
-                credentials: "include"
-              });
-              
-              if (!balancesResponse.ok) {
-                console.warn(`Could not fetch balances for group ${group.id}: ${balancesResponse.status}`);
-                return { ...group, balance: 0, memberCount: 0 };
-              }
-              
-              const balanceData = await balancesResponse.json();
-              console.log(`Balances for group ${group.id}:`, balanceData);
-              
-              // Find current user's balance in this group
-              const userBalance = Array.isArray(balanceData) ? 
-                balanceData.find((b: any) => b.user.id === userData?.id) : null;
-              
-              const balance = userBalance ? userBalance.balance : 0;
-              
-              // Fetch members for this group
-              const membersResponse = await fetch(`/api/groups/${group.id}/members`, {
-                credentials: "include"
-              });
-              
-              let memberCount = 0;
-              if (membersResponse.ok) {
-                const members = await membersResponse.json();
-                memberCount = Array.isArray(members) ? members.length : 0;
-              }
-              
-              return {
-                ...group,
-                balance,
-                memberCount
-              };
-            } catch (error) {
-              console.error(`Error fetching details for group ${group.id}:`, error);
+        // Process each batch in parallel
+        const batchPromises = batch.map(async (group) => {
+          try {
+            // Get balances for this group
+            const balanceResponse = await fetch(`/api/groups/${group.id}/balances`, {
+              credentials: "include"
+            });
+            
+            if (!balanceResponse.ok) {
               return { ...group, balance: 0, memberCount: 0 };
             }
-          })
-        );
+            
+            const balanceData = await balanceResponse.json();
+            
+            // Find current user's balance
+            const userBalance = Array.isArray(balanceData) ? 
+              balanceData.find((b: any) => b.user.id === userData.id) : null;
+              
+            // Get member count in the same request to avoid extra calls
+            const memberCount = Array.isArray(balanceData) ? balanceData.length : 0;
+            
+            return {
+              ...group,
+              balance: userBalance ? userBalance.balance : 0,
+              memberCount
+            };
+          } catch (error) {
+            return { ...group, balance: 0, memberCount: 0 };
+          }
+        });
         
-        // Only update if we still have data
-        if (groupsWithDetails.length > 0) {
-          setEnhancedGroups(groupsWithDetails);
-          setDetailsLoaded(true);
-          console.log("Updated enhanced groups:", groupsWithDetails);
-        }
-      } catch (error) {
-        console.error("Error enhancing groups with details:", error);
-      } finally {
-        setLoadingDetails(false);
+        // Wait for this batch to complete
+        const batchResults = await Promise.all(batchPromises);
+        result.push(...batchResults);
       }
+      
+      return result;
     }
-    
-    fetchGroupDetails();
-  }, [groups, userData, enhancedGroups.length, detailsLoaded]);
-  
-  // Get the actual groups to display with balance info
-  // Only provide blank placeholder data when we know we're still loading details
-  const displayGroups = enhancedGroups.length > 0 || !loadingDetails
-    ? enhancedGroups 
-    : [];
-  
-  console.log("Display groups before filtering:", displayGroups);
-  
-  // Only apply search filter - always show all groups
-  const filteredGroups = displayGroups.filter((group: EnhancedGroup) => {
-    // Apply search filter if search term exists
-    const matchesSearch = searchTerm === "" || 
-      group.name.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    // For debugging - identify settled groups
-    const isSettled = Math.abs(group.balance || 0) < 0.01;
-    
-    // Log for debugging
-    console.log(`Group ${group.name} (id: ${group.id}): matchesSearch=${matchesSearch}, isSettled=${isSettled}, balance=${group.balance}`);
-    
-    // Always show all groups that match the search
-    return matchesSearch;
   });
   
-  console.log("Filtered groups:", filteredGroups);
+  // Apply search filter to groups
+  const filteredGroups = groupsWithBalances?.filter(group => 
+    searchTerm === "" || group.name.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
   
-  // Use the official balances from the API rather than calculating from groups
-  // This ensures consistency with the home page
+  // Calculate total balance correctly
   const totalOwed = balances?.totalOwes || 0;
   
-  // Generate group-specific balances
-  const renderUserBalancesForGroup = (group: EnhancedGroup) => {
-    // This would ideally come from the API, but for now we'll create a placeholder
-    // that demonstrates the format shown in the wireframe
-    const userBalances: UserBalance[] = [];
-    
-    // For demonstration purposes only - in production this would use real data
-    // from the group balances API endpoint
-    if (group.id === 2) { // House of Anthica
-      userBalances.push({
-        userId: 3,
-        userName: "Jesica",
-        amount: 1819.42
-      });
-    }
-    
-    return userBalances.map(balance => (
-      <div key={`${group.id}-${balance.userId}`} className="ml-12 mt-1">
-        <p className="text-sm text-fairshare-dark">
-          You owe {balance.userName}{" "}
-          <span className="font-medium">${balance.amount.toFixed(2)}</span>
-        </p>
-      </div>
-    ));
-  };
+  // Show loading skeleton while data is loading
+  const isLoading = isBalancesLoading || isGroupsLoading || isDetailsLoading;
   
-  // Render loading skeleton for initial data fetch or details loading
-  if (isLoading || loadingDetails) {
+  if (isLoading) {
     return (
       <MainLayout>
         <div className="p-4">
@@ -222,7 +122,6 @@ export default function GroupsPage() {
                   <Skeleton className="h-6 w-32" />
                 </div>
                 <Skeleton className="h-4 w-64 ml-12" />
-                <Skeleton className="h-4 w-48 ml-12" />
               </div>
             ))}
           </div>
@@ -231,7 +130,10 @@ export default function GroupsPage() {
     );
   }
   
-  // Render the group list UI based on the wireframe
+  // Calculate net owed amount (what you owe minus what you're owed)
+  // This ensures consistency across the app
+  const netOwed = Math.max(0, balances?.totalOwes - (balances?.totalOwed || 0));
+  
   return (
     <MainLayout>
       <div className="p-4 bg-fairshare-cream">
@@ -255,11 +157,11 @@ export default function GroupsPage() {
           </Button>
         </div>
         
-        {/* Overall balance section */}
+        {/* Overall balance section with corrected calculation */}
         <div className="flex justify-between items-center mb-6">
           <div>
             <h2 className="text-xl font-medium text-fairshare-dark">
-              Overall, you owe <span className="text-fairshare-primary">${totalOwed.toFixed(2)}</span>
+              Overall, you owe <span className="text-fairshare-primary">${netOwed.toFixed(2)}</span>
             </h2>
           </div>
           <Button variant="ghost" size="icon">
@@ -267,7 +169,7 @@ export default function GroupsPage() {
           </Button>
         </div>
         
-        {/* Group listings */}
+        {/* Group listings with optimized rendering */}
         <div className="space-y-6">
           {filteredGroups.length === 0 ? (
             <div className="text-center py-8">
@@ -283,7 +185,7 @@ export default function GroupsPage() {
           ) : (
             <>
               {filteredGroups.map(group => {
-                const isSettled = group.balance === 0 || Math.abs(group.balance || 0) < 0.01;
+                const isSettled = Math.abs(group.balance || 0) < 0.01;
                 
                 return (
                   <div 
@@ -319,9 +221,6 @@ export default function GroupsPage() {
                         )}
                       </div>
                     </div>
-                    
-                    {/* User-specific balances */}
-                    {!isSettled && renderUserBalancesForGroup(group)}
                   </div>
                 );
               })}
