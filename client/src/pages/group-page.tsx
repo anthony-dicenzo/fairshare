@@ -245,7 +245,7 @@ export default function GroupPage() {
               variant="outline" 
               size="sm"
               onClick={() => setShowInviteModal(true)}
-              className="bg-amber-100 hover:bg-amber-200 text-amber-900 border-amber-300"
+              className="bg-[#E3976E] hover:bg-[#D38761] text-white border-[#E3976E] rounded-md"
             >
               <Users className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Invite Members</span>
@@ -255,7 +255,7 @@ export default function GroupPage() {
               variant="outline" 
               size="sm"
               onClick={() => setShowExpenseModal(true)}
-              className="sm:hidden"
+              className="sm:hidden bg-[#E3976E] hover:bg-[#D38761] text-white border-[#E3976E] rounded-md"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add
@@ -313,7 +313,10 @@ export default function GroupPage() {
                   <p className="text-muted-foreground mb-4">
                     Add your first expense to start tracking
                   </p>
-                  <Button onClick={() => setShowExpenseModal(true)}>
+                  <Button 
+                    onClick={() => setShowExpenseModal(true)}
+                    className="bg-[#E3976E] hover:bg-[#D38761] text-white border-[#E3976E]"
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Expense
                   </Button>
@@ -352,7 +355,7 @@ export default function GroupPage() {
                   size="sm" 
                   onClick={() => refreshBalancesMutation.mutate()}
                   disabled={refreshBalancesMutation.isPending}
-                  className="gap-2"
+                  className="gap-2 bg-[#E3976E] hover:bg-[#D38761] text-white border-[#E3976E]"
                 >
                   <RefreshCw className={`h-4 w-4 ${refreshBalancesMutation.isPending ? 'animate-spin' : ''}`} />
                   {refreshBalancesMutation.isPending ? 'Refreshing...' : 'Refresh Balances'}
@@ -421,10 +424,10 @@ export default function GroupPage() {
         <Button 
           size="icon" 
           variant="outline" 
-          className="h-14 w-14 rounded-full shadow-lg border-fairshare-secondary"
+          className="h-14 w-14 rounded-full shadow-lg bg-[#E3976E] hover:bg-[#D38761] border-[#E3976E] text-white"
           onClick={() => setShowPaymentModal(true)}
         >
-          <CreditCard className="h-6 w-6 text-fairshare-dark" />
+          <CreditCard className="h-6 w-6" />
         </Button>
       </div>
 
