@@ -24,7 +24,7 @@ export function MobilePageHeader({ title, children }: MobilePageHeaderProps) {
           </SheetContent>
         </Sheet>
         
-        <span className="font-bold text-xl text-fairshare-dark">
+        <span className="font-bold text-xl text-fairshare-primary">
           {title || "FairShare"}
         </span>
       </div>

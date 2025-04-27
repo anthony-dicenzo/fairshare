@@ -393,7 +393,7 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen flex flex-col bg-muted/40">
       <header className="flex items-center justify-between p-4 bg-background border-b">
-        <div className="text-xl font-bold text-primary">FairShare</div>
+        <div className="text-xl font-bold text-fairshare-primary">FairShare</div>
       </header>
 
       <div className="flex-1 grid md:grid-cols-2 gap-0">
@@ -542,12 +542,12 @@ export default function AuthPage() {
         {/* Hero Section */}
         <div className="hidden md:flex flex-col items-center justify-center p-8 bg-primary/10 text-center">
           <div className="max-w-lg">
-            <h1 className="text-4xl font-bold mb-6 text-primary">Split expenses without the drama</h1>
+            <h1 className="text-4xl font-bold mb-6 text-fairshare-primary">Split expenses without the drama</h1>
             
             <div className="space-y-6 text-left">
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                  <span className="text-primary font-bold">1</span>
+                <div className="w-10 h-10 rounded-full bg-fairshare-primary/20 flex items-center justify-center shrink-0">
+                  <span className="text-fairshare-primary font-bold">1</span>
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg">Track shared expenses</h3>
@@ -556,8 +556,8 @@ export default function AuthPage() {
               </div>
               
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                  <span className="text-primary font-bold">2</span>
+                <div className="w-10 h-10 rounded-full bg-fairshare-primary/20 flex items-center justify-center shrink-0">
+                  <span className="text-fairshare-primary font-bold">2</span>
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg">Create groups for any occasion</h3>
@@ -566,8 +566,8 @@ export default function AuthPage() {
               </div>
               
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                  <span className="text-primary font-bold">3</span>
+                <div className="w-10 h-10 rounded-full bg-fairshare-primary/20 flex items-center justify-center shrink-0">
+                  <span className="text-fairshare-primary font-bold">3</span>
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg">Settle up easily</h3>
