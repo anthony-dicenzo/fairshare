@@ -561,13 +561,13 @@ export class DatabaseStorage implements IStorage {
     
     // Calculate the balance from payments
     for (const payment of payments) {
-      // If user made the payment, subtract the amount
-      if (payment.paidBy === userId) {
+      // If user received a payment, it reduces what they are owed (or increases what they owe)
+      if (payment.paidTo === userId) {
         balance -= Number(payment.amount);
       }
       
-      // If user received the payment, add the amount
-      if (payment.paidTo === userId) {
+      // If user made a payment, it increases what they are owed (or reduces what they owe)
+      if (payment.paidBy === userId) {
         balance += Number(payment.amount);
       }
     }
@@ -652,14 +652,14 @@ export class DatabaseStorage implements IStorage {
       // Calculate balances from payments
       for (const payment of payments) {
         if (payment.paidBy === userId && payment.paidTo !== userId) {
-          // User paid another user
+          // User paid another user - that user owes the user less now
           const currentBalance = memberBalances.get(payment.paidTo) || 0;
           memberBalances.set(
             payment.paidTo, 
             currentBalance - Number(payment.amount)
           );
         } else if (payment.paidTo === userId && payment.paidBy !== userId) {
-          // Another user paid user
+          // Another user paid user - user owes that user less now
           const currentBalance = memberBalances.get(payment.paidBy) || 0;
           memberBalances.set(
             payment.paidBy, 
