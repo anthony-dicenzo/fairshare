@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ActivityItemAction } from "@/components/activity/activity-item-action";
 import { MobilePageHeader } from "@/components/layout/mobile-page-header";
+import { apiRequest } from "@/lib/queryClient";
 
 type Activity = {
   id: number;
