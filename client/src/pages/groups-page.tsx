@@ -165,18 +165,9 @@ export default function GroupsPage() {
   
   console.log("Filtered groups:", filteredGroups);
   
-  // Calculate the total balance the user owes across all groups
-  const calculateTotalOwed = () => {
-    let total = 0;
-    displayGroups.forEach((group: EnhancedGroup) => {
-      if (group.balance && group.balance < 0) {
-        total += Math.abs(group.balance);
-      }
-    });
-    return total;
-  };
-  
-  const totalOwed = calculateTotalOwed();
+  // Use the official balances from the API rather than calculating from groups
+  // This ensures consistency with the home page
+  const totalOwed = balances?.totalOwed || 0;
   
   // Count settled groups for the button text
   const settledGroupsCount = displayGroups.filter(
