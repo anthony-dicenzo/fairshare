@@ -81,8 +81,16 @@ export function GroupInvite({ open, onOpenChange, groupId, members = [] }: Group
     setIsLoading(true);
     try {
       // This call will either return an existing active invite or create a new one
-      const response = await apiRequest<GroupInvite>("POST", `/api/groups/${groupId}/invite`, {});
-      setInviteCode(response.inviteCode);
+      const response = await apiRequest<any>("POST", `/api/groups/${groupId}/invite`, {});
+      
+      // Log the response to see what we're getting
+      console.log("Invite response:", response);
+      
+      if (response && response.inviteCode) {
+        setInviteCode(response.inviteCode);
+      } else {
+        throw new Error("Invalid response format");
+      }
     } catch (error) {
       console.error("Failed to get invite link:", error);
       toast({

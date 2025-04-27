@@ -152,39 +152,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         res.status(201).json(membership);
       } else {
-        // Check for existing active invites first
-        const existingInvites = await storage.getGroupInvitesByGroupId(groupId);
-        
-        // Filter to find active invites
-        const activeInvites = existingInvites.filter(invite => {
-          if (!invite.isActive) return false;
-          if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) return false;
-          return true;
-        });
-        
-        // If there's an active invite, use that
-        if (activeInvites.length > 0) {
-          res.status(200).json(activeInvites[0]);
-          return;
+        try {
+          console.log(`Handling invite request for group ${groupId}`);
+          // Check for existing active invites first
+          const existingInvites = await storage.getGroupInvitesByGroupId(groupId);
+          console.log(`Found ${existingInvites.length} total invites for group ${groupId}`);
+          
+          // Filter to find active invites
+          const activeInvites = existingInvites.filter(invite => {
+            if (!invite.isActive) return false;
+            if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) return false;
+            return true;
+          });
+          
+          console.log(`Found ${activeInvites.length} active invites for group ${groupId}`);
+          
+          // If there's an active invite, use that
+          if (activeInvites.length > 0) {
+            console.log(`Returning existing invite: ${JSON.stringify(activeInvites[0])}`);
+            res.status(200).json(activeInvites[0]);
+            return;
+          }
+          
+          console.log(`No active invites found, creating a new one for group ${groupId}`);
+          // Otherwise create a new shareable invite link
+          const invite = await storage.createGroupInvite({
+            groupId,
+            createdBy: req.user.id,
+            isActive: true,
+            // Set expiration if provided, otherwise leave it undefined
+            expiresAt: req.body.expiresAt ? new Date(req.body.expiresAt) : undefined
+          });
+          
+          console.log(`Created new invite: ${JSON.stringify(invite)}`);
+          
+          // Log activity
+          await storage.logActivity({
+            groupId,
+            userId: req.user.id,
+            actionType: "create_invite_link"
+          });
+          
+          res.status(201).json(invite);
+        } catch (error) {
+          console.error("Error handling invite request:", error);
+          res.status(500).json({ error: "Failed to process invite request" });
         }
-        
-        // Otherwise create a new shareable invite link
-        const invite = await storage.createGroupInvite({
-          groupId,
-          createdBy: req.user.id,
-          isActive: true,
-          // Set expiration if provided, otherwise leave it undefined
-          expiresAt: req.body.expiresAt ? new Date(req.body.expiresAt) : undefined
-        });
-        
-        // Log activity
-        await storage.logActivity({
-          groupId,
-          userId: req.user.id,
-          actionType: "create_invite_link"
-        });
-        
-        res.status(201).json(invite);
       }
     } catch (error) {
       res.status(500).json({ error: "Failed to invite user to group" });
