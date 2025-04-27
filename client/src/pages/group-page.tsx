@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/main-layout";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronLeft, Users, Plus, PlusCircle, CreditCard } from "lucide-react";
+import { ChevronLeft, Users, Plus, PlusCircle, CreditCard, RefreshCw } from "lucide-react";
 import { ExpenseForm } from "@/components/expenses/expense-form";
 import { PaymentForm } from "@/components/expenses/payment-form";
 import { GroupDetail } from "@/components/groups/group-detail";
@@ -14,11 +14,14 @@ import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { Link } from "wouter";
 import { GroupInvite } from "@/components/groups/group-invite";
 import { ActionButtons } from "@/components/dashboard/action-buttons";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function GroupPage() {
   // Get the group ID from the URL parameters
   const params = useParams<{ id: string }>();
   const [, navigate] = useLocation();
+  const { toast } = useToast();
   
   // Safely extract the group ID from params
   const groupId = params && params.id ? parseInt(params.id) : 0;
@@ -120,11 +123,36 @@ export default function GroupPage() {
   // Fetch group balances
   const { 
     data: balances = [], 
-    isLoading: isLoadingBalances 
+    isLoading: isLoadingBalances,
+    refetch: refetchBalances 
   } = useQuery({
     queryKey: [`/api/groups/${groupIdStr}/balances`],
     enabled: groupId > 0 && !!group,
     staleTime: 0
+  });
+  
+  // Mutation for refreshing balances
+  const refreshBalancesMutation = useMutation({
+    mutationFn: async () => {
+      const url = `/api/groups/${groupIdStr}/refresh-balances`;
+      const options = { method: 'POST' };
+      return await apiRequest(url, options);
+    },
+    onSuccess: () => {
+      // Refetch balances after successful refresh
+      refetchBalances();
+      toast({
+        title: "Balances refreshed",
+        description: "The group balances have been recalculated."
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error refreshing balances",
+        description: "Could not refresh balances. Please try again.",
+        variant: "destructive"
+      });
+    }
   });
 
   // Fetch group activity
@@ -295,6 +323,18 @@ export default function GroupPage() {
             </TabsContent>
 
             <TabsContent value="balances" className="mt-0">
+              <div className="mb-4 flex justify-end">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => refreshBalancesMutation.mutate()}
+                  disabled={refreshBalancesMutation.isPending}
+                  className="gap-2"
+                >
+                  <RefreshCw className={`h-4 w-4 ${refreshBalancesMutation.isPending ? 'animate-spin' : ''}`} />
+                  {refreshBalancesMutation.isPending ? 'Refreshing...' : 'Refresh Balances'}
+                </Button>
+              </div>
               <BalancesMatrix 
                 balances={Array.isArray(balances) ? balances : []} 
                 members={Array.isArray(members) ? members : []} 
