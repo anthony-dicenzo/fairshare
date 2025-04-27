@@ -401,6 +401,39 @@ export function GroupSettings({ open, onOpenChange, groupId, groupName, members,
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      {/* Confirmation dialog for deleting the group */}
+      <AlertDialog open={showDeleteGroupConfirmation} onOpenChange={setShowDeleteGroupConfirmation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-500">
+              <AlertTriangle className="h-5 w-5" />
+              Delete group?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this group? This action cannot be undone, and all group data will be permanently removed.
+              <p className="mt-2 font-semibold">Note: All balances must be settled before a group can be deleted.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => deleteGroupMutation.mutate()}
+              className="bg-red-500 hover:bg-red-600"
+              disabled={deleteGroupMutation.isPending}
+            >
+              {deleteGroupMutation.isPending ? (
+                <>
+                  <RotateCcw className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
