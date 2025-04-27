@@ -33,6 +33,8 @@ export interface IStorage {
   getGroupsByUserId(userId: number): Promise<Group[]>;
   addUserToGroup(member: InsertGroupMember): Promise<GroupMember>;
   getGroupMembers(groupId: number): Promise<(GroupMember & { user: User })[]>;
+  removeUserFromGroup(groupId: number, userId: number): Promise<boolean>;
+  checkUserHasOutstandingBalances(groupId: number, userId: number): Promise<boolean>;
   
   // Group invite operations
   createGroupInvite(inviteData: InsertGroupInvite): Promise<GroupInvite>;
