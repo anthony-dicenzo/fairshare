@@ -53,29 +53,35 @@ export default function ActivityPage() {
   // Fetch activity data for expense tab
   const { data: rawExpenseActivity, isLoading: isLoadingExpense } = useQuery<Activity[]>({
     queryKey: ["/api/activity", "expenses"],
-    queryFn: () => apiRequest("/api/activity?type=expenses"),
+    queryFn: async () => {
+      const response = await apiRequest<Activity[]>("/api/activity?type=expenses");
+      return response;
+    },
     enabled: activeTab === "expenses",
   });
   
   // Fetch activity data for payment tab
   const { data: rawPaymentActivity, isLoading: isLoadingPayment } = useQuery<Activity[]>({
     queryKey: ["/api/activity", "payments"],
-    queryFn: () => apiRequest("/api/activity?type=payments"),
+    queryFn: async () => {
+      const response = await apiRequest<Activity[]>("/api/activity?type=payments");
+      return response;
+    },
     enabled: activeTab === "payments",
   });
 
   // Filter activities by type when needed and remove "create_invite" and "create_invite_link" activities
-  const filteredAllActivities = allActivity?.filter(a => 
+  const filteredAllActivities = allActivity?.filter((a: Activity) => 
     !a.actionType.includes("create_invite")
   ) || [];
   
   // Filter expense activities to remove invite-related actions
-  const filteredExpenseActivities = rawExpenseActivity?.filter(a => 
+  const filteredExpenseActivities = rawExpenseActivity?.filter((a: Activity) => 
     !a.actionType.includes("create_invite")
   ) || [];
   
   // Filter payment activities to remove invite-related actions
-  const filteredPaymentActivities = rawPaymentActivity?.filter(a => 
+  const filteredPaymentActivities = rawPaymentActivity?.filter((a: Activity) => 
     !a.actionType.includes("create_invite")
   ) || [];
   
