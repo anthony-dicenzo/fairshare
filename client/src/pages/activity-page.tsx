@@ -46,26 +46,26 @@ type Activity = {
 export default function ActivityPage() {
   const [activeTab, setActiveTab] = useState<string>("all");
   
-  const { data: allActivity, isLoading: isLoadingAll } = useQuery<Activity[]>({
+  const { data: allActivity, isLoading: isLoadingAll } = useQuery({
     queryKey: ["/api/activity"],
   });
   
   // Fetch activity data for expense tab
-  const { data: rawExpenseActivity, isLoading: isLoadingExpense } = useQuery<Activity[]>({
+  const { data: rawExpenseActivity, isLoading: isLoadingExpense } = useQuery({
     queryKey: ["/api/activity", "expenses"],
     queryFn: async () => {
-      const response = await apiRequest<Activity[]>("/api/activity?type=expenses");
-      return response;
+      const response = await apiRequest("/api/activity?type=expenses");
+      return response as Activity[];
     },
     enabled: activeTab === "expenses",
   });
   
   // Fetch activity data for payment tab
-  const { data: rawPaymentActivity, isLoading: isLoadingPayment } = useQuery<Activity[]>({
+  const { data: rawPaymentActivity, isLoading: isLoadingPayment } = useQuery({
     queryKey: ["/api/activity", "payments"],
     queryFn: async () => {
-      const response = await apiRequest<Activity[]>("/api/activity?type=payments");
-      return response;
+      const response = await apiRequest("/api/activity?type=payments");
+      return response as Activity[];
     },
     enabled: activeTab === "payments",
   });
@@ -100,7 +100,7 @@ export default function ActivityPage() {
 
   return (
     <MainLayout>
-      <MobilePageHeader title="Activity" />
+      <MobilePageHeader title="Activity" useBrandColor={false} />
       
       <div className="px-4 py-4 sm:py-6 md:px-6 lg:px-8">
         <div className="hidden md:flex items-center mb-6">
