@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ArrowLeft } from "lucide-react";
 import {
   Form,
   FormControl,
@@ -25,7 +26,12 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-// Login schema
+// Login schema for step 1 (username/email only)
+const loginStep1Schema = z.object({
+  username: z.string().min(1, "Username or email is required"),
+});
+
+// Login schema for step 2 (with password)
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
   password: z.string().min(1, "Password is required"),
@@ -43,6 +49,7 @@ const registerSchema = z.object({
   path: ["confirmPassword"],
 });
 
+type LoginStep1Values = z.infer<typeof loginStep1Schema>;
 type LoginFormValues = z.infer<typeof loginSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
@@ -50,6 +57,8 @@ export default function AuthPage() {
   const [location, navigate] = useLocation();
   const { user, loginMutation, registerMutation } = useAuth();
   const isMobile = useIsMobile();
+  const [loginStep, setLoginStep] = useState<1 | 2>(1);
+  const [loginUsername, setLoginUsername] = useState("");
 
   // Redirect to returnPath or home if already logged in
   useEffect(() => {
@@ -68,11 +77,19 @@ export default function AuthPage() {
     }
   }, [user, navigate]);
 
-  // Login form
+  // Login step 1 form (username/email only)
+  const loginStep1Form = useForm<LoginStep1Values>({
+    resolver: zodResolver(loginStep1Schema),
+    defaultValues: {
+      username: "",
+    },
+  });
+
+  // Login form for step 2 (with password)
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
+      username: loginUsername,
       password: "",
     },
   });
@@ -89,6 +106,16 @@ export default function AuthPage() {
     },
   });
 
+  // This handles the login step 1 submission (username only)
+  const onLoginStep1Submit = (data: LoginStep1Values) => {
+    setLoginUsername(data.username);
+    setLoginStep(2); // Proceed to password screen
+    
+    // Set the username value in the step 2 form
+    loginForm.setValue("username", data.username);
+  };
+
+  // This handles the final login submission (username + password)
   const onLoginSubmit = (data: LoginFormValues) => {
     loginMutation.mutate(data);
   };
@@ -124,77 +151,118 @@ export default function AuthPage() {
               </TabsList>
 
               <TabsContent value="login">
-                <Form {...loginForm}>
-                  <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
-                    {/* Email/Username field */}
-                    <FormField
-                      control={loginForm.control}
-                      name="username"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <Input 
-                              placeholder="Enter your username" 
-                              className="h-12 rounded-xl border-fairshare-dark/20 bg-white" 
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                {loginStep === 1 ? (
+                  /* Step 1: Enter username/email */
+                  <Form {...loginStep1Form}>
+                    <form onSubmit={loginStep1Form.handleSubmit(onLoginStep1Submit)} className="space-y-4">
+                      {/* Email/Username field */}
+                      <FormField
+                        control={loginStep1Form.control}
+                        name="username"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input 
+                                placeholder="Enter your username or email" 
+                                className="h-12 rounded-xl border-fairshare-dark/20 bg-white" 
+                                autoComplete="username"
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                    {/* Login button - Color changed to Soft Mango Orange */}
+                      {/* Continue button */}
+                      <Button 
+                        type="submit" 
+                        className="w-full h-12 rounded-xl mt-4 bg-fairshare-primary text-white hover:bg-fairshare-primary/90"
+                      >
+                        Continue with email
+                      </Button>
+                    </form>
+
+                    {/* OR Separator */}
+                    <div className="relative flex items-center my-6">
+                      <div className="flex-grow border-t border-gray-300"></div>
+                      <span className="flex-shrink mx-4 text-gray-500 text-sm uppercase">OR</span>
+                      <div className="flex-grow border-t border-gray-300"></div>
+                    </div>
+
+                    {/* Register option */}
+                    <div className="text-center">
+                      <p className="text-fairshare-dark/80 mb-4">Don't have an account?</p>
+                      <Button 
+                        variant="outline" 
+                        className="w-full h-12 rounded-xl border-fairshare-dark/20 text-fairshare-dark hover:bg-fairshare-dark/5"
+                        onClick={() => {
+                          // Switch to register tab
+                          const registerTab = document.querySelector('[data-value="register"]') as HTMLElement;
+                          if (registerTab) registerTab.click();
+                        }}
+                      >
+                        Create an account
+                      </Button>
+                    </div>
+                  </Form>
+                ) : (
+                  /* Step 2: Enter password */
+                  <div>
+                    {/* Back button for password step */}
                     <Button 
-                      type="submit" 
-                      className="w-full h-12 rounded-xl mt-4 bg-fairshare-primary text-white hover:bg-fairshare-primary/90"
-                      disabled={loginMutation.isPending}
+                      variant="ghost" 
+                      className="mb-4 px-0 hover:bg-transparent" 
+                      onClick={() => setLoginStep(1)}
                     >
-                      {loginMutation.isPending ? "Logging in..." : "Continue with email"}
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      Back
                     </Button>
                     
-                    {/* Hidden password field to maintain form validation */}
-                    <FormField
-                      control={loginForm.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem className="hidden">
-                          <FormControl>
-                            <Input 
-                              type="password" 
-                              placeholder="Enter your password" 
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </form>
-                </Form>
+                    <div className="mb-6">
+                      <h3 className="text-xl font-medium text-fairshare-dark">Enter your password</h3>
+                      <p className="text-sm text-fairshare-dark/60 mt-1">
+                        for <span className="font-medium">{loginUsername}</span>
+                      </p>
+                    </div>
+                    
+                    <Form {...loginForm}>
+                      <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
+                        {/* Hidden username field */}
+                        <input type="hidden" name="username" value={loginUsername} />
+                        
+                        {/* Password field */}
+                        <FormField
+                          control={loginForm.control}
+                          name="password"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Input 
+                                  type="password" 
+                                  placeholder="Enter your password" 
+                                  className="h-12 rounded-xl border-fairshare-dark/20 bg-white" 
+                                  autoComplete="current-password"
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                {/* OR Separator */}
-                <div className="relative flex items-center my-6">
-                  <div className="flex-grow border-t border-gray-300"></div>
-                  <span className="flex-shrink mx-4 text-gray-500 text-sm uppercase">OR</span>
-                  <div className="flex-grow border-t border-gray-300"></div>
-                </div>
-
-                {/* Register option */}
-                <div className="text-center">
-                  <p className="text-fairshare-dark/80 mb-4">Don't have an account?</p>
-                  <Button 
-                    variant="outline" 
-                    className="w-full h-12 rounded-xl border-fairshare-dark/20 text-fairshare-dark hover:bg-fairshare-dark/5"
-                    onClick={() => {
-                      // Switch to register tab
-                      const registerTab = document.querySelector('[data-value="register"]') as HTMLElement;
-                      if (registerTab) registerTab.click();
-                    }}
-                  >
-                    Create an account
-                  </Button>
-                </div>
+                        {/* Login button */}
+                        <Button 
+                          type="submit" 
+                          className="w-full h-12 rounded-xl mt-4 bg-fairshare-primary text-white hover:bg-fairshare-primary/90"
+                          disabled={loginMutation.isPending}
+                        >
+                          {loginMutation.isPending ? "Logging in..." : "Log in"}
+                        </Button>
+                      </form>
+                    </Form>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="register">
