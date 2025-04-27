@@ -21,13 +21,14 @@ import { Separator } from "@/components/ui/separator";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { UserPlus, Link, Mail } from "lucide-react";
+import { UserPlus, Link as LinkIcon, Mail, Loader2 } from "lucide-react";
 
+import { InviteLinkView } from "./invite-link-view";
 import { InviteLinkGenerator } from "./invite-link-generator";
 import { ActiveInvites } from "./active-invites";
 
@@ -45,10 +46,62 @@ const inviteFormSchema = z.object({
 
 type InviteFormValues = z.infer<typeof inviteFormSchema>;
 
+interface GroupInfo {
+  id: number;
+  name: string;
+}
+
 export function GroupInvite({ open, onOpenChange, groupId, members }: GroupInviteProps) {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<string>("link");
   const [inviteGenerated, setInviteGenerated] = useState<boolean>(false);
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
+  const [showInviteLinkView, setShowInviteLinkView] = useState(false);
+  const [isGeneratingInitialLink, setIsGeneratingInitialLink] = useState(false);
+
+  // Fetch group info
+  const { data: group } = useQuery<GroupInfo>({
+    queryKey: ['/api/groups', groupId],
+    enabled: !!groupId && open,
+    queryFn: async () => {
+      const res = await apiRequest(`/api/groups/${groupId}`);
+      return res;
+    }
+  });
+
+  // Fetch existing invites when the modal opens
+  const { data: invites, isLoading: isLoadingInvites } = useQuery({
+    queryKey: ['/api/groups', groupId, 'invites'],
+    queryFn: async () => {
+      const res = await apiRequest(`/api/groups/${groupId}/invites`);
+      return res;
+    },
+    enabled: !!groupId && open,
+  });
+
+  // Generate link mutation
+  const generateLinkMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/groups/${groupId}/invite`, {});
+      return res;
+    },
+    onSuccess: (data) => {
+      setInviteCode(data.inviteCode);
+      setInviteGenerated(true);
+      setShowInviteLinkView(true);
+      queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'invites'] });
+    },
+    onError: () => {
+      toast({
+        title: "Failed to generate invite link",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      setIsGeneratingInitialLink(false);
+    }
+  });
 
   const form = useForm<InviteFormValues>({
     resolver: zodResolver(inviteFormSchema),
@@ -61,7 +114,7 @@ export function GroupInvite({ open, onOpenChange, groupId, members }: GroupInvit
   const inviteMutation = useMutation({
     mutationFn: async (data: { email: string }) => {
       const res = await apiRequest("POST", `/api/groups/${groupId}/invite`, data);
-      return res.json();
+      return res;
     },
     onSuccess: (data) => {
       // Check if the response is a notification about user not existing yet
@@ -102,17 +155,59 @@ export function GroupInvite({ open, onOpenChange, groupId, members }: GroupInvit
     },
   });
 
+  // When the dialog opens, check for existing invites or generate a new one
+  useEffect(() => {
+    if (open && groupId) {
+      // If we already have loaded invites, check if there's an active one
+      if (invites && invites.length > 0) {
+        // Find the most recent active invite
+        const activeInvite = invites.find(invite => invite.isActive);
+        if (activeInvite) {
+          setInviteCode(activeInvite.inviteCode);
+          setInviteGenerated(true);
+          // Automatically show the invite link view
+          setShowInviteLinkView(true);
+          return;
+        }
+      }
+      
+      // If no active invites or still loading, generate a new one
+      if (!isLoadingInvites && !isGeneratingInitialLink && !inviteCode) {
+        setIsGeneratingInitialLink(true);
+        generateLinkMutation.mutate();
+      }
+    } else {
+      // Reset states when dialog closes
+      setShowInviteLinkView(false);
+    }
+  }, [open, groupId, invites, isLoadingInvites, inviteCode, isGeneratingInitialLink]);
+
   const onSubmit = form.handleSubmit((data) => {
     inviteMutation.mutate(data);
   });
 
-  const handleInviteGenerated = (inviteCode: string) => {
+  const handleInviteGenerated = (code: string) => {
+    setInviteCode(code);
     setInviteGenerated(true);
+    setShowInviteLinkView(true);
     
     // Invalidate queries to refresh the invites list
     queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'invites'] });
   };
 
+  // Show the invite link view if we have a link to share
+  if (showInviteLinkView && inviteCode && group?.name) {
+    return (
+      <InviteLinkView
+        open={open}
+        onOpenChange={onOpenChange}
+        groupName={group.name}
+        inviteCode={inviteCode}
+      />
+    );
+  }
+
+  // Show the traditional dialog otherwise (loading or email tab)
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[550px] p-4 pt-10">
@@ -126,73 +221,80 @@ export function GroupInvite({ open, onOpenChange, groupId, members }: GroupInvit
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="link" value={activeTab} onValueChange={setActiveTab} className="mt-0">
-          <TabsList className="grid w-full grid-cols-2 h-8">
-            <TabsTrigger value="link" className="flex items-center gap-1 text-xs py-1 h-8">
-              <Link className="h-3 w-3" />
-              Invite Link
-            </TabsTrigger>
-            <TabsTrigger value="email" className="flex items-center gap-1 text-xs py-1 h-8">
-              <Mail className="h-3 w-3" />
-              Email Invite
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="link" className="py-2 mt-2">
-            <div className="space-y-3">
-              <InviteLinkGenerator 
-                groupId={groupId} 
-                onLinkGenerated={handleInviteGenerated}
-              />
-              
-              {inviteGenerated && (
-                <div className="pt-2">
-                  <Separator className="my-2" />
-                  <ActiveInvites groupId={groupId} />
-                </div>
-              )}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="email" className="py-2 mt-2">
-            <Form {...form}>
-              <form onSubmit={onSubmit} className="space-y-2">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Email Address</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="Enter email address" 
-                          {...field}
-                          className="h-8 text-sm" 
-                        />
-                      </FormControl>
-                      <FormMessage className="text-xs" />
-                    </FormItem>
-                  )}
-                />
-
-                <Button 
-                  type="submit"
-                  disabled={inviteMutation.isPending}
-                  className="w-full h-8 text-xs mt-2"
-                  size="sm"
-                >
-                  {inviteMutation.isPending ? "Sending invite..." : "Send Invite"}
-                </Button>
-              </form>
-            </Form>
+        {isGeneratingInitialLink ? (
+          <div className="flex flex-col items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+            <p className="text-sm text-muted-foreground">Generating invite link...</p>
+          </div>
+        ) : (
+          <Tabs defaultValue="link" value={activeTab} onValueChange={setActiveTab} className="mt-0">
+            <TabsList className="grid w-full grid-cols-2 h-8">
+              <TabsTrigger value="link" className="flex items-center gap-1 text-xs py-1 h-8">
+                <LinkIcon className="h-3 w-3" />
+                Invite Link
+              </TabsTrigger>
+              <TabsTrigger value="email" className="flex items-center gap-1 text-xs py-1 h-8">
+                <Mail className="h-3 w-3" />
+                Email Invite
+              </TabsTrigger>
+            </TabsList>
             
-            <div className="text-xs text-muted-foreground mt-2">
-              Users must register with the invited email to join.
-            </div>
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="link" className="py-2 mt-2">
+              <div className="space-y-3">
+                <InviteLinkGenerator 
+                  groupId={groupId} 
+                  onLinkGenerated={handleInviteGenerated}
+                />
+                
+                {inviteGenerated && (
+                  <div className="pt-2">
+                    <Separator className="my-2" />
+                    <ActiveInvites groupId={groupId} />
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="email" className="py-2 mt-2">
+              <Form {...form}>
+                <form onSubmit={onSubmit} className="space-y-2">
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem className="space-y-1">
+                        <FormLabel className="text-xs">Email Address</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="Enter email address" 
+                            {...field}
+                            className="h-8 text-sm" 
+                          />
+                        </FormControl>
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    )}
+                  />
 
-        {Array.isArray(members) && members.length > 0 && members.length < 5 && (
+                  <Button 
+                    type="submit"
+                    disabled={inviteMutation.isPending}
+                    className="w-full h-8 text-xs mt-2"
+                    size="sm"
+                  >
+                    {inviteMutation.isPending ? "Sending invite..." : "Send Invite"}
+                  </Button>
+                </form>
+              </Form>
+              
+              <div className="text-xs text-muted-foreground mt-2">
+                Users must register with the invited email to join.
+              </div>
+            </TabsContent>
+          </Tabs>
+        )}
+
+        {Array.isArray(members) && members.length > 0 && members.length < 5 && !isGeneratingInitialLink && (
           <div className="mt-2">
             <Separator className="my-2" />
             <h3 className="text-xs font-medium mb-1">Current members</h3>
