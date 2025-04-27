@@ -260,7 +260,7 @@ export function setupAuth(app: Express) {
       }
       
       // Create update object
-      const updates: Partial<User> = {};
+      const updates: Partial<SelectUser> = {};
       
       if (validatedData.name) {
         updates.name = validatedData.name;

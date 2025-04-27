@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -8,9 +9,11 @@ import { ArrowLeft, ChevronRight, LogOut, User } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
 import { MobilePageHeader } from "@/components/layout/mobile-page-header";
+import { ProfileEditForm } from "@/components/profile/profile-edit-form";
 
 export default function ProfilePage() {
   const { user, logoutMutation } = useAuth();
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   
   if (!user) return null;
   
@@ -46,8 +49,8 @@ export default function ProfilePage() {
           <Card>
             <CardHeader>
               <div className="flex items-center space-x-4">
-                <Avatar className="h-16 w-16">
-                  <AvatarFallback className="text-lg">{initials}</AvatarFallback>
+                <Avatar className="h-16 w-16 bg-fairshare-primary/20">
+                  <AvatarFallback className="text-lg text-fairshare-primary">{initials}</AvatarFallback>
                 </Avatar>
                 <div>
                   <CardTitle className="text-xl">{user.name}</CardTitle>
@@ -76,7 +79,10 @@ export default function ProfilePage() {
               <CardTitle className="text-xl">Account Settings</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 p-0">
-              <button className="w-full flex items-center justify-between p-4 hover:bg-muted transition-colors">
+              <button 
+                className="w-full flex items-center justify-between p-4 hover:bg-muted transition-colors"
+                onClick={() => setEditDialogOpen(true)}
+              >
                 <div className="flex items-center">
                   <User className="h-5 w-5 mr-3 text-muted-foreground" />
                   <div className="text-left">
@@ -106,6 +112,12 @@ export default function ProfilePage() {
           </Card>
         </div>
       </div>
+      
+      {/* Profile Edit Dialog */}
+      <ProfileEditForm 
+        isOpen={editDialogOpen} 
+        onClose={() => setEditDialogOpen(false)} 
+      />
     </MainLayout>
   );
 }
