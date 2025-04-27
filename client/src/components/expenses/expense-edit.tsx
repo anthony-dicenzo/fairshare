@@ -377,109 +377,146 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] p-4 rounded-lg" autoFocus={false}>
-        <DialogHeader className="pb-2">
+      <DialogContent className="sm:max-w-[440px] p-4 rounded-lg max-h-[90vh] overflow-y-auto" autoFocus={false}>
+        <div className="flex items-center justify-between">
           <DialogTitle className="flex items-center gap-2 text-base">
-            <ShoppingBag className="h-4 w-4 text-primary" />
+            <ShoppingBag className="h-5 w-5 text-[#E3976E]" />
             Edit Expense
           </DialogTitle>
-          <DialogDescription className="text-xs">
-            Update the details of your expense or delete it.
-          </DialogDescription>
-        </DialogHeader>
+          <button onClick={() => onOpenChange(false)} className="h-6 w-6 rounded-full flex items-center justify-center">
+            ✕
+          </button>
+        </div>
+        <p className="text-xs text-muted-foreground mt-1">
+          Enter the details of your expense to split it with your group.
+        </p>
 
         <Form {...form}>
-          <form onSubmit={handleSubmit} className="space-y-3 mt-1">
-            <div className="grid grid-cols-2 gap-3">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs font-medium">Title</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="e.g. Groceries, Dinner" 
-                        {...field} 
-                        className="h-9"
-                        autoFocus={false}
-                      />
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="paidBy"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs font-medium">From</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      value={field.value}
-                    >
+          <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm">Title</FormLabel>
                       <FormControl>
-                        <SelectTrigger className="h-9">
-                          <SelectValue placeholder="Select who paid" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={user?.id.toString() || ""}>
-                          You
-                        </SelectItem>
-                        {Array.isArray(groupMembers) && groupMembers
-                          .filter((member) => member?.userId !== user?.id)
-                          .map((member) => (
-                            <SelectItem 
-                              key={member?.userId} 
-                              value={(member?.userId || 0).toString()}
-                            >
-                              {member?.user?.name || "Unknown User"}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
-            </div>
-           
-            <div className="grid grid-cols-2 gap-3">
-              <FormField
-                control={form.control}
-                name="totalAmount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs font-medium">Amount</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <span className="absolute left-3 top-2.5 text-sm">$</span>
                         <Input 
-                          type="text"
-                          placeholder="0.00" 
-                          className="pl-8 h-9" 
-                          autoFocus={false}
+                          placeholder="e.g. Groceries, Dinner" 
                           {...field} 
+                          className="h-10"
+                          autoFocus={false}
                         />
-                      </div>
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
+                      </FormControl>
+                      <FormMessage className="text-xs" />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="paidBy"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm">From</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="h-10">
+                            <SelectValue placeholder="Select who paid" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value={user?.id.toString() || ""}>
+                            You
+                          </SelectItem>
+                          {Array.isArray(groupMembers) && groupMembers
+                            .filter((member) => member?.userId !== user?.id)
+                            .map((member) => (
+                              <SelectItem 
+                                key={member?.userId} 
+                                value={(member?.userId || 0).toString()}
+                              >
+                                {member?.user?.name || "Unknown User"}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage className="text-xs" />
+                    </FormItem>
+                  )}
+                />
+              </div>
+             
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="totalAmount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm">Amount</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <span className="absolute left-3 top-2.5 text-sm">$</span>
+                          <Input 
+                            type="text"
+                            placeholder="0.00" 
+                            className="pl-8 h-10" 
+                            autoFocus={false}
+                            {...field} 
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage className="text-xs" />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="date"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm">Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} className="h-10" autoFocus={false} />
+                      </FormControl>
+                      <FormMessage className="text-xs" />
+                    </FormItem>
+                  )}
+                />
+              </div>
               
               <FormField
                 control={form.control}
-                name="date"
+                name="splitMethod"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-xs font-medium">Date</FormLabel>
+                    <FormLabel className="text-sm">Split:</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} className="h-9" autoFocus={false} />
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        value={field.value}
+                        className="flex space-x-6"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="equal" id="equal-split" />
+                          <FormLabel htmlFor="equal-split" className="cursor-pointer">Equal</FormLabel>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="unequal" id="unequal-split" />
+                          <FormLabel htmlFor="unequal-split" className="cursor-pointer">Unequal</FormLabel>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="percentage" id="percentage-split" />
+                          <FormLabel htmlFor="percentage-split" className="cursor-pointer">Percentage</FormLabel>
+                        </div>
+                      </RadioGroup>
                     </FormControl>
                     <FormMessage className="text-xs" />
                   </FormItem>
@@ -487,190 +524,40 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="splitMethod"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs font-medium">Split:</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      value={field.value}
-                      className="flex space-x-4"
-                    >
-                      <div className="flex items-center space-x-1">
-                        <RadioGroupItem value="equal" className="h-3.5 w-3.5" id="equal-split" />
-                        <FormLabel htmlFor="equal-split" className="text-xs cursor-pointer font-normal">Equal</FormLabel>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <RadioGroupItem value="unequal" className="h-3.5 w-3.5" id="unequal-split" />
-                        <FormLabel htmlFor="unequal-split" className="text-xs cursor-pointer font-normal">Unequal</FormLabel>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <RadioGroupItem value="percentage" className="h-3.5 w-3.5" id="percentage-split" />
-                        <FormLabel htmlFor="percentage-split" className="text-xs cursor-pointer font-normal">Percentage</FormLabel>
-                      </div>
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )}
+            <Button 
+              type="submit"
+              className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white"
+              disabled={!canEdit || updateExpenseMutation.isPending}
+            >
+              {updateExpenseMutation.isPending ? "Saving..." : "Save Expense"}
+            </Button>
+            
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full h-12 border-gray-200"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            
+            <ConfirmDialog
+              title="Delete Expense"
+              description="Are you sure you want to delete this expense? This action cannot be undone."
+              onConfirm={() => deleteExpenseMutation.mutate()}
+              variant="destructive"
+              trigger={
+                <Button
+                  type="button"
+                  variant="destructive"
+                  className="w-full h-10 flex items-center justify-center gap-1"
+                  disabled={!canEdit || deleteExpenseMutation.isPending}
+                >
+                  <Trash className="h-4 w-4" />
+                  Delete Expense
+                </Button>
+              }
             />
-
-            {/* Display members with checkboxes */}
-            <div className="bg-muted/30 p-3 rounded-md">
-              <h4 className="text-xs font-medium mb-2">Split between:</h4>
-              <div className="space-y-2">
-                {Array.isArray(groupMembers) && groupMembers.map((member: any) => {
-                  const userId = member?.userId;
-                  const isSelected = selectedUserIds.includes(userId);
-                  const name = member?.user?.name || "Unknown User";
-                  
-                  // Calculate what to display based on split method
-                  let secondaryText = "";
-                  if (form.watch("splitMethod") === "equal" && isSelected && selectedUserIds.length > 0) {
-                    const amount = parseFloat(form.watch("totalAmount") || "0") / selectedUserIds.length;
-                    secondaryText = `$${amount.toFixed(2)}`;
-                  } else if (form.watch("splitMethod") === "unequal" && isSelected) {
-                    const amount = customAmounts[userId] || 0;
-                    secondaryText = `$${amount.toFixed(2)}`;
-                  } else if (form.watch("splitMethod") === "percentage" && isSelected) {
-                    const percentage = customPercentages[userId] || 0;
-                    secondaryText = `${percentage.toFixed(1)}%`;
-                  }
-                  
-                  return (
-                    <div key={userId} className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id={`user-${userId}`}
-                          checked={isSelected}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedUserIds(prev => [...prev, userId]);
-                            } else {
-                              setSelectedUserIds(prev => prev.filter(id => id !== userId));
-                            }
-                          }}
-                          className="h-4 w-4"
-                        />
-                        <label htmlFor={`user-${userId}`} className="text-xs cursor-pointer">{name}</label>
-                      </div>
-                      
-                      {isSelected && form.watch("splitMethod") !== "equal" && (
-                        <div className="flex items-center">
-                          {form.watch("splitMethod") === "unequal" && (
-                            <div className="relative">
-                              <span className="absolute left-2 top-1.5 text-xs">$</span>
-                              <Input 
-                                type="number"
-                                value={customAmounts[userId] || 0}
-                                onChange={(e) => {
-                                  const newAmount = parseFloat(e.target.value);
-                                  if (!isNaN(newAmount)) {
-                                    setCustomAmounts(prev => ({
-                                      ...prev,
-                                      [userId]: newAmount
-                                    }));
-                                  }
-                                }}
-                                className="w-20 h-7 text-xs pl-6"
-                                step="0.01"
-                                min="0"
-                              />
-                            </div>
-                          )}
-                          
-                          {form.watch("splitMethod") === "percentage" && (
-                            <div className="relative">
-                              <Input 
-                                type="number"
-                                value={customPercentages[userId] || 0}
-                                onChange={(e) => {
-                                  const newPercentage = parseFloat(e.target.value);
-                                  if (!isNaN(newPercentage)) {
-                                    setCustomPercentages(prev => ({
-                                      ...prev,
-                                      [userId]: newPercentage
-                                    }));
-                                  }
-                                }}
-                                className="w-16 h-7 text-xs pr-6"
-                                step="0.1"
-                                min="0"
-                                max="100"
-                              />
-                              <span className="absolute right-2 top-1.5 text-xs">%</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      
-                      {isSelected && form.watch("splitMethod") === "equal" && (
-                        <span className="text-xs text-muted-foreground">{secondaryText}</span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs font-medium">Notes (optional)</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Any additional details about this expense"
-                      className="resize-none h-20"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )}
-            />
-
-            <div className="mt-3">
-              <Button 
-                type="submit"
-                className="w-full h-10 bg-emerald-600 hover:bg-emerald-700 text-white"
-                disabled={!canEdit || updateExpenseMutation.isPending}
-              >
-                {updateExpenseMutation.isPending ? "Saving..." : "Save Changes"}
-              </Button>
-              
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full h-9 mt-2 border-gray-200"
-                onClick={() => onOpenChange(false)}
-              >
-                Cancel
-              </Button>
-              
-              <ConfirmDialog
-                title="Delete Expense"
-                description="Are you sure you want to delete this expense? This action cannot be undone."
-                onConfirm={() => deleteExpenseMutation.mutate()}
-                variant="destructive"
-                trigger={
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    className="w-full h-9 mt-2 flex items-center justify-center gap-1"
-                    disabled={!canEdit || deleteExpenseMutation.isPending}
-                  >
-                    <Trash className="h-4 w-4" />
-                    Delete Expense
-                  </Button>
-                }
-              />
-            </div>
           </form>
         </Form>
       </DialogContent>
