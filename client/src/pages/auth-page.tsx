@@ -144,7 +144,7 @@ export default function AuthPage() {
 
           {/* Login form section */}
           <div className="bg-white rounded-3xl p-6 shadow-sm">
-            <Tabs defaultValue="login" className="w-full">
+            <Tabs defaultValue="login" className="w-full tabs">
               <TabsList className="hidden">
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="register">Register</TabsTrigger>
@@ -198,9 +198,19 @@ export default function AuthPage() {
                         variant="outline" 
                         className="w-full h-12 rounded-xl border-fairshare-dark/20 text-fairshare-dark hover:bg-fairshare-dark/5"
                         onClick={() => {
-                          // Switch to register tab
-                          const registerTab = document.querySelector('[data-value="register"]') as HTMLElement;
-                          if (registerTab) registerTab.click();
+                          // Switch to register tab directly
+                          const tabsContainer = document.querySelector('.tabs');
+                          if (tabsContainer) {
+                            // Set tabs value to register
+                            const tabsObj = (tabsContainer as any).__tabs;
+                            if (tabsObj?.setValue) {
+                              tabsObj.setValue('register');
+                            } else {
+                              // Fallback to clicking the element
+                              const registerTab = document.querySelector('[data-value="register"]') as HTMLElement;
+                              if (registerTab) registerTab.click();
+                            }
+                          }
                         }}
                       >
                         Create an account
@@ -377,9 +387,19 @@ export default function AuthPage() {
                     variant="outline" 
                     className="w-full h-12 rounded-xl border-fairshare-dark/20 text-fairshare-dark hover:bg-fairshare-dark/5"
                     onClick={() => {
-                      // Switch to login tab
-                      const loginTab = document.querySelector('[data-value="login"]') as HTMLElement;
-                      if (loginTab) loginTab.click();
+                      // Switch to login tab directly
+                      const tabsContainer = document.querySelector('.tabs');
+                      if (tabsContainer) {
+                        // Set tabs value to login
+                        const tabsObj = (tabsContainer as any).__tabs;
+                        if (tabsObj?.setValue) {
+                          tabsObj.setValue('login');
+                        } else {
+                          // Fallback to clicking the element
+                          const loginTab = document.querySelector('[data-value="login"]') as HTMLElement;
+                          if (loginTab) loginTab.click();
+                        }
+                      }
                     }}
                   >
                     Log in
@@ -411,7 +431,7 @@ export default function AuthPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="login" className="w-full">
+              <Tabs defaultValue="login" className="w-full tabs">
                 <TabsList className="grid w-full grid-cols-2 mb-4">
                   <TabsTrigger value="login">Login</TabsTrigger>
                   <TabsTrigger value="register">Register</TabsTrigger>
