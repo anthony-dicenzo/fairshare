@@ -80,32 +80,32 @@ export function GroupInvite({ open, onOpenChange, groupId, members = [] }: Group
     
     setIsLoading(true);
     try {
-      // First try to fetch existing invites
-      const invitesResponse = await apiRequest<any[]>(`/api/groups/${groupId}/invites`);
-      console.log("Existing invites:", invitesResponse);
+      // Implement a direct call to create the invite that will either:
+      // 1. Return an existing active invite, or
+      // 2. Create a new one if none exists
       
-      // Check if we already have an active invite
-      if (Array.isArray(invitesResponse) && invitesResponse.length > 0) {
-        const activeInvite = invitesResponse.find(invite => invite.isActive);
-        if (activeInvite) {
-          console.log("Using existing invite:", activeInvite);
-          setInviteCode(activeInvite.inviteCode);
-          setIsLoading(false);
-          return;
-        }
+      console.log(`Directly creating invite for group ${groupId}`);
+      
+      // Simplified approach with a single API call
+      const response = await fetch(`/api/groups/${groupId}/invite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
       }
       
-      // If no active invites, create a new one
-      console.log("Creating new invite for group", groupId);
-      const response = await apiRequest<any>("POST", `/api/groups/${groupId}/invite`, {});
+      const data = await response.json();
+      console.log("Invite response:", data);
       
-      // Log the response to see what we're getting
-      console.log("New invite response:", response);
-      
-      if (response && response.inviteCode) {
-        setInviteCode(response.inviteCode);
+      if (data && data.inviteCode) {
+        setInviteCode(data.inviteCode);
       } else {
-        console.error("Invalid invite response format:", response);
+        console.error("Invalid invite response format:", data);
         throw new Error("Invalid response format from server");
       }
     } catch (error) {
