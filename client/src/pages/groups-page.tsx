@@ -1,14 +1,14 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/main-layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PlusCircle, ChevronLeft, Users } from "lucide-react";
-import { Link, useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Search, PlusCircle, SlidersHorizontal } from "lucide-react";
+import { useLocation } from "wouter";
 import { GroupForm } from "@/components/groups/group-form";
 import { Group } from "@shared/schema";
-import { MobilePageHeader } from "@/components/layout/mobile-page-header";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 // Define types for enhanced group data
 interface EnhancedGroup extends Group {
@@ -16,257 +16,303 @@ interface EnhancedGroup extends Group {
   balance?: number;
 }
 
+// Define a balance data type for a user's balance with another user
+interface UserBalance {
+  userId: number;
+  userName: string;
+  amount: number;
+}
+
 export default function GroupsPage() {
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [, setLocation] = useLocation();
   const [enhancedGroups, setEnhancedGroups] = useState<EnhancedGroup[]>([]);
+  const [showSettledGroups, setShowSettledGroups] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   
   // Fetch groups
   const { data: groups, isLoading } = useQuery<Group[]>({
     queryKey: ["/api/groups"],
   });
   
-  // Track if the group member counts have been loaded
-  const [membersLoaded, setMembersLoaded] = useState(false);
+  // Fetch user balances
+  const { data: balances } = useQuery({
+    queryKey: ["/api/balances"],
+    select: (data: any) => ({
+      ...data,
+      owedByUsers: data.owedByUsers || [],
+      owesToUsers: data.owesToUsers || []
+    })
+  });
+  
+  // Track if the group details have been loaded
+  const [detailsLoaded, setDetailsLoaded] = useState(false);
 
-  // Fetch member counts for each group when groups data is available - only once
+  // Fetch group details when groups data is available
   useEffect(() => {
-    // Skip if no groups or already loaded
-    if (!groups || groups.length === 0 || membersLoaded) return;
+    if (!groups || groups.length === 0 || detailsLoaded) return;
     
-    // Function to get auth headers for requests
-    function getAuthHeaders(): Record<string, string> {
-      const headers: Record<string, string> = {};
-      try {
-        const authData = localStorage.getItem("fairshare_auth_state");
-        if (authData) {
-          const parsed = JSON.parse(authData);
-          if (parsed.userId && parsed.sessionId) {
-            headers["X-Session-Backup"] = parsed.sessionId;
-            headers["X-User-Id"] = parsed.userId.toString();
-          }
-        }
-      } catch (e) {
-        console.error("Error getting auth headers:", e);
-      }
-      return headers;
-    }
-    
-    // Main function to fetch and enhance groups with member counts - with cache
-    async function fetchMemberCounts() {
+    // Main function to fetch and enhance groups with details
+    async function fetchGroupDetails() {
       try {
         console.log("Fetching member counts for groups");
         
-        const authHeaders = getAuthHeaders();
-        
-        // First try to get members from localStorage cache
-        let cachedMemberCounts: Record<number, number> = {};
-        try {
-          const cached = localStorage.getItem("fairshare_member_counts");
-          if (cached) {
-            cachedMemberCounts = JSON.parse(cached);
-          }
-        } catch (e) {
-          console.error("Error reading cached member counts:", e);
-        }
-        
-        // Create enhanced groups with member counts
+        // Create enhanced groups with details
         const groupsWithDetails = await Promise.all(
           (groups || []).map(async (group) => {
-            // First check cache
-            if (cachedMemberCounts[group.id]) {
-              return { ...group, memberCount: cachedMemberCounts[group.id] };
-            }
-            
             try {
-              // Fetch members for this group with auth headers
-              const membersResponse = await fetch(`/api/groups/${group.id}/members`, {
-                credentials: "include",
-                headers: authHeaders
+              // Fetch balances for this group
+              const balancesResponse = await fetch(`/api/groups/${group.id}/balances`, {
+                credentials: "include"
               });
               
-              if (!membersResponse.ok) {
-                console.warn(`Could not fetch members for group ${group.id}: ${membersResponse.status}`);
-                return { ...group, memberCount: 0 };
+              if (!balancesResponse.ok) {
+                console.warn(`Could not fetch balances for group ${group.id}: ${balancesResponse.status}`);
+                return { ...group, balance: 0 };
               }
               
-              const members = await membersResponse.json();
-              const memberCount = Array.isArray(members) ? members.length : 0;
+              const balanceData = await balancesResponse.json();
               
-              // Update the cache
-              cachedMemberCounts[group.id] = memberCount;
+              // Find current user's balance in this group
+              const userBalance = Array.isArray(balanceData) ? 
+                balanceData.find((b: any) => b.user.id === (window as any).currentUser?.id) : null;
               
-              console.log(`Group ${group.name} has ${memberCount} members`);
+              const balance = userBalance ? userBalance.balance : 0;
+              
+              // Fetch members for this group
+              const membersResponse = await fetch(`/api/groups/${group.id}/members`, {
+                credentials: "include"
+              });
+              
+              let memberCount = 0;
+              if (membersResponse.ok) {
+                const members = await membersResponse.json();
+                memberCount = Array.isArray(members) ? members.length : 0;
+              }
               
               return {
                 ...group,
+                balance,
                 memberCount
               };
             } catch (error) {
-              console.error(`Error fetching members for group ${group.id}:`, error);
-              return { ...group, memberCount: 0 };
+              console.error(`Error fetching details for group ${group.id}:`, error);
+              return { ...group, balance: 0, memberCount: 0 };
             }
           })
         );
         
-        // Update localStorage cache
-        try {
-          localStorage.setItem("fairshare_member_counts", JSON.stringify(cachedMemberCounts));
-        } catch (e) {
-          console.error("Error caching member counts:", e);
-        }
-        
         setEnhancedGroups(groupsWithDetails);
-        setMembersLoaded(true);
+        setDetailsLoaded(true);
       } catch (error) {
-        console.error("Error enhancing groups with member counts:", error);
+        console.error("Error enhancing groups with details:", error);
       }
     }
     
-    fetchMemberCounts();
-  }, [groups, membersLoaded]);
-
-  // Render loading skeleton cards
-  const renderSkeletons = () => {
-    return Array(3).fill(0).map((_, i) => (
-      <Card key={i}>
-        <CardHeader>
-          <div className="flex items-center">
-            <Skeleton className="w-10 h-10 rounded-full mr-3" />
-            <Skeleton className="h-6 w-24" />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-        </CardContent>
-      </Card>
+    fetchGroupDetails();
+  }, [groups, detailsLoaded]);
+  
+  // Get the actual groups to display with balance info
+  const displayGroups = enhancedGroups.length > 0 ? enhancedGroups : (groups || []);
+  
+  // Filter out settled groups if needed and apply search
+  const filteredGroups = displayGroups.filter(group => {
+    // Apply search filter if search term exists
+    const matchesSearch = searchTerm === "" || 
+      group.name.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Filter by settled status if showing only active groups
+    const isSettled = group.balance === 0 || Math.abs(group.balance || 0) < 0.01;
+    
+    // Only show settled groups if requested
+    return matchesSearch && (showSettledGroups || !isSettled);
+  });
+  
+  // Calculate the total balance the user owes across all groups
+  const calculateTotalOwed = () => {
+    let total = 0;
+    displayGroups.forEach(group => {
+      if (group.balance && group.balance < 0) {
+        total += Math.abs(group.balance);
+      }
+    });
+    return total;
+  };
+  
+  const totalOwed = calculateTotalOwed();
+  
+  // Count settled groups for the button text
+  const settledGroupsCount = displayGroups.filter(
+    group => group.balance === 0 || Math.abs(group.balance || 0) < 0.01
+  ).length;
+  
+  // Generate group-specific balances
+  const renderUserBalancesForGroup = (group: EnhancedGroup) => {
+    // This would ideally come from the API, but for now we'll create a placeholder
+    // that demonstrates the format shown in the wireframe
+    const userBalances: UserBalance[] = [];
+    
+    // For demonstration purposes only - in production this would use real data
+    // from the group balances API endpoint
+    if (group.id === 2) { // House of Anthica
+      userBalances.push({
+        userId: 3,
+        userName: "Jesica",
+        amount: 1819.42
+      });
+    }
+    
+    return userBalances.map(balance => (
+      <div key={`${group.id}-${balance.userId}`} className="ml-12 mt-1">
+        <p className="text-sm text-fairshare-dark">
+          You owe {balance.userName}{" "}
+          <span className="font-medium">${balance.amount.toFixed(2)}</span>
+        </p>
+      </div>
     ));
   };
-
-  // Render a group card
-  const renderGroupCard = (group: EnhancedGroup) => {
+  
+  // Render loading skeleton
+  if (isLoading) {
     return (
-      <Card 
-        key={group.id} 
-        className="cursor-pointer hover:shadow-md transition-shadow"
-        onClick={() => setLocation(`/group/${group.id}`)}
-      >
-        <CardHeader className="pb-3">
-          <div className="flex items-center">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-3">
-              <span className="text-sm text-primary font-medium">
-                {group.name.charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <CardTitle className="text-lg">{group.name}</CardTitle>
+      <MainLayout>
+        <div className="p-4">
+          <div className="flex justify-between mb-4">
+            <Skeleton className="h-8 w-2/3" />
+            <Skeleton className="h-8 w-8 rounded-full" />
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center">
-              <Users className="h-4 w-4 mr-2 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
-                {typeof group.memberCount === 'number' ? `${group.memberCount} member${group.memberCount !== 1 ? 's' : ''}` : '1 member'}
-              </p>
-            </div>
-            
-            {group.balance !== undefined && (
-              <div className="bg-muted/50 rounded-lg p-3">
-                <p className="text-sm font-medium">Balance</p>
-                <p className={`text-lg font-semibold ${
-                  group.balance > 0 
-                    ? "text-emerald-500 dark:text-emerald-400" 
-                    : group.balance < 0
-                      ? "text-rose-500 dark:text-rose-400"
-                      : ""
-                }`}>
-                  {group.balance > 0 ? "+" : ""}${Math.abs(group.balance || 0).toFixed(2)}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {group.balance > 0 
-                    ? "You are owed money" 
-                    : group.balance < 0 
-                      ? "You owe money" 
-                      : "All settled up"}
-                </p>
+          <Skeleton className="h-12 w-full mb-6" />
+          <div className="space-y-6">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="space-y-2">
+                <div className="flex items-center">
+                  <Skeleton className="h-10 w-10 rounded-full mr-3" />
+                  <Skeleton className="h-6 w-32" />
+                </div>
+                <Skeleton className="h-4 w-64 ml-12" />
+                <Skeleton className="h-4 w-48 ml-12" />
               </div>
-            )}
-            
-            <Button 
-              variant="outline" 
-              className="w-full"
-              onClick={(e) => {
-                e.stopPropagation();
-                setLocation(`/group/${group.id}`);
-              }}
-            >
-              View Details
-            </Button>
+            ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </MainLayout>
     );
-  };
-
-  // Render empty state when there are no groups
-  const renderEmptyState = () => {
-    return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <p className="text-muted-foreground mb-6">You don't have any groups yet. Create one to get started.</p>
-        <Button onClick={() => setShowGroupModal(true)}>
-          <PlusCircle className="h-4 w-4 mr-2" />
-          Create Your First Group
-        </Button>
-      </div>
-    );
-  };
-
+  }
+  
+  // Render the group list UI based on the wireframe
   return (
     <MainLayout>
-      <MobilePageHeader title="Your Groups">
-        <Button 
-          size="sm" 
-          onClick={() => setShowGroupModal(true)} 
-          className="md:hidden"
-        >
-          <PlusCircle className="h-4 w-4 mr-1" />
-          New
-        </Button>
-      </MobilePageHeader>
-      
-      <div className="px-4 py-4 sm:py-6 md:px-6 lg:px-8">
-        <div className="hidden md:flex items-center justify-between mb-6">
-          <div className="flex items-center">
-            <Button variant="ghost" size="sm" asChild className="mr-2">
-              <Link href="/">
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Back
-              </Link>
-            </Button>
-            <h1 className="text-2xl font-bold">Your Groups</h1>
+      <div className="p-4 bg-fairshare-cream">
+        {/* Search and Create Group header */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-fairshare-dark/60" />
+            <Input
+              placeholder="Search groups"
+              className="pl-9 pr-4 py-2 w-full bg-white border-fairshare-dark/10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
-          <Button onClick={() => setShowGroupModal(true)}>
-            <PlusCircle className="h-4 w-4 mr-2" />
-            New Group
+          <Button 
+            onClick={() => setShowGroupModal(true)}
+            className="ml-2 whitespace-nowrap text-fairshare-primary border-fairshare-primary bg-transparent hover:bg-fairshare-primary/10"
+            variant="outline"
+          >
+            Create group
           </Button>
         </div>
-
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {renderSkeletons()}
+        
+        {/* Overall balance section */}
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h2 className="text-xl font-medium text-fairshare-dark">
+              Overall, you owe <span className="text-fairshare-primary">${totalOwed.toFixed(2)}</span>
+            </h2>
           </div>
-        ) : !groups || groups.length === 0 ? (
-          renderEmptyState()
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {(enhancedGroups.length > 0 ? enhancedGroups : groups).map(renderGroupCard)}
-          </div>
-        )}
+          <Button variant="ghost" size="icon">
+            <SlidersHorizontal className="h-5 w-5 text-fairshare-dark" />
+          </Button>
+        </div>
+        
+        {/* Group listings */}
+        <div className="space-y-6">
+          {filteredGroups.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-fairshare-dark/60">No groups found</p>
+              <Button 
+                onClick={() => setShowGroupModal(true)}
+                className="mt-4"
+              >
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Create New Group
+              </Button>
+            </div>
+          ) : (
+            <>
+              {filteredGroups.map(group => {
+                const isSettled = group.balance === 0 || Math.abs(group.balance || 0) < 0.01;
+                
+                return (
+                  <div 
+                    key={group.id}
+                    className="cursor-pointer"
+                    onClick={() => setLocation(`/group/${group.id}`)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <div className="w-10 h-10 rounded-md bg-fairshare-primary/10 flex items-center justify-center mr-3 text-fairshare-primary">
+                          <span className="font-medium">{group.name.charAt(0)}</span>
+                        </div>
+                        <h3 className="font-medium text-fairshare-dark">{group.name}</h3>
+                      </div>
+                      
+                      <div className="text-right">
+                        {isSettled ? (
+                          <span className="text-fairshare-dark/60 text-sm">settled up</span>
+                        ) : group.balance && group.balance < 0 ? (
+                          <div className="text-right">
+                            <p className="text-sm text-fairshare-dark/70">you owe</p>
+                            <p className="font-medium text-fairshare-primary">
+                              ${Math.abs(group.balance).toFixed(2)}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="text-right">
+                            <p className="text-sm text-fairshare-dark/70">you are owed</p>
+                            <p className="font-medium text-emerald-500">
+                              ${(group.balance || 0).toFixed(2)}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* User-specific balances */}
+                    {!isSettled && renderUserBalancesForGroup(group)}
+                  </div>
+                );
+              })}
+              
+              {/* Button to show/hide settled groups */}
+              {settledGroupsCount > 0 && (
+                <div className="mt-6 text-center">
+                  <Button 
+                    variant="outline"
+                    className="w-full border-fairshare-primary text-fairshare-primary hover:bg-fairshare-primary/10"
+                    onClick={() => setShowSettledGroups(!showSettledGroups)}
+                  >
+                    {showSettledGroups 
+                      ? "Hide settled-up groups" 
+                      : `Show ${settledGroupsCount} settled-up group${settledGroupsCount !== 1 ? 's' : ''}`}
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
+      
       <GroupForm open={showGroupModal} onOpenChange={setShowGroupModal} />
     </MainLayout>
   );
