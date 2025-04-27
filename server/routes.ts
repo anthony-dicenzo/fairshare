@@ -45,9 +45,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     
     try {
+      // Get basic group data
       const groups = await storage.getGroupsByUserId(req.user.id);
-      res.json(groups);
+      
+      // Enhance groups with balance information
+      const enhancedGroups = await Promise.all(groups.map(async (group) => {
+        try {
+          // Get the cached balance for this user in this group
+          const userBalance = await storage.getUserCachedBalance(req.user.id, group.id);
+          
+          // Return the enhanced group with balance information
+          return {
+            ...group,
+            balance: userBalance ? parseFloat(userBalance.balanceAmount) : 0
+          };
+        } catch (balanceError) {
+          console.log(`Error getting cached balance for group ${group.id}:`, balanceError);
+          // If there's an error, just return the group without balance info
+          return {
+            ...group,
+            balance: 0
+          };
+        }
+      }));
+      
+      res.json(enhancedGroups);
     } catch (error) {
+      console.error("Error fetching groups with balances:", error);
       res.status(500).json({ error: "Failed to fetch groups" });
     }
   });
