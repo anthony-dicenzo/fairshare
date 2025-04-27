@@ -12,7 +12,7 @@ import {
 } from "@shared/schema";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
-import { eq, and, desc, asc, inArray } from "drizzle-orm";
+import { eq, and, desc, asc, inArray, or } from "drizzle-orm";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -428,7 +428,10 @@ export class DatabaseStorage implements IStorage {
       .from(activityLog)
       .where(
         groupIds.length > 0 
-          ? eq(activityLog.userId, userId) || inArray(activityLog.groupId, groupIds)
+          ? or(
+              eq(activityLog.userId, userId),
+              inArray(activityLog.groupId, groupIds)
+            )
           : eq(activityLog.userId, userId)
       )
       .innerJoin(users, eq(activityLog.userId, users.id))
