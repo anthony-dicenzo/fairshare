@@ -1,0 +1,95 @@
+Fairshare Web App — Performance Optimization Plan
+
+Goal
+
+Reduce Fairshare web app page load times from 2–7 seconds to a consistent 1–2 seconds by optimizing how expense calculations are handled.
+
+Current Issue
+
+	•	All balances, debts, and payment summaries are calculated live on every page load.
+	•	As the number of expenses, participants, or groups grows, the client must compute too many operations on the fly.
+	•	This leads to long delays before the UI fully paints.
+
+Core Optimization Strategies
+
+1. Pre-Calculate Balances and Cache Them
+
+Instead of recalculating all balances and splits after each page load:
+Calculate and save balance summaries at the time of:
+
+	•	Adding an expense
+	•	Recording a payment
+	•	Editing or deleting an expense
+
+Then: Fetch the pre-computed balances when rendering the Dashboard or Group page.
+
+Benefits:
+
+	•	Reduces real-time computations by 80–90%.
+	•	Page only needs to fetch and display simple numbers, not run aggregation logic on every visit.
+
+2. Create a "Balances" Table or Cache
+
+Add a new table (or cached object) to the backend:
+
+Field	Type	Description
+id	PK	Unique ID
+group_id	FK to Groups	Group associated
+user_id	FK to Users	User associated
+balance_amount	decimal	Amount user owes (+) or is owed (-)
+last_updated	timestamp	To check if cache needs refresh
+
+	Option: Also create balances_between_users if you want to show direct "you owe X to Y" without recalculating.
+
+3. Update Balances Only on Data Mutations
+
+Only re-calculate balances when:
+
+	•	New expense added
+	•	Expense edited or deleted
+	•	New payment recorded
+
+Not every time someone loads the page.
+
+Implementation Hints:
+
+	•	Trigger balance recalculation in your backend hooks or API endpoints (e.g., Supabase Triggers, Prisma Middleware, API Route handler).
+	•	You can use transactions to ensure balance updates and expense creation are atomic.
+
+4. Lazy Load Heavy Data (Optional Enhancement)
+
+If a group has lots of historical expenses:
+
+	•	Load the current balances immediately.
+	•	Lazy-load the full expense history in the background after initial render.
+
+	Focus on showing actionable information (current owed/owe balances) first — detailed history can come a second later.
+
+5. Client-Side State Optimization
+
+	•	Use optimistic UI updates (assume success and show immediately when adding expenses).
+	•	Debounce or batch expensive re-renders.
+	•	Prefer simple props over heavy derived states when rendering groups or balances.
+
+Priority Plan (Simple Step-by-Step)
+
+Priority	Action	Time Estimate
+1	Add Balances table/cache	2–3 hours
+2	Update mutation endpoints to recompute balances on change	2–4 hours
+3	Fetch balances directly on Group/Dashboard load	1–2 hours
+4	(Optional) Lazy-load full expense history after page loads	1–2 hours
+5	(Optional) Optimize client state management	1–2 hours
+
+Expected Result
+
+	Initial page load should drop to under 1.5 seconds, even for large groups with many expenses.
+
+Example Architecture Change
+
+Before:
+
+	•	Load expenses → Calculate balances → Display balances → Show UI (slow)
+
+After:
+
+	•	Load pre-computed balances → Display balances immediately → Lazy-load expenses if needed (fast)
