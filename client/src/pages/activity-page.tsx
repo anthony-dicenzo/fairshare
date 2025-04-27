@@ -49,26 +49,39 @@ export default function ActivityPage() {
     queryKey: ["/api/activity"],
   });
   
-  const { data: expenseActivity, isLoading: isLoadingExpense } = useQuery<Activity[]>({
+  // Fetch activity data for expense tab
+  const { data: rawExpenseActivity, isLoading: isLoadingExpense } = useQuery<Activity[]>({
     queryKey: ["/api/activity", "expenses"],
     enabled: activeTab === "expenses",
   });
   
-  const { data: paymentActivity, isLoading: isLoadingPayment } = useQuery<Activity[]>({
+  // Fetch activity data for payment tab
+  const { data: rawPaymentActivity, isLoading: isLoadingPayment } = useQuery<Activity[]>({
     queryKey: ["/api/activity", "payments"],
     enabled: activeTab === "payments",
   });
 
   // Filter activities by type when needed and remove "create_invite" and "create_invite_link" activities
-  const filteredActivities = allActivity?.filter(a => 
+  const filteredAllActivities = allActivity?.filter(a => 
     !a.actionType.includes("create_invite")
   ) || [];
   
+  // Filter expense activities to remove invite-related actions
+  const filteredExpenseActivities = rawExpenseActivity?.filter(a => 
+    !a.actionType.includes("create_invite") && a.actionType === "add_expense"
+  ) || [];
+  
+  // Filter payment activities to remove invite-related actions
+  const filteredPaymentActivities = rawPaymentActivity?.filter(a => 
+    !a.actionType.includes("create_invite") && a.actionType === "record_payment"
+  ) || [];
+  
+  // Choose which filtered set to display based on active tab
   const activities = activeTab === "expenses" 
-    ? (expenseActivity || filteredActivities.filter(a => a.actionType === "add_expense")) 
+    ? (filteredExpenseActivities.length > 0 ? filteredExpenseActivities : filteredAllActivities.filter(a => a.actionType === "add_expense")) 
     : activeTab === "payments"
-      ? (paymentActivity || filteredActivities.filter(a => a.actionType === "record_payment"))
-      : filteredActivities;
+      ? (filteredPaymentActivities.length > 0 ? filteredPaymentActivities : filteredAllActivities.filter(a => a.actionType === "record_payment"))
+      : filteredAllActivities;
   
   const isLoading = activeTab === "all" 
     ? isLoadingAll 
@@ -122,7 +135,7 @@ export default function ActivityPage() {
               </div>
             ) : (
               <div className="divide-y">
-                {activities.map((activity) => (
+                {activities.map((activity: Activity) => (
                   <div key={activity.id} className="px-5 py-4 hover:bg-accent transition-colors">
                     <ActivityItemAction 
                       actionType={activity.actionType}
