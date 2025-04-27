@@ -11,7 +11,7 @@ interface MobilePageHeaderProps {
 
 export function MobilePageHeader({ title, children }: MobilePageHeaderProps) {
   return (
-    <div className="flex items-center justify-between border-b p-3 md:hidden">
+    <div className="flex items-center justify-between border-b p-3 md:hidden bg-fairshare-cream">
       <div className="flex items-center">
         <Sheet>
           <SheetTrigger asChild>
