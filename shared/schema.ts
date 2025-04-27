@@ -75,6 +75,25 @@ export const groupInvites = pgTable("group_invites", {
   isActive: boolean("is_active").notNull().default(true)
 });
 
+// New table for pre-calculated balances
+export const userBalances = pgTable("user_balances", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  groupId: integer("group_id").notNull().references(() => groups.id),
+  balanceAmount: numeric("balance_amount").notNull().default("0"),
+  lastUpdated: timestamp("last_updated").defaultNow().notNull()
+});
+
+// New table for direct balances between users
+export const userBalancesBetweenUsers = pgTable("user_balances_between_users", {
+  id: serial("id").primaryKey(),
+  groupId: integer("group_id").notNull().references(() => groups.id),
+  fromUserId: integer("from_user_id").notNull().references(() => users.id),
+  toUserId: integer("to_user_id").notNull().references(() => users.id),
+  balanceAmount: numeric("balance_amount").notNull().default("0"),
+  lastUpdated: timestamp("last_updated").defaultNow().notNull()
+});
+
 // Insert Schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
