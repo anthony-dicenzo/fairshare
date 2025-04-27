@@ -153,6 +153,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Clear any existing auth cookies from localStorage
         localStorage.removeItem("fairshare_auth_state");
         
+        // Clear all existing cache first to ensure no data leakage between users
+        queryClient.clear();
+        
         const res = await fetch("/api/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -200,12 +203,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
     onSuccess: (user) => {
+      // Set the user in cache
       queryClient.setQueryData(["/api/user"], user);
       
-      // Invalidate other queries to force refresh with new auth state
-      queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/balances"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/activity"] });
+      // Force a fresh fetch of all user-specific data instead of using potentially cached data from previous users
+      setTimeout(() => {
+        // Small timeout to ensure state updates are complete
+        queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/balances"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/activity"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/user/balance"] });
+      }, 500);
       
       toast({
         title: "Login successful",
@@ -227,11 +235,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registerMutation = useMutation<SafeUser, Error, RegisterData>({
     mutationFn: async (userData) => {
+      // Clear any pre-existing user data from localStorage
+      localStorage.removeItem("fairshare_auth_state");
+      
+      // Clear all existing cache first to avoid leaking data from previous users
+      queryClient.clear();
+      
       const res = await apiRequest("POST", "/api/register", userData);
       return await res.json();
     },
     onSuccess: (user) => {
+      // Set the user in cache
       queryClient.setQueryData(["/api/user"], user);
+      
+      // Store authentication data for backup auth
+      localStorage.setItem("fairshare_auth_state", JSON.stringify({
+        userId: user.id,
+        username: user.username,
+        sessionId: "initial_session",
+        loggedInAt: new Date().toISOString()
+      }));
+      
       toast({
         title: "Registration successful",
         description: `Welcome to FairShare, ${user.name}!`,
@@ -253,7 +277,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await apiRequest("POST", "/api/logout");
     },
     onSuccess: () => {
+      // Reset user data
       queryClient.setQueryData(["/api/user"], null);
+      
+      // Clear all queries from the cache to prevent data leakage between users
+      queryClient.clear();
+      
       toast({
         title: "Logged out",
         description: "You have been successfully logged out.",
