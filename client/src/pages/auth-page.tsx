@@ -105,10 +105,7 @@ export default function AuthPage() {
           {/* Logo and tagline section */}
           <div className="text-center mb-12">
             <div className="flex justify-center items-center mb-2">
-              <div className="text-fairshare-primary text-3xl mr-2">
-                <span className="text-4xl">✻</span> 
-              </div>
-              <h1 className="text-3xl font-bold text-fairshare-dark">FairShare</h1>
+              <h1 className="text-3xl font-bold text-fairshare-primary">FairShare</h1>
             </div>
             <h2 className="text-4xl font-serif font-medium text-fairshare-dark mt-10 mb-2">
               Your expenses,<br />simplified
@@ -147,17 +144,25 @@ export default function AuthPage() {
                       )}
                     />
 
-                    {/* Password field */}
+                    {/* Login button - Color changed to Soft Mango Orange */}
+                    <Button 
+                      type="submit" 
+                      className="w-full h-12 rounded-xl mt-4 bg-fairshare-primary text-white hover:bg-fairshare-primary/90"
+                      disabled={loginMutation.isPending}
+                    >
+                      {loginMutation.isPending ? "Logging in..." : "Continue with email"}
+                    </Button>
+                    
+                    {/* Hidden password field to maintain form validation */}
                     <FormField
                       control={loginForm.control}
                       name="password"
                       render={({ field }) => (
-                        <FormItem>
+                        <FormItem className="hidden">
                           <FormControl>
                             <Input 
                               type="password" 
                               placeholder="Enter your password" 
-                              className="h-12 rounded-xl border-fairshare-dark/20 bg-white" 
                               {...field} 
                             />
                           </FormControl>
@@ -165,15 +170,6 @@ export default function AuthPage() {
                         </FormItem>
                       )}
                     />
-
-                    {/* Login button */}
-                    <Button 
-                      type="submit" 
-                      className="w-full h-12 rounded-xl mt-4 bg-fairshare-dark text-white hover:bg-fairshare-dark/90"
-                      disabled={loginMutation.isPending}
-                    >
-                      {loginMutation.isPending ? "Logging in..." : "Continue with email"}
-                    </Button>
                   </form>
                 </Form>
 
