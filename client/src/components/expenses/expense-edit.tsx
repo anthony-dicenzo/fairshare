@@ -360,7 +360,8 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
   });
 
   // Check if the current user is the one who paid or created the expense
-  const canEdit = expense && user && expense.paidBy === user.id;
+  const expenseObj = expense as any;
+  const canEdit = expense && user && expenseObj?.paidBy === user.id;
 
   if (isLoadingExpense) {
     return (
@@ -615,6 +616,24 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
                 })}
               </div>
             </div>
+
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs font-medium">Notes (optional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Any additional details about this expense"
+                      className="resize-none h-20"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage className="text-xs" />
+                </FormItem>
+              )}
+            />
 
             <div className="mt-3">
               <Button 
