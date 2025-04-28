@@ -25,9 +25,13 @@ export default function GroupsPage() {
     queryKey: ["/api/user"]
   });
   
-  // Get user's overall balance
-  const { data: balances, isLoading: isBalancesLoading } = useQuery({
+  // Get user's overall balance with aggressive refresh strategy
+  const { data: balances, isLoading: isBalancesLoading, refetch: refetchBalances } = useQuery({
     queryKey: ["/api/balances"],
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: 'always',
+    refetchOnReconnect: true,
     select: (data: any) => ({
       ...data,
       owedByUsers: data.owedByUsers || [],
@@ -35,14 +39,42 @@ export default function GroupsPage() {
     })
   });
   
-  // Get groups - simplified approach like sidebar
-  const { data: groups = [], isLoading: isGroupsLoading } = useQuery<EnhancedGroup[]>({
+  // Force refetch balances when component mounts
+  useEffect(() => {
+    // Immediate refetch
+    refetchBalances();
+    
+    // Also schedule another refetch after a delay
+    const timer = setTimeout(() => {
+      refetchBalances();
+    }, 700); // Slightly longer than groups refetch to ensure latest data
+    
+    return () => clearTimeout(timer);
+  }, []);
+  
+  // Get groups - with aggressive refresh strategy
+  const { data: groups = [], isLoading: isGroupsLoading, refetch: refetchGroups } = useQuery<EnhancedGroup[]>({
     queryKey: ["/api/groups"],
     // Ensure fresh data by setting staleTime to 0
     staleTime: 0,
-    // Force refetch on window focus
-    refetchOnWindowFocus: true
+    // Force refetch on window focus, mount, and reconnect
+    refetchOnWindowFocus: true,
+    refetchOnMount: 'always',
+    refetchOnReconnect: true
   });
+  
+  // Force refetch when component mounts
+  useEffect(() => {
+    // Immediate refetch
+    refetchGroups();
+    
+    // Also schedule another refetch after a delay to ensure all calculation updates are applied
+    const timer = setTimeout(() => {
+      refetchGroups();
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, []);
   
   // Apply search filter to groups
   const filteredGroups = groups?.filter(group => 

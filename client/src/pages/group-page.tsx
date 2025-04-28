@@ -54,15 +54,19 @@ export default function GroupPage() {
     createdBy?: number;
   }
   
-  // Fetch the group data
+  // Fetch the group data with aggressive refresh strategy
   const { 
     data: group = null, 
     isLoading: isLoadingGroup,
-    error: groupError
+    error: groupError,
+    refetch: refetchGroup
   } = useQuery<GroupData>({
     queryKey: [`/api/groups/${groupIdStr}`], // Fixed query key pattern to match the API
     enabled: groupId > 0,
-    staleTime: 0
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: 'always',
+    refetchOnReconnect: true
   });
 
   // If there's an error fetching the group or the user is not in any groups,
@@ -129,7 +133,7 @@ export default function GroupPage() {
     staleTime: 0
   });
 
-  // Fetch group balances - with refetchInterval to ensure freshness
+  // Fetch group balances - with aggressive refresh strategy
   const { 
     data: balances = [], 
     isLoading: isLoadingBalances,
@@ -138,11 +142,42 @@ export default function GroupPage() {
     queryKey: [`/api/groups/${groupIdStr}/balances`],
     enabled: groupId > 0 && !!group,
     staleTime: 0,
-    refetchOnMount: true,
+    refetchOnMount: 'always',
     refetchOnWindowFocus: true,
-    // Force refresh every time component is shown/remounted
     refetchOnReconnect: true
   });
+  
+  // Force refresh balances and group data when component mounts
+  useEffect(() => {
+    if (groupId > 0) {
+      // Call the explicit balance refresh API endpoint
+      const refreshBalances = async () => {
+        try {
+          // First, explicitly trigger balance refresh on the server
+          await apiRequest('POST', `/api/groups/${groupIdStr}/refresh-balances`);
+          console.log('Explicitly refreshed balances on component mount');
+          
+          // Then refetch the balances from the updated database
+          refetchBalances();
+          
+          // Also refresh the group data to ensure consistent display
+          refetchGroup();
+        } catch (error) {
+          console.error('Failed to refresh balances on mount:', error);
+        }
+      };
+      
+      // Execute immediate refresh
+      refreshBalances();
+      
+      // Schedule another refresh after a delay
+      const timer = setTimeout(() => {
+        refetchBalances();
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [groupId]);
   
   // Mutation for refreshing balances
   const refreshBalancesMutation = useMutation({
