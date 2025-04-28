@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/main-layout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Search, PlusCircle, SlidersHorizontal } from "lucide-react";
+import { Search, PlusCircle } from "lucide-react";
 import { useLocation } from "wouter";
 import { GroupForm } from "@/components/groups/group-form";
 import { Group } from "@shared/schema";
@@ -139,15 +139,12 @@ export default function GroupsPage() {
         </div>
         
         {/* Overall balance section with corrected calculation */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="mb-6">
           <div>
             <h2 className="text-xl font-medium text-fairshare-dark">
               Overall, you owe <span className="text-fairshare-primary">${netOwed.toFixed(2)}</span>
             </h2>
           </div>
-          <Button variant="ghost" size="icon">
-            <SlidersHorizontal className="h-5 w-5 text-fairshare-dark" />
-          </Button>
         </div>
         
         {/* Group listings with optimized rendering */}
