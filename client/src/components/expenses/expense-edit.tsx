@@ -110,12 +110,22 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
     },
   });
 
-  // Auto-populate form when expense data is loaded
-  const [formPopulated, setFormPopulated] = useState(false);
+  // Track the current expense ID to detect changes
+  const [currentExpenseId, setCurrentExpenseId] = useState<number | null>(null);
   
   // Initialize selectedUserIds with participants when expense data is loaded
   useEffect(() => {
-    if (expense && Array.isArray(groupMembers) && groupMembers.length > 0 && !formPopulated) {
+    // Reset form when expense ID changes (user clicks on a different expense)
+    if (expenseId !== currentExpenseId) {
+      setCurrentExpenseId(expenseId);
+      // Reset the form state when switching between expenses
+      form.reset();
+      setSelectedUserIds([]);
+      setCustomAmounts({});
+      setCustomPercentages({});
+    }
+    
+    if (expense && Array.isArray(groupMembers) && groupMembers.length > 0) {
       try {
         if (typeof expense === 'object') {
           // Update all form fields
@@ -191,18 +201,16 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
           } else {
             handleInitializeAmountsAndPercentages();
           }
-          
-          setFormPopulated(true);
         }
       } catch (error) {
         console.error('Error populating form:', error);
       }
     }
-  }, [expense, expenseParticipants, groupMembers, form, formPopulated]);
+  }, [expense, expenseParticipants, groupMembers, form, expenseId]);
   
   // Initialize or update custom amounts and percentages when users change
   useEffect(() => {
-    if (formPopulated && selectedUserIds.length > 0) {
+    if (selectedUserIds.length > 0) {
       handleInitializeAmountsAndPercentages();
     }
   }, [selectedUserIds, form.watch('splitMethod'), form.watch('totalAmount')]);
@@ -254,7 +262,6 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
       });
       // Reset form and close modal
       form.reset();
-      setFormPopulated(false);
       onOpenChange(false);
       
       // Invalidate all relevant queries
@@ -283,7 +290,6 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
       });
       // Reset the form and close modal
       form.reset();
-      setFormPopulated(false);
       onOpenChange(false);
       
       // Invalidate all relevant queries
