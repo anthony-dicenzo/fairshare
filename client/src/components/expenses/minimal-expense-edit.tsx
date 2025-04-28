@@ -368,45 +368,49 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [splitMethod, selectedUserIds, open]);
   
-  // Handler for updating a user's custom amount - with debounce logic to prevent infinite loops
+  // Handler for updating a user's custom amount with direct number handling
   const handleAmountChange = (userId: number, newAmount: string) => {
-    // Parse and validate input
-    let parsed = parseFloat(newAmount);
-    if (isNaN(parsed)) parsed = 0;
+    console.log("Amount change:", userId, newAmount);
+    // For a number input, the value comes as a string but we can parse it directly
+    const parsed = newAmount === "" ? 0 : Number(newAmount);
     
-    // Update amount directly
-    const newAmounts = {...customAmounts};
-    newAmounts[userId] = parsed;
-    setCustomAmounts(newAmounts);
+    // Create a new object to avoid mutating the existing state
+    const updatedAmounts = {...customAmounts};
+    updatedAmounts[userId] = parsed;
+    setCustomAmounts(updatedAmounts);
     
-    // Calculate and update percentage separately
+    // Update the percentage based on the new amount
     const totalAmountVal = parseFloat(amount || "0");
     if (totalAmountVal > 0) {
       const percentage = (parsed / totalAmountVal) * 100;
-      const newPercentages = {...customPercentages};
-      newPercentages[userId] = percentage;
-      setCustomPercentages(newPercentages);
+      
+      // Create a new object to avoid mutating the existing state
+      const updatedPercentages = {...customPercentages};
+      updatedPercentages[userId] = percentage;
+      setCustomPercentages(updatedPercentages);
     }
   };
   
-  // Handler for updating a user's custom percentage
+  // Handler for updating a user's custom percentage with direct number handling
   const handlePercentageChange = (userId: number, newPercentage: string) => {
-    // Parse and validate input
-    let parsed = parseFloat(newPercentage);
-    if (isNaN(parsed)) parsed = 0;
+    console.log("Percentage change:", userId, newPercentage);
+    // For a number input, the value comes as a string but we can parse it directly
+    const parsed = newPercentage === "" ? 0 : Number(newPercentage);
     
-    // Update percentage directly
-    const newPercentages = {...customPercentages};
-    newPercentages[userId] = parsed;
-    setCustomPercentages(newPercentages);
+    // Create a new object to avoid mutating the existing state
+    const updatedPercentages = {...customPercentages};
+    updatedPercentages[userId] = parsed;
+    setCustomPercentages(updatedPercentages);
     
-    // Calculate and update amount separately
+    // Update the amount based on the new percentage
     const totalAmountVal = parseFloat(amount || "0");
     if (totalAmountVal > 0) {
       const calculatedAmount = (parsed * totalAmountVal) / 100;
-      const newAmounts = {...customAmounts};
-      newAmounts[userId] = calculatedAmount;
-      setCustomAmounts(newAmounts);
+      
+      // Create a new object to avoid mutating the existing state
+      const updatedAmounts = {...customAmounts};
+      updatedAmounts[userId] = calculatedAmount;
+      setCustomAmounts(updatedAmounts);
     }
   };
   
@@ -616,22 +620,24 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
                           {splitMethod === "unequal" && (
                             <div className="relative">
                               <span className="absolute left-1 top-1/2 transform -translate-y-1/2 text-xs">$</span>
-                              <Input
-                                type="text"
-                                value={customAmounts[userId]?.toFixed(2) || "0.00"}
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={customAmounts[userId] || 0}
                                 onChange={(e) => handleAmountChange(userId, e.target.value)}
-                                className="w-16 h-6 pl-5 text-xs"
+                                className="w-16 h-6 pl-5 text-xs rounded-md border border-input"
                               />
                             </div>
                           )}
                           
                           {splitMethod === "percentage" && (
                             <div className="relative">
-                              <Input
-                                type="text"
-                                value={customPercentages[userId]?.toFixed(1) || "0.0"}
+                              <input
+                                type="number"
+                                step="0.1"
+                                value={customPercentages[userId] || 0}
                                 onChange={(e) => handlePercentageChange(userId, e.target.value)}
-                                className="w-14 h-6 pr-5 text-xs text-right"
+                                className="w-14 h-6 pr-5 text-xs text-right rounded-md border border-input"
                               />
                               <span className="absolute right-1 top-1/2 transform -translate-y-1/2 text-xs">%</span>
                             </div>
