@@ -247,7 +247,7 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
       }
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: "Expense updated",
         description: "Your expense has been updated successfully.",
@@ -258,7 +258,7 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
       onOpenChange(false);
       
       // Invalidate all relevant queries
-      invalidateQueries();
+      await invalidateQueries();
     },
     onError: (error) => {
       console.error("Update expense error:", error);
@@ -299,12 +299,21 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
   });
 
   // Helper to invalidate all relevant queries
-  const invalidateQueries = () => {
+  const invalidateQueries = async () => {
+    // Explicit refetch of balances
+    try {
+      // First, explicitly refresh the balances via the balance refresh API endpoint
+      await apiRequest('POST', `/api/groups/${groupId}/refresh-balances`);
+      console.log('Explicitly refreshed group balances');
+    } catch (error) {
+      console.error('Failed to explicitly refresh balances:', error);
+    }
+    
     // Invalidate the specific expense queries
     queryClient.invalidateQueries({ queryKey: [`/api/expenses/${expenseId}`] });
     queryClient.invalidateQueries({ queryKey: [`/api/expenses/${expenseId}/participants`] });
     
-    // Invalidate general balances and activity queries
+    // Invalidate general balances and activity queries - with exact key structure to ensure match
     queryClient.invalidateQueries({ queryKey: ["/api/balances"] });
     queryClient.invalidateQueries({ queryKey: ["/api/activity"] });
     queryClient.invalidateQueries({ queryKey: ["/api/activity", "expenses"] });
@@ -321,6 +330,14 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
     queryClient.invalidateQueries({ queryKey: ["/api/groups", groupIdStr, "expenses"] });
     queryClient.invalidateQueries({ queryKey: ["/api/groups", groupIdStr, "balances"] });
     queryClient.invalidateQueries({ queryKey: ["/api/groups", groupIdStr, "activity"] });
+    
+    // Force a complete cache reset for all queries
+    queryClient.invalidateQueries();
+    
+    // After a short delay, force another refresh of the group balances
+    setTimeout(() => {
+      queryClient.refetchQueries({ queryKey: [`/api/groups/${groupIdStr}/balances`] });
+    }, 300);
   };
 
   const handleSubmit = form.handleSubmit((values) => {
