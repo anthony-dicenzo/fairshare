@@ -133,8 +133,9 @@ export default function GroupPage() {
     isFetchingNextPage,
   } = useInfiniteQuery<ExpensePaginatedResponse>({
     queryKey: [`/api/groups/${groupIdStr}/expenses`],
-    queryFn: async ({ pageParam = 0 }) => {
-      const response = await fetch(`/api/groups/${groupIdStr}/expenses?limit=${EXPENSES_PER_PAGE}&offset=${pageParam * EXPENSES_PER_PAGE}`);
+    queryFn: async ({ pageParam }) => {
+      const paramPage = pageParam as number || 0;
+      const response = await fetch(`/api/groups/${groupIdStr}/expenses?limit=${EXPENSES_PER_PAGE}&offset=${paramPage * EXPENSES_PER_PAGE}`);
       const data = await response.json();
       return data as ExpensePaginatedResponse;
     },
@@ -181,8 +182,9 @@ export default function GroupPage() {
     isFetchingNextPage: isFetchingNextPaymentPage 
   } = useInfiniteQuery<PaymentPaginatedResponse>({
     queryKey: [`/api/groups/${groupIdStr}/payments`],
-    queryFn: async ({ pageParam = 0 }) => {
-      const response = await fetch(`/api/groups/${groupIdStr}/payments?limit=${PAYMENTS_PER_PAGE}&offset=${pageParam * PAYMENTS_PER_PAGE}`);
+    queryFn: async ({ pageParam }) => {
+      const paramPage = pageParam as number || 0;
+      const response = await fetch(`/api/groups/${groupIdStr}/payments?limit=${PAYMENTS_PER_PAGE}&offset=${paramPage * PAYMENTS_PER_PAGE}`);
       const data = await response.json();
       return data as PaymentPaginatedResponse;
     },
@@ -277,15 +279,54 @@ export default function GroupPage() {
     }
   });
 
-  // Fetch group activity
+  // Mobile optimization: Use pagination for activity feed
+  const ACTIVITY_PER_PAGE = 10;
+  const [currentActivityPage, setCurrentActivityPage] = useState(0);
+  const [isLoadingMoreActivity, setIsLoadingMoreActivity] = useState(false);
+  
+  // Define the response type for activity pagination
+  interface ActivityPaginatedResponse {
+    activities: any[];
+    hasMore: boolean;
+    totalCount: number;
+  }
+  
+  // Fetch group activity with pagination
   const { 
-    data: activity = [], 
-    isLoading: isLoadingActivity 
-  } = useQuery({
+    data: activityData,
+    isLoading: isLoadingActivity,
+    fetchNextPage: fetchNextActivityPage,
+    hasNextPage: hasNextActivityPage,
+    isFetchingNextPage: isFetchingNextActivityPage 
+  } = useInfiniteQuery<ActivityPaginatedResponse>({
     queryKey: [`/api/groups/${groupIdStr}/activity`],
+    queryFn: async ({ pageParam }) => {
+      const paramPage = pageParam as number || 0;
+      const response = await fetch(`/api/groups/${groupIdStr}/activity?limit=${ACTIVITY_PER_PAGE}&offset=${paramPage * ACTIVITY_PER_PAGE}`);
+      const data = await response.json();
+      return data as ActivityPaginatedResponse;
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.hasMore ? allPages.length : undefined;
+    },
+    initialPageParam: 0,
     enabled: groupId > 0 && !!group,
-    staleTime: 0
+    staleTime: 0 // Always refetch on component mount
   });
+  
+  // Flatten the paged data for easier use in the component
+  const activity = useMemo(() => {
+    if (!activityData) return [];
+    return activityData.pages.flatMap(page => page.activities || []);
+  }, [activityData]);
+  
+  // Function to load more activity entries when user scrolls
+  const loadMoreActivity = useCallback(async () => {
+    if (isFetchingNextActivityPage || !hasNextActivityPage) return;
+    setIsLoadingMoreActivity(true);
+    await fetchNextActivityPage();
+    setIsLoadingMoreActivity(false);
+  }, [fetchNextActivityPage, hasNextActivityPage, isFetchingNextActivityPage]);
 
   if (isLoadingGroup) {
     return (
@@ -582,6 +623,32 @@ export default function GroupPage() {
                         </div>
                       </div>
                     ))}
+                    
+                    {/* Load more activity button for infinite scrolling */}
+                    {hasNextActivityPage && (
+                      <div className="p-4 text-center">
+                        <Button 
+                          onClick={loadMoreActivity}
+                          variant="outline"
+                          disabled={isLoadingMoreActivity || isFetchingNextActivityPage}
+                          className="w-full"
+                        >
+                          {isLoadingMoreActivity || isFetchingNextActivityPage ? (
+                            <span className="flex items-center">
+                              <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Loading...
+                            </span>
+                          ) : (
+                            <span className="flex items-center">
+                              Load more activity
+                            </span>
+                          )}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
