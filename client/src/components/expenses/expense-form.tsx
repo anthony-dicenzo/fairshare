@@ -77,9 +77,12 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
   const [customPercentages, setCustomPercentages] = useState<Record<number, number>>({});
 
   // Get groups data
-  const { data: groups = [] } = useQuery<Group[]>({
+  const { data: groupsData } = useQuery<{ groups: Group[], totalCount: number, hasMore: boolean }>({
     queryKey: ["/api/groups"],
   });
+
+  // Extract groups from the response
+  const groups = groupsData?.groups || [];
 
   // Get members for the selected group
   const [selectedGroupId, setSelectedGroupId] = useState<string>(groupId?.toString() || "");

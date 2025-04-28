@@ -58,7 +58,11 @@ export default function ActivityPage() {
   // Fetch activity data for expense tab
   const { data: rawExpenseActivityData, isLoading: isLoadingExpense } = useQuery({
     queryKey: ["/api/activity", "expenses"],
-    queryFn: () => apiRequest("/api/activity?type=expenses") as Promise<{ activities: Activity[] }>,
+    queryFn: async () => {
+      const response = await apiRequest("/api/activity?type=expenses");
+      const data = await response.json();
+      return data;
+    },
     enabled: activeTab === "expenses",
   });
   
@@ -67,7 +71,11 @@ export default function ActivityPage() {
   // Fetch activity data for payment tab
   const { data: rawPaymentActivityData, isLoading: isLoadingPayment } = useQuery({
     queryKey: ["/api/activity", "payments"],
-    queryFn: () => apiRequest("/api/activity?type=payments") as Promise<{ activities: Activity[] }>,
+    queryFn: async () => {
+      const response = await apiRequest("/api/activity?type=payments");
+      const data = await response.json();
+      return data;
+    },
     enabled: activeTab === "payments",
   });
   
