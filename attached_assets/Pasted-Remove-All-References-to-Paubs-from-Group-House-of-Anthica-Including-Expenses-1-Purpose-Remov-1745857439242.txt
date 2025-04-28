@@ -1,0 +1,88 @@
+Remove All References to "Paubs" from Group "House of Anthica" (Including Expenses)
+1. Purpose
+Remove all payments, balances, expenses, and group memberships involving the user "Paubs" in the group "House of Anthica,"
+without impacting the net balances of other group members.
+
+2. Scope
+Only applies to:
+
+User: Paubs
+
+Group: House of Anthica
+
+Other users' balances must remain the same after removal.
+
+3. Operations Required
+
+Operation	Detail
+Delete user-group membership	Remove Paubs from users_groups for House of Anthica.
+Delete all payments	Remove payments where Paubs is payer or recipient.
+Delete all expenses	Remove expenses where Paubs is payer OR is a participant.
+Delete balances	Remove any balances involving Paubs.
+Delete expense splits (if split table exists)	Remove splits involving Paubs.
+Delete activity logs (optional)	Remove activity involving Paubs.
+Rebalance	After deletion, ensure remaining members’ balances are unchanged from what they were before deletion.
+4. SQL Query Outline (Expanded)
+(assumes standard tables: users, groups, payments, expenses, balances, expense_splits)
+
+sql
+Copy
+Edit
+-- 1. Find IDs
+SELECT id FROM users WHERE username = 'Paubs';
+SELECT id FROM groups WHERE name = 'House of Anthica';
+
+-- Save IDs into variables if possible
+
+-- 2. Remove user-group membership
+DELETE FROM users_groups 
+WHERE user_id = (SELECT id FROM users WHERE username = 'Paubs')
+  AND group_id = (SELECT id FROM groups WHERE name = 'House of Anthica');
+
+-- 3. Remove related payments
+DELETE FROM payments 
+WHERE group_id = (SELECT id FROM groups WHERE name = 'House of Anthica')
+  AND (payer_id = (SELECT id FROM users WHERE username = 'Paubs')
+       OR recipient_id = (SELECT id FROM users WHERE username = 'Paubs'));
+
+-- 4. Remove related expenses
+DELETE FROM expenses
+WHERE group_id = (SELECT id FROM groups WHERE name = 'House of Anthica')
+  AND (created_by = (SELECT id FROM users WHERE username = 'Paubs')
+       OR id IN (
+         SELECT expense_id FROM expense_splits
+         WHERE user_id = (SELECT id FROM users WHERE username = 'Paubs')
+       ));
+
+-- 5. Remove related expense splits
+DELETE FROM expense_splits
+WHERE expense_id IN (
+  SELECT id FROM expenses
+  WHERE group_id = (SELECT id FROM groups WHERE name = 'House of Anthica')
+    AND (created_by = (SELECT id FROM users WHERE username = 'Paubs')
+         OR id IN (
+           SELECT expense_id FROM expense_splits
+           WHERE user_id = (SELECT id FROM users WHERE username = 'Paubs')
+         ))
+);
+
+-- 6. Remove related balances
+DELETE FROM balances
+WHERE group_id = (SELECT id FROM groups WHERE name = 'House of Anthica')
+  AND (user_id = (SELECT id FROM users WHERE username = 'Paubs')
+       OR counterparty_user_id = (SELECT id FROM users WHERE username = 'Paubs'));
+
+-- 7. (Optional) Remove activity logs
+DELETE FROM activity_log
+WHERE group_id = (SELECT id FROM groups WHERE name = 'House of Anthica')
+  AND (user_id = (SELECT id FROM users WHERE username = 'Paubs'));
+
+-- 8. (Important) Rebalance or double-check active users' final balances
+-- Depends if your app auto-recalculates.
+5. Precautions
+
+Step	Importance
+Backup database	Full backup before any deletions.
+Preview first	Run all SELECT queries first to preview deletions before executing DELETE.
+Transaction safety	Wrap all deletions inside a SQL transaction (BEGIN; ... COMMIT;) so you can rollback if necessary.
+Balance verification	After deletion, manually check that remaining users' balances are exactly what they were before
