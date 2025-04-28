@@ -471,208 +471,212 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[440px] p-4 rounded-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between">
-          <DialogTitle className="flex items-center gap-2 text-base">
-            <ShoppingBag className="h-5 w-5 text-[#E3976E]" />
+      <DialogContent className="sm:max-w-[400px] p-3 rounded-lg max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-1">
+          <DialogTitle className="flex items-center gap-1 text-sm">
+            <ShoppingBag className="h-4 w-4 text-[#E3976E]" />
             Edit Expense
           </DialogTitle>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">
-          Enter the details of your expense to split it with your group.
-        </p>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-4">
-              <div>
-                <label htmlFor="title" className="text-sm font-medium">Title</label>
+        <form onSubmit={handleSubmit} className="space-y-2">
+          {/* Title and Amount Row */}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label htmlFor="title" className="text-xs font-medium">Title</label>
+              <Input 
+                id="title"
+                placeholder="e.g. Groceries" 
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="h-8 mt-1 text-sm"
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="amount" className="text-xs font-medium">Amount</label>
+              <div className="relative mt-1">
+                <span className="absolute left-2 top-2 text-xs">$</span>
                 <Input 
-                  id="title"
-                  placeholder="e.g. Groceries, Dinner" 
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="h-10 mt-1"
+                  id="amount"
+                  type="text"
+                  placeholder="0.00" 
+                  className="pl-6 h-8 text-sm" 
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
                 />
               </div>
-              
-              <div>
-                <label htmlFor="amount" className="text-sm font-medium">Amount</label>
-                <div className="relative mt-1">
-                  <span className="absolute left-3 top-2.5 text-sm">$</span>
-                  <Input 
-                    id="amount"
-                    type="text"
-                    placeholder="0.00" 
-                    className="pl-8 h-10" 
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <label htmlFor="date" className="text-sm font-medium">Date</label>
-                <Input 
-                  id="date"
-                  type="date" 
-                  className="h-10 mt-1" 
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="notes" className="text-sm font-medium">Notes (Optional)</label>
-                <Input 
-                  id="notes"
-                  placeholder="Add any additional details here" 
-                  className="h-10 mt-1" 
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                />
-              </div>
-              
-              {/* Split Method Selection */}
-              <div>
-                <Label className="text-sm font-medium">Split:</Label>
-                <RadioGroup 
-                  value={splitMethod} 
-                  onValueChange={(val) => setSplitMethod(val as "equal" | "unequal" | "percentage")}
-                  className="flex items-center space-x-4 mt-2"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="equal" id="equal" />
-                    <Label htmlFor="equal" className="text-sm font-normal">Equal</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="unequal" id="unequal" />
-                    <Label htmlFor="unequal" className="text-sm font-normal">Unequal</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="percentage" id="percentage" />
-                    <Label htmlFor="percentage" className="text-sm font-normal">Percentage</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-              
-              {/* User selection for paid by */}
-              <div>
-                <label htmlFor="paidBy" className="text-sm font-medium">From</label>
-                <Select value={paidBy} onValueChange={setPaidBy}>
-                  <SelectTrigger className="h-10 mt-1">
-                    <SelectValue placeholder="Select who paid" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.isArray(groupMembers) && groupMembers.map((member: any) => (
-                      <SelectItem key={member.user.id} value={member.user.id.toString()}>
-                        {member.user.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              {/* Participants Section */}
-              {splitMethod !== "equal" && (
-                <div className="mt-4">
-                  <h3 className="text-sm font-medium mb-2">Split Details:</h3>
-                  <div className="border rounded-md p-3 space-y-3">
-                    {Array.isArray(groupMembers) && groupMembers.map((member: any) => {
-                      const userId = member.user.id;
-                      const isSelected = selectedUserIds.includes(userId);
-                      
-                      return (
-                        <div key={userId} className="flex flex-col space-y-2">
-                          <div className="flex justify-between items-center">
-                            <div className="flex items-center">
-                              <Checkbox 
-                                id={`user-${userId}`}
-                                checked={isSelected}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    setSelectedUserIds(prev => [...prev, userId]);
-                                  } else {
-                                    setSelectedUserIds(prev => prev.filter(id => id !== userId));
-                                  }
-                                }}
-                              />
-                              <label htmlFor={`user-${userId}`} className="ml-2 text-sm">
-                                {member.user.name}
-                              </label>
-                            </div>
-                            
-                            {isSelected && (
-                              <div className="flex items-center space-x-2">
-                                {splitMethod === "unequal" && (
-                                  <div className="relative">
-                                    <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-xs">$</span>
-                                    <Input
-                                      type="text"
-                                      value={customAmounts[userId]?.toFixed(2) || "0.00"}
-                                      onChange={(e) => handleAmountChange(userId, e.target.value)}
-                                      className="w-20 h-8 pl-6 text-xs"
-                                    />
-                                  </div>
-                                )}
-                                
-                                {splitMethod === "percentage" && (
-                                  <div className="relative">
-                                    <Input
-                                      type="text"
-                                      value={customPercentages[userId]?.toFixed(1) || "0.0"}
-                                      onChange={(e) => handlePercentageChange(userId, e.target.value)}
-                                      className="w-16 h-8 pr-6 text-xs text-right"
-                                    />
-                                    <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs">%</span>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
-
-          <Button 
-            type="submit"
-            className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white"
-            disabled={updateExpenseMutation.isPending}
-          >
-            {updateExpenseMutation.isPending ? "Saving..." : "Save Changes"}
-          </Button>
           
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full h-12 border-gray-200"
-            onClick={() => onOpenChange(false)}
-          >
-            Cancel
-          </Button>
+          {/* Date, Notes Row */}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label htmlFor="date" className="text-xs font-medium">Date</label>
+              <Input 
+                id="date"
+                type="date" 
+                className="h-8 mt-1 text-sm" 
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="notes" className="text-xs font-medium">Notes (Optional)</label>
+              <Input 
+                id="notes"
+                placeholder="Add notes" 
+                className="h-8 mt-1 text-sm" 
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            </div>
+          </div>
           
-          <ConfirmDialog
-            title="Delete Expense"
-            description="Are you sure you want to delete this expense? This action cannot be undone."
-            onConfirm={() => deleteExpenseMutation.mutate()}
-            variant="destructive"
-            trigger={
-              <Button
-                type="button"
-                variant="destructive"
-                className="w-full h-10 flex items-center justify-center gap-1"
-                disabled={deleteExpenseMutation.isPending}
+          {/* Split and From Row */}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="text-xs font-medium">Split:</Label>
+              <RadioGroup 
+                value={splitMethod} 
+                onValueChange={(val) => setSplitMethod(val as "equal" | "unequal" | "percentage")}
+                className="flex items-center space-x-2 mt-1"
               >
-                <Trash className="h-4 w-4" />
-                Delete Expense
-              </Button>
-            }
-          />
+                <div className="flex items-center space-x-1">
+                  <RadioGroupItem value="equal" id="equal" className="h-3 w-3" />
+                  <Label htmlFor="equal" className="text-xs font-normal">Equal</Label>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <RadioGroupItem value="unequal" id="unequal" className="h-3 w-3" />
+                  <Label htmlFor="unequal" className="text-xs font-normal">Unequal</Label>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <RadioGroupItem value="percentage" id="percentage" className="h-3 w-3" />
+                  <Label htmlFor="percentage" className="text-xs font-normal">%</Label>
+                </div>
+              </RadioGroup>
+            </div>
+            
+            <div>
+              <label htmlFor="paidBy" className="text-xs font-medium">From</label>
+              <Select value={paidBy} onValueChange={setPaidBy}>
+                <SelectTrigger className="h-8 mt-1 text-sm">
+                  <SelectValue placeholder="Select who paid" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.isArray(groupMembers) && groupMembers.map((member: any) => (
+                    <SelectItem key={member.user.id} value={member.user.id.toString()}>
+                      {member.user.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          {/* Participants Section */}
+          {splitMethod !== "equal" && (
+            <div className="mt-1">
+              <h3 className="text-xs font-medium mb-1">Split Details:</h3>
+              <div className="border rounded-md p-2 space-y-1">
+                {Array.isArray(groupMembers) && groupMembers.map((member: any) => {
+                  const userId = member.user.id;
+                  const isSelected = selectedUserIds.includes(userId);
+                  
+                  return (
+                    <div key={userId} className="flex justify-between items-center">
+                      <div className="flex items-center">
+                        <Checkbox 
+                          id={`user-${userId}`}
+                          checked={isSelected}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedUserIds(prev => [...prev, userId]);
+                            } else {
+                              setSelectedUserIds(prev => prev.filter(id => id !== userId));
+                            }
+                          }}
+                          className="h-3 w-3"
+                        />
+                        <label htmlFor={`user-${userId}`} className="ml-1 text-xs">
+                          {member.user.name}
+                        </label>
+                      </div>
+                      
+                      {isSelected && (
+                        <div className="flex items-center">
+                          {splitMethod === "unequal" && (
+                            <div className="relative">
+                              <span className="absolute left-1 top-1/2 transform -translate-y-1/2 text-xs">$</span>
+                              <Input
+                                type="text"
+                                value={customAmounts[userId]?.toFixed(2) || "0.00"}
+                                onChange={(e) => handleAmountChange(userId, e.target.value)}
+                                className="w-16 h-6 pl-5 text-xs"
+                              />
+                            </div>
+                          )}
+                          
+                          {splitMethod === "percentage" && (
+                            <div className="relative">
+                              <Input
+                                type="text"
+                                value={customPercentages[userId]?.toFixed(1) || "0.0"}
+                                onChange={(e) => handlePercentageChange(userId, e.target.value)}
+                                className="w-14 h-6 pr-5 text-xs text-right"
+                              />
+                              <span className="absolute right-1 top-1/2 transform -translate-y-1/2 text-xs">%</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          
+          <div className="flex justify-between pt-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="h-8 text-xs" 
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            
+            <ConfirmDialog
+              title="Delete Expense"
+              description="Are you sure you want to delete this expense? This action cannot be undone."
+              onConfirm={() => deleteExpenseMutation.mutate()}
+              trigger={
+                <Button 
+                  type="button" 
+                  variant="destructive" 
+                  className="h-8 text-xs"
+                  disabled={deleteExpenseMutation.isPending}
+                >
+                  <Trash className="h-3 w-3 mr-1" />
+                  Delete
+                </Button>
+              }
+            />
+            
+            <Button 
+              type="submit" 
+              className="h-8 text-xs bg-[#E3976E] hover:bg-[#d8875d]" 
+              disabled={updateExpenseMutation.isPending}
+            >
+              {updateExpenseMutation.isPending ? (
+                <>Saving</>
+              ) : (
+                <>Save</>
+              )}
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
