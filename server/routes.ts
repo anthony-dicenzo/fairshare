@@ -76,16 +76,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }));
       
-      // If requesting above-the-fold data, also include the total count
-      if (aboveTheFold) {
-        const totalCount = await storage.getUserGroupsCount(req.user.id);
-        res.json({
-          groups: enhancedGroups,
-          totalCount
-        });
-      } else {
-        res.json(enhancedGroups);
-      }
+      // Always include a consistent response format with groups array and totalCount
+      const totalCount = await storage.getUserGroupsCount(req.user.id);
+      res.json({
+        groups: enhancedGroups,
+        totalCount
+      });
     } catch (error) {
       console.error("Error fetching groups with balances:", error);
       res.status(500).json({ error: "Failed to fetch groups" });
