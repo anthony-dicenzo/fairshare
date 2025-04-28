@@ -1075,6 +1075,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get all activities for the user
       const activities = await storage.getActivityByUserId(req.user.id, limit);
       
+      console.log('API Activity Response:', {
+        userId: req.user.id,
+        activityCount: activities.length,
+        sampleActivity: activities.length > 0 ? activities[0] : null
+      });
+      
       // Filter activities by type if specified
       if (type === 'expenses') {
         const expenseActivities = activities.filter(a => a.actionType === 'add_expense');
