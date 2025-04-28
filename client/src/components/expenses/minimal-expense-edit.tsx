@@ -133,19 +133,19 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
       
       // Determine split method based on participant data
       if (expenseParticipants.length > 1) {
-        const firstAmount = parseFloat(String(expenseParticipants[0]?.amountOwed) || '0');
+        const firstAmount = parseFloat(String(expenseParticipants[0]?.amountOwed || '0'));
         const totalExpenseAmount = parseFloat(amount || '0');
         
         // Check if all amounts are equal
         const isEqualSplit = expenseParticipants.every((p: ExpenseParticipantData) => 
-          Math.abs(parseFloat(String(p.amountOwed) || '0') - firstAmount) < 0.01);
+          Math.abs(parseFloat(String(p.amountOwed || '0')) - firstAmount) < 0.01);
         
         if (isEqualSplit) {
           setSplitMethod("equal");
         } else {
           // Check if amounts might be percentage-based
           const totalOwed = expenseParticipants.reduce(
-            (sum: number, p: ExpenseParticipantData) => sum + parseFloat(String(p.amountOwed) || '0'), 
+            (sum: number, p: ExpenseParticipantData) => sum + parseFloat(String(p.amountOwed || '0')), 
             0
           );
           
@@ -164,7 +164,7 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
       
       expenseParticipants.forEach((p: ExpenseParticipantData) => {
         const userId = p.userId;
-        const amountOwed = parseFloat(String(p.amountOwed) || '0');
+        const amountOwed = parseFloat(String(p.amountOwed || '0'));
         
         newAmounts[userId] = amountOwed;
         
