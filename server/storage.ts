@@ -671,7 +671,7 @@ export class DatabaseStorage implements IStorage {
         )
       )
       .innerJoin(groups, eq(groupMembers.groupId, groups.id))
-      .orderBy(desc(groups.updatedAt));
+      .orderBy(sql`${groups.createdAt} DESC`);
     
     // Apply pagination if limit is provided
     if (limit !== undefined) {
