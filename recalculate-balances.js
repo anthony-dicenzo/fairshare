@@ -1,12 +1,12 @@
-const { db } = require('./server/db');
-const { eq, and, or, inArray } = require('drizzle-orm');
-const { storage } = require('./server/storage');
-const { 
+import { db } from './server/db.js';
+import { eq, and, or, inArray } from 'drizzle-orm';
+import { storage } from './server/storage.js';
+import { 
   users, 
   groups,
   groupMembers,
   userBalances 
-} = require('./shared/schema');
+} from './shared/schema.js';
 
 /**
  * Script to recalculate balances for specified groups
@@ -141,7 +141,7 @@ async function recalculateBalances() {
 }
 
 // If this script is run directly, execute the function
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   recalculateBalances()
     .then(result => {
       console.log('\nScript execution result:', result);
@@ -153,4 +153,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { recalculateBalances };
+export { recalculateBalances };

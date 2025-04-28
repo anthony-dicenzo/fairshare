@@ -1,6 +1,6 @@
-const { db } = require('./server/db');
-const { eq, and, or, inArray, like } = require('drizzle-orm');
-const { 
+import { db } from './server/db.js';
+import { eq, and, or, inArray, like } from 'drizzle-orm';
+import { 
   users, 
   groups, 
   groupMembers, 
@@ -10,7 +10,7 @@ const {
   activityLog, 
   userBalances, 
   userBalancesBetweenUsers
-} = require('./shared/schema');
+} from './shared/schema.js';
 
 /**
  * Data Correction Script
@@ -247,10 +247,10 @@ async function fixPaubsBalanceIssues() {
 }
 
 // Export the function so it can be called from another script
-module.exports = { fixPaubsBalanceIssues };
+export { fixPaubsBalanceIssues };
 
 // If this script is run directly, execute the function
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   fixPaubsBalanceIssues()
     .then(result => {
       console.log('Script execution result:', result);

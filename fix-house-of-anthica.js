@@ -7,11 +7,11 @@
  * 3. Verifies balances are correct
  */
 
-const { fixPaubsBalanceIssues } = require('./data-correction-script');
-const { recalculateBalances } = require('./recalculate-balances');
-const { db } = require('./server/db');
-const { eq, and, or, inArray } = require('drizzle-orm');
-const { users, groups, groupMembers, userBalances } = require('./shared/schema');
+import { fixPaubsBalanceIssues } from './data-correction-script.js';
+import { recalculateBalances } from './recalculate-balances.js';
+import { db } from './server/db.js';
+import { eq, and, or, inArray } from 'drizzle-orm';
+import { users, groups, groupMembers, userBalances } from './shared/schema.js';
 
 async function runCorrections() {
   console.log('\n====== FIX HOUSE OF ANTHICA BALANCE ISSUES ======');
@@ -129,7 +129,7 @@ async function runCorrections() {
 }
 
 // Run the master correction script if called directly
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   runCorrections()
     .then(result => {
       console.log('\nFinal result:', result);
@@ -141,4 +141,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { runCorrections };
+export { runCorrections };
