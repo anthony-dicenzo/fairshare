@@ -709,20 +709,25 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getGroupMembers(groupId: number, includeArchived: boolean = false): Promise<(GroupMember & { user: User })[]> {
-    let query = db
+    // Build the conditions for the query
+    let conditions = eq(groupMembers.groupId, groupId);
+    
+    // Filter out archived members unless specifically requested
+    if (!includeArchived) {
+      conditions = and(
+        conditions,
+        eq(groupMembers.archived, false)
+      );
+    }
+    
+    const result = await db
       .select({
         member: groupMembers,
         user: users
       })
       .from(groupMembers)
-      .where(eq(groupMembers.groupId, groupId));
-    
-    // Filter out archived members unless specifically requested
-    if (!includeArchived) {
-      query = query.where(eq(groupMembers.archived, false));
-    }
-    
-    const result = await query.innerJoin(users, eq(groupMembers.userId, users.id));
+      .where(conditions)
+      .innerJoin(users, eq(groupMembers.userId, users.id));
     
     return result.map(r => ({
       ...r.member,
