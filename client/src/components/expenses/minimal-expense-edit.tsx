@@ -76,10 +76,11 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
   const [notes, setNotes] = useState("");
   
   // Split method state
-  const [splitMethod, setSplitMethod] = useState<"equal" | "unequal" | "percentage">("equal");
+  const [splitMethod, setSplitMethod] = useState<"equal" | "unequal" | "percentage" | "full">("equal");
   const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
   const [customAmounts, setCustomAmounts] = useState<Record<number, number>>({});
   const [customPercentages, setCustomPercentages] = useState<Record<number, number>>({});
+  const [fullAmountOwedBy, setFullAmountOwedBy] = useState<number | null>(null);
   
   // Fetch expense details when the modal is open
   const { data: expense, isLoading: isLoadingExpense } = useQuery<ExpenseData>({
@@ -141,7 +142,12 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
       const equalPercentage = 100 / participantIds.length;
       
       // Determine split method based on participant data
-      if (expenseParticipants.length > 1) {
+      if (expenseParticipants.length === 1) {
+        // If there's only one participant, it's a full amount split
+        setSplitMethod("full");
+        setFullAmountOwedBy(expenseParticipants[0].userId);
+        console.log("Detected full amount split for user:", expenseParticipants[0].userId);
+      } else if (expenseParticipants.length > 1) {
         const firstAmount = parseFloat(String(expenseParticipants[0]?.amountOwed || '0'));
         
         // Check if all amounts are equal
@@ -282,6 +288,25 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
   
   // Handler to recalculate amounts based on split method
   const recalculateAmounts = () => {
+    // Full amount split is handled separately - it doesn't depend on selectedUserIds
+    if (splitMethod === "full") {
+      // Just ensure we have a valid selected user for the full amount
+      if (paidBy && groupMembers && Array.isArray(groupMembers) && groupMembers.length > 0) {
+        // If no user is currently selected to owe the full amount, select the first non-payer
+        if (!fullAmountOwedBy) {
+          const nonPayers = groupMembers
+            .filter((member: any) => member.user.id.toString() !== paidBy)
+            .map((member: any) => member.user.id);
+            
+          if (nonPayers.length > 0) {
+            setFullAmountOwedBy(nonPayers[0]);
+          }
+        }
+      }
+      return; // Exit early since full amount doesn't need further calculation
+    }
+    
+    // For other split methods, proceed with existing logic
     if (selectedUserIds.length === 0) return;
     
     const totalAmountVal = parseFloat(amount || "0");
@@ -361,12 +386,15 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
   
   // Effect to recalculate amounts when split method changes
   useEffect(() => {
-    if (open && selectedUserIds.length > 0) {
-      recalculateAmounts();
+    if (open) {
+      // For full split method, we don't need selectedUserIds to be populated
+      if (splitMethod === "full" || (splitMethod !== "full" && selectedUserIds.length > 0)) {
+        recalculateAmounts();
+      }
     }
   // We intentionally leave out dependent variables that would cause infinite loops
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [splitMethod, selectedUserIds, open]);
+  }, [splitMethod, selectedUserIds, open, paidBy]);
   
   // Handler for updating a user's custom amount with direct number handling
   const handleAmountChange = (userId: number, newAmount: string) => {
@@ -429,25 +457,49 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
     }
     
     // Calculate final participant amounts based on split method
-    const participants = selectedUserIds.map(userId => {
-      let amountOwed = 0;
-      
-      if (splitMethod === "equal") {
-        amountOwed = totalAmountVal / selectedUserIds.length;
-      } 
-      else if (splitMethod === "unequal") {
-        amountOwed = customAmounts[userId] || totalAmountVal / selectedUserIds.length;
-      } 
-      else if (splitMethod === "percentage") {
-        const percentage = customPercentages[userId] || 100 / selectedUserIds.length;
-        amountOwed = (totalAmountVal * percentage) / 100;
+    let participants: { userId: number; amountOwed: number }[] = [];
+    
+    // Handle full amount case differently
+    if (splitMethod === "full") {
+      // Verify that someone is selected to owe the full amount
+      if (!fullAmountOwedBy) {
+        toast({
+          title: "Missing selection",
+          description: "Please select who owes the full amount.",
+          variant: "destructive",
+        });
+        return;
       }
       
-      return {
-        userId,
-        amountOwed,
-      };
-    });
+      // Add the single participant who owes the full amount
+      participants = [{
+        userId: fullAmountOwedBy,
+        amountOwed: totalAmountVal,
+      }];
+      
+      console.log("Full amount split:", participants);
+    } else {
+      // For other split methods, use the existing logic
+      participants = selectedUserIds.map(userId => {
+        let amountOwed = 0;
+        
+        if (splitMethod === "equal") {
+          amountOwed = totalAmountVal / selectedUserIds.length;
+        } 
+        else if (splitMethod === "unequal") {
+          amountOwed = customAmounts[userId] || totalAmountVal / selectedUserIds.length;
+        } 
+        else if (splitMethod === "percentage") {
+          const percentage = customPercentages[userId] || 100 / selectedUserIds.length;
+          amountOwed = (totalAmountVal * percentage) / 100;
+        }
+        
+        return {
+          userId,
+          amountOwed,
+        };
+      });
+    }
     
     // If no participants (shouldn't happen), add the current user
     if (participants.length === 0 && user?.id) {
@@ -551,8 +603,8 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
               <Label className="text-xs font-medium">Split:</Label>
               <RadioGroup 
                 value={splitMethod} 
-                onValueChange={(val) => setSplitMethod(val as "equal" | "unequal" | "percentage")}
-                className="flex items-center space-x-2 mt-1"
+                onValueChange={(val) => setSplitMethod(val as "equal" | "unequal" | "percentage" | "full")}
+                className="flex flex-wrap items-center gap-2 mt-1"
               >
                 <div className="flex items-center space-x-1">
                   <RadioGroupItem value="equal" id="equal" className="h-3 w-3" />
@@ -565,6 +617,10 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
                 <div className="flex items-center space-x-1">
                   <RadioGroupItem value="percentage" id="percentage" className="h-3 w-3" />
                   <Label htmlFor="percentage" className="text-xs font-normal">%</Label>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <RadioGroupItem value="full" id="full" className="h-3 w-3" />
+                  <Label htmlFor="full" className="text-xs font-normal">Full Amount</Label>
                 </div>
               </RadioGroup>
             </div>
@@ -586,8 +642,41 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
             </div>
           </div>
           
-          {/* Participants Section */}
-          {splitMethod !== "equal" && (
+          {/* Full Amount Split Section */}
+          {splitMethod === "full" && (
+            <div className="mt-1">
+              <h3 className="text-xs font-medium mb-1">Who owes the full amount?</h3>
+              <div className="border rounded-md p-2">
+                <div className="grid grid-cols-1 gap-1">
+                  <RadioGroup 
+                    value={fullAmountOwedBy?.toString() || ""}
+                    onValueChange={(val) => setFullAmountOwedBy(val ? parseInt(val) : null)}
+                    className="space-y-1"
+                  >
+                    {Array.isArray(groupMembers) && 
+                      groupMembers
+                        .filter((member: any) => member.user.id.toString() !== paidBy) // Exclude the payer
+                        .map((member: any) => (
+                          <div key={member.user.id} className="flex items-center space-x-2">
+                            <RadioGroupItem 
+                              value={member.user.id.toString()} 
+                              id={`full-amount-${member.user.id}`}
+                              className="h-3 w-3" 
+                            />
+                            <Label htmlFor={`full-amount-${member.user.id}`} className="text-xs font-normal">
+                              {member.user.name}
+                            </Label>
+                          </div>
+                        ))
+                    }
+                  </RadioGroup>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Participants Section for unequal or percentage splits */}
+          {(splitMethod === "unequal" || splitMethod === "percentage") && (
             <div className="mt-1">
               <h3 className="text-xs font-medium mb-1">Split Details:</h3>
               <div className="border rounded-md p-2 space-y-1">
