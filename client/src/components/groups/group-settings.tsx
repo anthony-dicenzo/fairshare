@@ -119,7 +119,8 @@ export function GroupSettings({ open, onOpenChange, groupId, groupName, members,
     onError: (error: any) => {
       // Check if the error is due to outstanding balances
       if (error.message?.includes("outstanding") || error.message?.includes("balance")) {
-        setRemoveError(error.message);
+        // Use server error message or fallback to a detailed explanation
+        setRemoveError(error.message || "This member has outstanding balances with others in the group. All debts must be settled before they can be removed.");
       } else {
         setRemoveError("Could not remove member. Please try again later.");
       }
@@ -395,6 +396,11 @@ export function GroupSettings({ open, onOpenChange, groupId, groupName, members,
               {removeError || "This member has outstanding balances with others in the group. All balances must be settled first."}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="bg-orange-50 border border-orange-100 rounded-md p-2 mt-2">
+            <p className="text-[11px] text-orange-800 leading-tight">
+              <strong>Zero-Balance Requirement:</strong> Members can only be removed when their balance is $0. Please ensure all expenses are settled through payments before attempting to remove this member.
+            </p>
+          </div>
           <AlertDialogFooter className="mt-2">
             <AlertDialogAction className="h-8 text-xs w-full">OK</AlertDialogAction>
           </AlertDialogFooter>
