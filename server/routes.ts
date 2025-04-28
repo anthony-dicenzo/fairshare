@@ -9,77 +9,9 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 
-// Special override function to handle House of Anthica group balances
-function registerSpecialGroupHandlers(app: Express) {
-  // 1. Override the balance refresh endpoint for House of Anthica (Group ID: 2)
-  app.post("/api/groups/2/refresh-balances", async (req, res) => {
-    console.log("⚠️ Using override for House of Anthica (Group ID: 2)");
-    
-    try {
-      // Instead of recalculating, maintain the manually fixed values
-      res.json({ 
-        message: "House of Anthica balances are maintained manually",
-        note: "This group has a fixed balance of $1834.32 that is not recalculated"
-      });
-    } catch (error) {
-      console.error("Error in balance override:", error);
-      res.status(500).json({ error: "Failed to process balance refresh" });
-    }
-  });
-  
-  // 2. Override the balance endpoint for House of Anthica (Group ID: 2)
-  app.get("/api/groups/2/balances", async (req, res) => {
-    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
-    console.log("⚠️ Using balance override for House of Anthica (Group ID: 2)");
-    
-    try {
-      // Get the users to construct a manual response
-      const userId2 = await storage.getUser(2);
-      const userId10 = await storage.getUser(10);
-      
-      // Return the fixed balance values
-      res.json([
-        {
-          userId: 2,
-          user: userId2,
-          balance: -1834.32
-        },
-        {
-          userId: 10,
-          user: userId10,
-          balance: 1834.32
-        }
-      ]);
-    } catch (error) {
-      console.error("Error in balance override:", error);
-      res.status(500).json({ error: "Failed to get group balances" });
-    }
-  });
-  
-  // 3. Override the init balance cache logic for Group 2 in storage.updateAllBalancesInGroup
-  app.post("/api/init-balance-cache/2", async (req, res) => {
-    console.log("⚠️ Using init balance cache override for House of Anthica (Group ID: 2)");
-    
-    try {
-      // Don't actually recalculate anything, just return success
-      res.json({ 
-        message: "House of Anthica balances are maintained manually", 
-        note: "Balance cache initialization skipped for this group"
-      });
-    } catch (error) {
-      console.error("Error in init balance cache override:", error);
-      res.status(500).json({ error: "Failed to initialize balance cache" });
-    }
-  });
-}
-
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
   setupAuth(app);
-  
-  // Register special handlers for specific groups
-  registerSpecialGroupHandlers(app);
   
   // Group routes
   app.post("/api/groups", async (req, res) => {

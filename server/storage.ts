@@ -219,45 +219,6 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`Starting recalculation of all balances in group ${groupId}`);
       
-      // Special handling for House of Anthica (Group ID: 2)
-      // This group has a manually fixed balance that should not be recalculated
-      if (groupId === 2) {
-        console.log(`⚠️ Skipping automatic balance recalculation for House of Anthica (Group ID: 2)`);
-        console.log(`⚠️ This group has a manually fixed balance of $1834.32`);
-        
-        // Ensure the fixed balance is set correctly for user 2 and user 10
-        // User 2 owes User 10 the amount of $1834.32
-        await this.updateUserBalance(2, 2, -1834.32);
-        await this.updateUserBalance(10, 2, 1834.32);
-        
-        // Also update the user-to-user balance pairs
-        await db
-          .delete(userBalancePairs)
-          .where(
-            and(
-              eq(userBalancePairs.groupId, 2),
-              or(
-                eq(userBalancePairs.userId1, 2),
-                eq(userBalancePairs.userId2, 2),
-                eq(userBalancePairs.userId1, 10),
-                eq(userBalancePairs.userId2, 10)
-              )
-            )
-          );
-        
-        // Insert the correct user-to-user balance
-        await db.insert(userBalancePairs).values({
-          groupId: 2,
-          userId1: 2,
-          userId2: 10,
-          amount: 1834.32,
-          direction: "owes"
-        });
-        
-        console.log(`✅ Fixed balances maintained for House of Anthica (Group ID: 2)`);
-        return true;
-      }
-      
       // Get all members in the group
       const members = await this.getGroupMembers(groupId);
       if (members.length === 0) {
