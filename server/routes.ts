@@ -635,11 +635,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Expense not found" });
       }
       
-      // Check if user is the creator of the expense
-      if (expense.paidBy !== req.user.id) {
-        console.log(`User ${req.user.id} cannot edit expense ${expenseId} created by ${expense.paidBy}`);
-        return res.status(403).json({ error: "You cannot edit this expense" });
+      // Check if user is a member of the group
+      const members = await storage.getGroupMembers(expense.groupId);
+      const isMember = members.some(member => member.userId === req.user.id);
+      
+      if (!isMember) {
+        console.log(`User ${req.user.id} cannot edit expense ${expenseId} - not a member of group ${expense.groupId}`);
+        return res.status(403).json({ error: "You do not have permission to edit this expense" });
       }
+      
+      // Allow any group member to edit, not just the creator
       
       // Prepare the update data - ensure proper types
       const updateData = {
@@ -680,10 +685,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Expense not found" });
       }
       
-      // Check if user is the creator of the expense
-      if (expense.paidBy !== req.user.id) {
-        return res.status(403).json({ error: "You cannot delete this expense" });
+      // Check if user is a member of the group
+      const members = await storage.getGroupMembers(expense.groupId);
+      const isMember = members.some(member => member.userId === req.user.id);
+      
+      if (!isMember) {
+        console.log(`User ${req.user.id} cannot delete expense ${expenseId} - not a member of group ${expense.groupId}`);
+        return res.status(403).json({ error: "You do not have permission to delete this expense" });
       }
+      
+      // Allow any group member to delete, not just the creator
       
       const groupId = expense.groupId;
       
@@ -695,6 +706,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(200).json({ message: "Expense deleted successfully" });
     } catch (error) {
+      console.error("Error deleting expense:", error);
       res.status(500).json({ error: "Failed to delete expense" });
     }
   });
