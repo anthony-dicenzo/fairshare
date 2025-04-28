@@ -118,8 +118,10 @@ export function GroupSettings({ open, onOpenChange, groupId, groupName, members,
     },
     onError: (error: any) => {
       // Check if the error is due to outstanding balances
-      if (error.message?.includes("outstanding") || error.message?.includes("balance")) {
-        setRemoveError(error.message);
+      if (error.message?.includes("outstanding") || error.message?.includes("balance") || error.message?.includes("settled")) {
+        setRemoveError("This member has outstanding balances in the group. All balances must be settled to $0 before they can be removed.");
+      } else if (error.message?.includes("creator")) {
+        setRemoveError("The group creator cannot be removed from the group.");
       } else {
         setRemoveError("Could not remove member. Please try again later.");
       }
@@ -300,7 +302,14 @@ export function GroupSettings({ open, onOpenChange, groupId, groupName, members,
           
           {/* Group members section */}
           <div className="py-2">
-            <h3 className="text-sm font-medium mb-2">Group members</h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium">Group members</h3>
+              {isCreator && (
+                <div className="text-[10px] text-muted-foreground italic">
+                  Members can only be removed if they have $0 balance
+                </div>
+              )}
+            </div>
             <div className="space-y-2">
               {members.map((member) => (
                 <div key={member.userId} className="flex items-center justify-between">
@@ -368,7 +377,8 @@ export function GroupSettings({ open, onOpenChange, groupId, groupName, members,
           <AlertDialogHeader className="p-0 pb-2">
             <AlertDialogTitle className="text-base">Remove {selectedMember?.user.name}?</AlertDialogTitle>
             <AlertDialogDescription className="text-xs">
-              They will no longer have access to the group's expenses and history.
+              They will no longer have access to the group's expenses and history. Note that all balances
+              must be settled (zero balance) before a member can be removed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row gap-2 mt-2 space-x-0">
@@ -392,8 +402,13 @@ export function GroupSettings({ open, onOpenChange, groupId, groupName, members,
               Cannot Remove Member
             </AlertDialogTitle>
             <AlertDialogDescription className="text-xs leading-tight">
-              {removeError || "This member has outstanding balances with others in the group. All balances must be settled first."}
+              {removeError || "This member has outstanding balances with others in the group. All balances must be settled to $0 before they can be removed."}
             </AlertDialogDescription>
+            <div className="mt-2 bg-amber-50 p-2 rounded-sm border border-amber-200 text-[11px] text-amber-700">
+              <p className="font-medium">How to settle balances:</p>
+              <p>1. Record payments using the "Pay" button</p>
+              <p>2. Make sure the member has $0 balance in the group</p>
+            </div>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-2">
             <AlertDialogAction className="h-8 text-xs w-full">OK</AlertDialogAction>
