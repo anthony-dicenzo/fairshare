@@ -369,8 +369,10 @@ export default function GroupPage() {
                         className="p-4 hover:bg-muted transition-colors cursor-pointer"
                         onClick={() => {
                           if (expense?.id) {
+                            console.log("Expense clicked:", expense.id);
                             setSelectedExpenseId(expense.id);
-                            setShowExpenseEditModal(true);
+                            // Add a small delay to ensure state updates before opening modal
+                            setTimeout(() => setShowExpenseEditModal(true), 10);
                           }
                         }}
                       >
