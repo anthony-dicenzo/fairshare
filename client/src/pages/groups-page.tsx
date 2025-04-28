@@ -52,16 +52,25 @@ export default function GroupsPage() {
     return () => clearTimeout(timer);
   }, []);
   
-  // Get groups - with aggressive refresh strategy
-  const { data: groups = [], isLoading: isGroupsLoading, refetch: refetchGroups } = useQuery<EnhancedGroup[]>({
-    queryKey: ["/api/groups"],
-    // Ensure fresh data by setting staleTime to 0
+  // Mobile optimization: Use pagination for groups with a reasonable page size
+  const GROUPS_PER_PAGE = 10;
+  const [currentPage, setCurrentPage] = useState(0);
+  
+  // Get groups with pagination for better mobile performance
+  const { 
+    data: groupsData,
+    isLoading: isGroupsLoading,
+    refetch: refetchGroups
+  } = useQuery<{groups: EnhancedGroup[], totalCount: number}>({
+    queryKey: ["/api/groups", { limit: GROUPS_PER_PAGE, offset: currentPage * GROUPS_PER_PAGE, includeCounts: true }],
     staleTime: 0,
-    // Force refetch on window focus, mount, and reconnect
     refetchOnWindowFocus: true,
     refetchOnMount: 'always',
     refetchOnReconnect: true
   });
+  
+  // Extract groups and provide a fallback empty array
+  const groups = groupsData?.groups || [];
   
   // Force refetch when component mounts
   useEffect(() => {

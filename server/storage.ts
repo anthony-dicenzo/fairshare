@@ -15,7 +15,7 @@ import {
 } from "@shared/schema";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
-import { eq, and, desc, asc, inArray, or } from "drizzle-orm";
+import { eq, and, desc, asc, inArray, or, sql } from "drizzle-orm";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -523,12 +523,21 @@ export class DatabaseStorage implements IStorage {
       }
     }
     
+    // Apply pagination if limit is provided
+    let paginatedOwedByUsers = owedByUsers;
+    let paginatedOwesToUsers = owesToUsers;
+    
+    if (limit !== undefined) {
+      paginatedOwedByUsers = owedByUsers.slice(offset, offset + limit);
+      paginatedOwesToUsers = owesToUsers.slice(offset, offset + limit);
+    }
+    
     return {
       totalOwed,
       totalOwes,
       netBalance: totalOwed - totalOwes,
-      owedByUsers,
-      owesToUsers
+      owedByUsers: paginatedOwedByUsers,
+      owesToUsers: paginatedOwesToUsers
     };
   }
   
@@ -658,7 +667,7 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           eq(groupMembers.userId, userId),
-          eq(groupMembers.isArchived, false) // Only include active memberships
+          eq(groupMembers.archived, false) // Only include active memberships
         )
       )
       .innerJoin(groups, eq(groupMembers.groupId, groups.id))
@@ -680,7 +689,7 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           eq(groupMembers.userId, userId),
-          eq(groupMembers.isArchived, false) // Only count active memberships
+          eq(groupMembers.archived, false) // Only count active memberships
         )
       );
       
@@ -985,14 +994,30 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
   
-  async getExpensesByGroupId(groupId: number): Promise<Expense[]> {
-    const result = await db
+  async getExpensesByGroupId(groupId: number, limit?: number, offset: number = 0): Promise<Expense[]> {
+    // Create base query
+    let query = db
       .select()
       .from(expenses)
       .where(eq(expenses.groupId, groupId))
       .orderBy(desc(expenses.createdAt));
+      
+    // Apply pagination if limit is provided
+    if (limit !== undefined) {
+      query = query.limit(limit).offset(offset);
+    }
     
+    const result = await query;
     return result;
+  }
+  
+  async getExpensesCountByGroupId(groupId: number): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(expenses)
+      .where(eq(expenses.groupId, groupId));
+      
+    return result[0].count;
   }
   
   async getExpenseById(id: number): Promise<Expense | undefined> {
