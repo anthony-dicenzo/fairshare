@@ -505,11 +505,14 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                             {isSelected && (
                               <div className="ml-auto">
                                 <div className="relative">
-                                  <span className="absolute left-1.5 top-1.5 text-xs">$</span>
+                                  <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-xs">$</span>
                                   <Input 
-                                    type="text"
+                                    type="number"
+                                    inputMode="decimal"
+                                    step="0.01"
+                                    min="0"
                                     placeholder="0.00"
-                                    className="w-14 h-6 pl-4 text-xs"
+                                    className="w-[4.5rem] h-7 pl-5 text-sm"
                                     autoFocus={false}
                                     value={customAmounts[member.userId]?.toFixed(2) || equalShare.toFixed(2)}
                                     onChange={(e) => {
@@ -644,9 +647,13 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                               <div className="ml-auto">
                                 <div className="relative">
                                   <Input 
-                                    type="text"
+                                    type="number"
+                                    inputMode="numeric"
+                                    step="1"
+                                    min="0"
+                                    max="100"
                                     placeholder="0"
-                                    className="w-10 h-6 pr-5 text-xs text-right"
+                                    className="w-14 h-7 pr-6 text-sm text-right"
                                     autoFocus={false}
                                     value={customPercentages[member.userId]?.toFixed(0) || equalPercentage.toFixed(0)}
                                     onChange={(e) => {
@@ -659,7 +666,7 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                                       }
                                     }}
                                   />
-                                  <span className="absolute right-1.5 top-1.5 text-xs">%</span>
+                                  <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs">%</span>
                                 </div>
                               </div>
                             )}
@@ -698,7 +705,8 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                  Object.values(customPercentages).reduce((acc, val) => acc + val, 0) !== 100) ||
                 (form.getValues("splitMethod") === "unequal" && 
                  Math.abs(Object.values(customAmounts).reduce((acc, val) => acc + val, 0) - 
-                 parseFloat(form.getValues("totalAmount") || "0")) >= 0.01)
+                 parseFloat(form.getValues("totalAmount") || "0")) >= 0.01) ||
+                (form.getValues("splitMethod") === "full" && !form.getValues("fullAmountOwedBy"))
               }
             >
               {createExpenseMutation.isPending ? "Saving..." : "Save Expense"}
