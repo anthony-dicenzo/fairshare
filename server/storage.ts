@@ -755,6 +755,9 @@ export class DatabaseStorage implements IStorage {
         throw new Error("User has outstanding debts with other group members. All balances must be settled before they can be removed.");
       }
       
+      // Handle payments involving the user to be removed
+      await this.handlePaymentsForRemovedUser(groupId, userId);
+      
       // First, delete any balance cache records for this user in this group
       console.log(`Removing balance cache records for user ${userId} in group ${groupId}`);
       await db
@@ -795,6 +798,99 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error(`Error in removeUserFromGroup: ${error}`);
       throw error;
+    }
+  }
+  
+  // Helper method to handle payments for a user being removed from a group
+  private async handlePaymentsForRemovedUser(groupId: number, userId: number): Promise<void> {
+    console.log(`Handling payments for user ${userId} being removed from group ${groupId}`);
+    
+    // Get all payments in the group
+    const groupPayments = await this.getPaymentsByGroupId(groupId);
+    
+    // Filter payments where the user is involved (either as payer or recipient)
+    const userPayments = groupPayments.filter(
+      payment => payment.paidBy === userId || payment.paidTo === userId
+    );
+    
+    if (userPayments.length === 0) {
+      console.log(`No payments found involving user ${userId} in group ${groupId}`);
+      return;
+    }
+    
+    console.log(`Found ${userPayments.length} payments involving user ${userId}`);
+    
+    // Get remaining group members to determine who will receive redirected payments
+    const groupMembers = await this.getGroupMembers(groupId);
+    const remainingMembers = groupMembers.filter(member => member.userId !== userId);
+    
+    if (remainingMembers.length === 0) {
+      console.log(`No remaining members in group ${groupId}, deleting all payments`);
+      
+      // If no remaining members, just delete all the payments
+      for (const payment of userPayments) {
+        await this.deletePayment(payment.id);
+      }
+      return;
+    }
+    
+    // Select a "group representative" to receive redirected payments (typically group creator)
+    const groupRep = remainingMembers.find(m => m.role === 'admin') || remainingMembers[0];
+    console.log(`Selected group representative: User ${groupRep.userId}`);
+    
+    // For each payment involving the user:
+    for (const payment of userPayments) {
+      console.log(`Processing payment #${payment.id}: ${payment.paidBy} paid ${payment.paidTo} $${payment.amount}`);
+      
+      if (payment.paidBy === userId && payment.paidTo === userId) {
+        // Self-payment, just delete it
+        console.log(`  Self-payment, deleting`);
+        await this.deletePayment(payment.id);
+      }
+      else if (payment.paidBy === userId) {
+        // User made payment to another user
+        // Update payment to show it was made by the group representative instead
+        console.log(`  User made payment to ${payment.paidTo}, updating payer to ${groupRep.userId}`);
+        await this.updatePayment(payment.id, {
+          paidBy: groupRep.userId,
+          notes: payment.notes ? `${payment.notes} (originally paid by removed user)` : 'Originally paid by removed user'
+        });
+        
+        // Log this special action for transparency
+        await this.logActivity({
+          groupId,
+          userId: groupRep.userId,
+          actionType: 'payment_reassigned',
+          metadata: JSON.stringify({
+            paymentId: payment.id,
+            originalPayer: userId,
+            newPayer: groupRep.userId,
+            amount: payment.amount
+          })
+        });
+      }
+      else if (payment.paidTo === userId) {
+        // User received payment from another user
+        // Update payment to show it was received by the group representative instead
+        console.log(`  User received payment from ${payment.paidBy}, updating recipient to ${groupRep.userId}`);
+        await this.updatePayment(payment.id, {
+          paidTo: groupRep.userId,
+          notes: payment.notes ? `${payment.notes} (originally paid to removed user)` : 'Originally paid to removed user'
+        });
+        
+        // Log this special action for transparency
+        await this.logActivity({
+          groupId,
+          userId: groupRep.userId,
+          actionType: 'payment_reassigned',
+          metadata: JSON.stringify({
+            paymentId: payment.id,
+            originalRecipient: userId,
+            newRecipient: groupRep.userId,
+            amount: payment.amount
+          })
+        });
+      }
     }
   }
   
