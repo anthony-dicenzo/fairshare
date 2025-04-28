@@ -695,6 +695,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const groupId = parseInt(req.params.id);
       
+      // Parse pagination parameters
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+      
       // Check if user is a member of this group
       const members = await storage.getGroupMembers(groupId);
       const isMember = members.some(member => member.userId === req.user.id);
@@ -703,8 +707,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "You are not a member of this group" });
       }
       
-      const expenses = await storage.getExpensesByGroupId(groupId);
-      res.json(expenses);
+      // Modified to support pagination
+      const expenses = await storage.getExpensesByGroupId(groupId, limit, offset);
+      
+      // If requesting total count for pagination
+      if (req.query.includeCount === 'true') {
+        const totalCount = await storage.getExpensesCountByGroupId(groupId);
+        res.json({
+          expenses,
+          totalCount
+        });
+      } else {
+        res.json(expenses);
+      }
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch expenses" });
     }
@@ -1089,10 +1104,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     
     try {
-      // Try to get cached balances first
+      // Parse pagination parameters for optimized loading
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+      const aboveTheFold = req.query.aboveTheFold === 'true';
+      
+      // Try to get cached balances first with pagination support
       try {
-        const cachedBalances = await storage.getUserCachedTotalBalance(req.user.id);
-        res.json(cachedBalances);
+        const cachedBalances = await storage.getUserCachedTotalBalance(req.user.id, limit, offset);
+        
+        if (aboveTheFold) {
+          // Add total counts for pagination UI
+          const totalOwedByCount = cachedBalances.owedByUsers.length;
+          const totalOwesToCount = cachedBalances.owesToUsers.length;
+          
+          // For above-the-fold, we might limit the users arrays but keep the total amounts
+          res.json({
+            ...cachedBalances,
+            totalOwedByCount,
+            totalOwesToCount
+          });
+        } else {
+          res.json(cachedBalances);
+        }
         return;
       } catch (cacheError) {
         console.log("Cache miss or error, falling back to calculated balances", cacheError);
@@ -1100,7 +1134,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Fallback to calculated balances if there's a cache miss
       const balances = await storage.getUserTotalBalance(req.user.id);
-      res.json(balances);
+      
+      // Apply pagination manually if needed
+      if (limit !== undefined) {
+        balances.owedByUsers = balances.owedByUsers.slice(offset, offset + limit);
+        balances.owesToUsers = balances.owesToUsers.slice(offset, offset + limit);
+      }
+      
+      if (aboveTheFold) {
+        // Add total counts for pagination UI
+        res.json({
+          ...balances,
+          totalOwedByCount: balances.owedByUsers.length,
+          totalOwesToCount: balances.owesToUsers.length
+        });
+      } else {
+        res.json(balances);
+      }
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch balances" });
     }

@@ -50,7 +50,8 @@ export interface IStorage {
   
   // Expense operations
   createExpense(expense: InsertExpense): Promise<Expense>;
-  getExpensesByGroupId(groupId: number): Promise<Expense[]>;
+  getExpensesByGroupId(groupId: number, limit?: number, offset?: number): Promise<Expense[]>;
+  getExpensesCountByGroupId(groupId: number): Promise<number>;
   getExpenseById(id: number): Promise<Expense | undefined>;
   updateExpense(expenseId: number, updates: Partial<Expense>): Promise<Expense>;
   deleteExpense(expenseId: number): Promise<boolean>;
@@ -465,7 +466,7 @@ export class DatabaseStorage implements IStorage {
   }
   
   // Get a user's total balance across all groups from the cache
-  async getUserCachedTotalBalance(userId: number): Promise<{
+  async getUserCachedTotalBalance(userId: number, limit?: number, offset: number = 0): Promise<{
     totalOwed: number;
     totalOwes: number;
     netBalance: number;
@@ -647,16 +648,43 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
   
-  async getGroupsByUserId(userId: number): Promise<Group[]> {
-    const result = await db
+  async getGroupsByUserId(userId: number, limit?: number, offset: number = 0): Promise<Group[]> {
+    // Create base query
+    let query = db
       .select({
         group: groups
       })
       .from(groupMembers)
-      .where(eq(groupMembers.userId, userId))
-      .innerJoin(groups, eq(groupMembers.groupId, groups.id));
+      .where(
+        and(
+          eq(groupMembers.userId, userId),
+          eq(groupMembers.isArchived, false) // Only include active memberships
+        )
+      )
+      .innerJoin(groups, eq(groupMembers.groupId, groups.id))
+      .orderBy(desc(groups.updatedAt));
     
+    // Apply pagination if limit is provided
+    if (limit !== undefined) {
+      query = query.limit(limit).offset(offset);
+    }
+    
+    const result = await query;
     return result.map(r => r.group);
+  }
+  
+  async getUserGroupsCount(userId: number): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(groupMembers)
+      .where(
+        and(
+          eq(groupMembers.userId, userId),
+          eq(groupMembers.isArchived, false) // Only count active memberships
+        )
+      );
+      
+    return result[0].count;
   }
   
   async updateGroup(groupId: number, updates: Partial<Group>): Promise<Group> {
