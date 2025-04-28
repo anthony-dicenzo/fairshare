@@ -129,26 +129,26 @@ export function ProfileEditForm({ isOpen, onClose }: ProfileEditFormProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[425px] p-4">
+        <DialogHeader className="pb-1">
           <DialogTitle>Edit Profile</DialogTitle>
-          <DialogDescription>
-            Update your profile information. Your current password is required to make changes.
+          <DialogDescription className="text-xs">
+            Update profile. Current password required.
           </DialogDescription>
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
             <FormField
               control={form.control}
               name="name"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
+                <FormItem className="space-y-1">
+                  <FormLabel className="text-sm">Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Your name" {...field} />
+                    <Input placeholder="Your name" {...field} className="h-9" />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-xs" />
                 </FormItem>
               )}
             />
@@ -157,12 +157,12 @@ export function ProfileEditForm({ isOpen, onClose }: ProfileEditFormProps) {
               control={form.control}
               name="email"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
+                <FormItem className="space-y-1">
+                  <FormLabel className="text-sm">Email</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="Your email" {...field} />
+                    <Input type="email" placeholder="Your email" {...field} className="h-9" />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-xs" />
                 </FormItem>
               )}
             />
@@ -171,78 +171,84 @@ export function ProfileEditForm({ isOpen, onClose }: ProfileEditFormProps) {
               control={form.control}
               name="currentPassword"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Current Password</FormLabel>
+                <FormItem className="space-y-1">
+                  <FormLabel className="text-sm">Current Password</FormLabel>
                   <FormControl>
                     <Input 
                       type="password" 
                       placeholder="Current password" 
                       {...field} 
+                      className="h-9"
                     />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-xs" />
                 </FormItem>
               )}
             />
             
-            <FormField
-              control={form.control}
-              name="newPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>New Password (optional)</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="password" 
-                      placeholder="New password" 
-                      {...field} 
-                      value={field.value || ''}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-2">
+              <FormField
+                control={form.control}
+                name="newPassword"
+                render={({ field }) => (
+                  <FormItem className="space-y-1">
+                    <FormLabel className="text-sm">New Password</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="password" 
+                        placeholder="New password" 
+                        {...field} 
+                        value={field.value || ''}
+                        className="h-9"
+                      />
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="confirmNewPassword"
+                render={({ field }) => (
+                  <FormItem className="space-y-1">
+                    <FormLabel className="text-sm">Confirm</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="password" 
+                        placeholder="Confirm password" 
+                        {...field} 
+                        value={field.value || ''}
+                        className="h-9"
+                      />
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+            </div>
             
-            <FormField
-              control={form.control}
-              name="confirmNewPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Confirm New Password</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="password" 
-                      placeholder="Confirm new password" 
-                      {...field} 
-                      value={field.value || ''}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <DialogFooter>
+            <div className="flex gap-2 pt-2">
               <Button 
                 type="button" 
                 variant="outline" 
                 onClick={onClose}
                 disabled={isSubmitting}
+                className="flex-1 h-9"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting} className="flex-1 h-9">
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
                     Updating...
                   </>
                 ) : (
                   'Save Changes'
                 )}
               </Button>
-            </DialogFooter>
+            </div>
           </form>
         </Form>
       </DialogContent>
