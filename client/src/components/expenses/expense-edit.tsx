@@ -113,9 +113,8 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
   // Track the current expense ID to detect changes
   const [currentExpenseId, setCurrentExpenseId] = useState<number | null>(null);
   
-  // Initialize selectedUserIds with participants when expense data is loaded
+  // Handle expense ID changes (when user clicks a different expense)
   useEffect(() => {
-    // Reset form when expense ID changes (user clicks on a different expense)
     if (expenseId !== currentExpenseId) {
       setCurrentExpenseId(expenseId);
       // Reset the form state when switching between expenses
@@ -124,102 +123,112 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
       setCustomAmounts({});
       setCustomPercentages({});
     }
+  }, [expenseId, currentExpenseId, form]);
+  
+  // Load expense data when expense or participants change
+  useEffect(() => {
+    if (!expense || !Array.isArray(groupMembers) || groupMembers.length === 0) {
+      return;
+    }
     
-    if (expense && Array.isArray(groupMembers) && groupMembers.length > 0) {
-      try {
-        if (typeof expense === 'object') {
-          // Update all form fields
-          const expenseObj = expense as any;
-          const title = expenseObj.title ? String(expenseObj.title) : '';
-          const amount = expenseObj.totalAmount ? String(expenseObj.totalAmount) : '0';
-          const payer = expenseObj.paidBy ? String(expenseObj.paidBy) : user?.id?.toString() || '';
-          
-          // Ensure date is properly formatted for the date input field
-          let expenseDate = formatISO(new Date(), { representation: "date" });
-          if (expenseObj.date) {
-            try {
-              // Make sure the date is properly formatted as YYYY-MM-DD for the date input
-              const dateObj = new Date(expenseObj.date);
-              expenseDate = formatISO(dateObj, { representation: "date" });
-            } catch (e) {
-              console.error('Error formatting date:', e);
-            }
-          }
-          
-          const notes = expenseObj.notes ? String(expenseObj.notes) : '';
-          const splitMethod = "equal"; // Default to equal - we'll determine actual split later
-          
-          // Set selected user IDs from participants
-          const participantIds = Array.isArray(expenseParticipants) 
-            ? expenseParticipants.map((p: any) => p.userId)
-            : [];
-          
-          setSelectedUserIds(participantIds.length > 0 ? participantIds : 
-            groupMembers.map((m: any) => m.userId));
-          
-          // Update the form
-          form.setValue('title', title);
-          form.setValue('totalAmount', amount);
-          form.setValue('paidBy', payer);
-          form.setValue('date', expenseDate);
-          form.setValue('notes', notes);
-          form.setValue('splitMethod', splitMethod);
-          
-          // Initialize amounts and percentages based on participants
-          if (Array.isArray(expenseParticipants) && expenseParticipants.length > 0) {
-            const totalAmount = parseFloat(amount);
-            const newAmounts: Record<number, number> = {};
-            const newPercentages: Record<number, number> = {};
-            
-            // Determine if it's an equal split or custom split
-            const firstAmount = expenseParticipants[0]?.amountOwed;
-            const isEqualSplit = expenseParticipants.every((p: any) => 
-              Math.abs(p.amountOwed - firstAmount) < 0.01);
-            
-            if (isEqualSplit) {
-              form.setValue('splitMethod', 'equal');
-            } else {
-              // Determine if it's percentage or custom amount
-              const totalOwed = expenseParticipants.reduce((sum: number, p: any) => 
-                sum + parseFloat(p.amountOwed), 0);
-              
-              if (Math.abs(totalOwed - totalAmount) < 0.01) {
-                form.setValue('splitMethod', 'unequal');
-              } else {
-                form.setValue('splitMethod', 'percentage');
-              }
-            }
-            
-            // Set custom amounts and percentages
-            expenseParticipants.forEach((p: any) => {
-              newAmounts[p.userId] = parseFloat(p.amountOwed);
-              newPercentages[p.userId] = (parseFloat(p.amountOwed) / totalAmount) * 100;
-            });
-            
-            setCustomAmounts(newAmounts);
-            setCustomPercentages(newPercentages);
-          } else {
-            handleInitializeAmountsAndPercentages();
+    try {
+      if (typeof expense === 'object') {
+        // Update all form fields
+        const expenseObj = expense as any;
+        const title = expenseObj.title ? String(expenseObj.title) : '';
+        const amount = expenseObj.totalAmount ? String(expenseObj.totalAmount) : '0';
+        const payer = expenseObj.paidBy ? String(expenseObj.paidBy) : user?.id?.toString() || '';
+        
+        // Ensure date is properly formatted for the date input field
+        let expenseDate = formatISO(new Date(), { representation: "date" });
+        if (expenseObj.date) {
+          try {
+            // Make sure the date is properly formatted as YYYY-MM-DD for the date input
+            const dateObj = new Date(expenseObj.date);
+            expenseDate = formatISO(dateObj, { representation: "date" });
+          } catch (e) {
+            console.error('Error formatting date:', e);
           }
         }
-      } catch (error) {
-        console.error('Error populating form:', error);
+        
+        const notes = expenseObj.notes ? String(expenseObj.notes) : '';
+        const splitMethod = "equal"; // Default to equal - we'll determine actual split later
+        
+        // Set selected user IDs from participants
+        const participantIds = Array.isArray(expenseParticipants) 
+          ? expenseParticipants.map((p: any) => p.userId)
+          : [];
+        
+        setSelectedUserIds(participantIds.length > 0 ? participantIds : 
+          groupMembers.map((m: any) => m.userId));
+        
+        // Update the form
+        form.setValue('title', title);
+        form.setValue('totalAmount', amount);
+        form.setValue('paidBy', payer);
+        form.setValue('date', expenseDate);
+        form.setValue('notes', notes);
+        form.setValue('splitMethod', splitMethod);
+        
+        // Initialize amounts and percentages based on participants
+        if (Array.isArray(expenseParticipants) && expenseParticipants.length > 0) {
+          const totalAmount = parseFloat(amount);
+          const newAmounts: Record<number, number> = {};
+          const newPercentages: Record<number, number> = {};
+          
+          // Determine if it's an equal split or custom split
+          const firstAmount = expenseParticipants[0]?.amountOwed;
+          const isEqualSplit = expenseParticipants.every((p: any) => 
+            Math.abs(p.amountOwed - firstAmount) < 0.01);
+          
+          if (isEqualSplit) {
+            form.setValue('splitMethod', 'equal');
+          } else {
+            // Determine if it's percentage or custom amount
+            const totalOwed = expenseParticipants.reduce((sum: number, p: any) => 
+              sum + parseFloat(p.amountOwed), 0);
+            
+            if (Math.abs(totalOwed - totalAmount) < 0.01) {
+              form.setValue('splitMethod', 'unequal');
+            } else {
+              form.setValue('splitMethod', 'percentage');
+            }
+          }
+          
+          // Set custom amounts and percentages
+          expenseParticipants.forEach((p: any) => {
+            newAmounts[p.userId] = parseFloat(p.amountOwed);
+            newPercentages[p.userId] = (parseFloat(p.amountOwed) / totalAmount) * 100;
+          });
+          
+          setCustomAmounts(newAmounts);
+          setCustomPercentages(newPercentages);
+        } else {
+          handleInitializeAmountsAndPercentages();
+        }
       }
+    } catch (error) {
+      console.error('Error populating form:', error);
     }
-  }, [expense, expenseParticipants, groupMembers, form, expenseId]);
+  }, [expense, expenseParticipants, groupMembers]);
   
   // Initialize or update custom amounts and percentages when users change
   useEffect(() => {
-    if (selectedUserIds.length > 0) {
-      handleInitializeAmountsAndPercentages();
+    // Only update when user has actively changed the split method or amount
+    // Don't run this effect during initial form population
+    if (selectedUserIds.length > 0 && currentExpenseId) {
+      const splitMethod = form.getValues('splitMethod');
+      const totalAmount = form.getValues('totalAmount');
+      handleInitializeAmountsAndPercentages(splitMethod, totalAmount);
     }
-  }, [selectedUserIds, form.watch('splitMethod'), form.watch('totalAmount')]);
+  }, [selectedUserIds, form.watch('splitMethod'), form.watch('totalAmount'), currentExpenseId]);
   
   // Function to initialize custom amounts and percentages
-  const handleInitializeAmountsAndPercentages = () => {
+  const handleInitializeAmountsAndPercentages = (splitMethod?: string, amountStr?: string) => {
     if (selectedUserIds.length === 0) return;
     
-    const totalAmount = parseFloat(form.getValues("totalAmount") || "0");
+    // Use the provided amounts or get from form
+    const totalAmount = amountStr ? parseFloat(amountStr) : parseFloat(form.getValues("totalAmount") || "0");
     const equalAmount = totalAmount / selectedUserIds.length;
     const equalPercentage = 100 / selectedUserIds.length;
     
@@ -232,8 +241,26 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
       newPercentages[userId] = equalPercentage;
     });
     
-    setCustomAmounts(newAmounts);
-    setCustomPercentages(newPercentages);
+    // Only update if this would change the values (prevent infinite loops)
+    const currentAmountKeys = Object.keys(customAmounts);
+    const currentPercentageKeys = Object.keys(customPercentages);
+    
+    // Check if arrays are different lengths or have different values
+    const needsAmountUpdate = 
+      currentAmountKeys.length !== selectedUserIds.length || 
+      selectedUserIds.some(id => !customAmounts[id] || Math.abs(customAmounts[id] - equalAmount) > 0.01);
+      
+    const needsPercentageUpdate = 
+      currentPercentageKeys.length !== selectedUserIds.length || 
+      selectedUserIds.some(id => !customPercentages[id] || Math.abs(customPercentages[id] - equalPercentage) > 0.01);
+    
+    if (needsAmountUpdate) {
+      setCustomAmounts(newAmounts);
+    }
+    
+    if (needsPercentageUpdate) {
+      setCustomPercentages(newPercentages);
+    }
   };
 
   // Update expense mutation
