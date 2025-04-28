@@ -3,9 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/main-layout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Search, PlusCircle } from "lucide-react";
+import { Search, PlusCircle, CreditCard, ShoppingBag } from "lucide-react";
 import { useLocation } from "wouter";
 import { GroupForm } from "@/components/groups/group-form";
+import { ExpenseForm } from "@/components/expenses/expense-form";
 import { Group } from "@shared/schema";
 import { Input } from "@/components/ui/input";
 
@@ -17,6 +18,8 @@ type EnhancedGroup = Group & {
 
 export default function GroupsPage() {
   const [showGroupModal, setShowGroupModal] = useState(false);
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   
@@ -177,10 +180,12 @@ export default function GroupsPage() {
                 return (
                   <div 
                     key={group.id}
-                    className="cursor-pointer bg-white rounded-md p-2 shadow-sm hover:shadow-md transition-shadow"
-                    onClick={() => setLocation(`/group/${group.id}`)}
+                    className="bg-white rounded-md p-2 shadow-sm hover:shadow-md transition-shadow"
                   >
-                    <div className="flex items-center justify-between">
+                    <div 
+                      className="flex items-center justify-between cursor-pointer"
+                      onClick={() => setLocation(`/group/${group.id}`)}
+                    >
                       <div className="flex items-center">
                         <div className="w-8 h-8 rounded-full bg-fairshare-primary/10 flex items-center justify-center mr-2 text-fairshare-primary">
                           <span className="font-medium text-sm">{group.name.charAt(0)}</span>
@@ -211,6 +216,23 @@ export default function GroupsPage() {
                         )}
                       </div>
                     </div>
+                    
+                    {/* Action buttons */}
+                    <div className="flex justify-end mt-2 space-x-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="text-xs py-1 h-7 px-2 border-fairshare-primary text-fairshare-primary hover:bg-fairshare-primary/10"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedGroupId(group.id);
+                          setShowExpenseModal(true);
+                        }}
+                      >
+                        <ShoppingBag className="h-3 w-3 mr-1" />
+                        Add Expense
+                      </Button>
+                    </div>
                   </div>
                 );
               })}
@@ -220,6 +242,11 @@ export default function GroupsPage() {
       </div>
       
       <GroupForm open={showGroupModal} onOpenChange={setShowGroupModal} />
+      <ExpenseForm 
+        open={showExpenseModal} 
+        onOpenChange={setShowExpenseModal} 
+        groupId={selectedGroupId || undefined}
+      />
     </MainLayout>
   );
 }
