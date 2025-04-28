@@ -215,30 +215,30 @@ export function GroupSettings({ open, onOpenChange, groupId, groupName, members,
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
+        <DialogContent className="sm:max-w-[500px] max-h-[95vh] overflow-y-auto p-4 sm:p-5">
+          <DialogHeader className="p-0 pb-2">
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <Settings className="h-4 w-4" />
               Group settings
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-xs leading-tight mt-1">
               Manage members and settings for {groupName}
             </DialogDescription>
           </DialogHeader>
           
           {/* Group name section */}
           {isCreator && (
-            <div className="py-4">
-              <div className="flex items-center justify-between mb-3">
+            <div className="py-2">
+              <div className="flex items-center justify-between mb-1">
                 <h3 className="text-sm font-medium">Group name</h3>
                 {!isEditingName ? (
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setIsEditingName(true)}
-                    className="text-muted-foreground hover:text-foreground"
+                    className="text-muted-foreground hover:text-foreground h-7 px-2"
                   >
-                    <Edit className="h-4 w-4 mr-1" />
+                    <Edit className="h-3.5 w-3.5 mr-1" />
                     Edit
                   </Button>
                 ) : (
@@ -247,21 +247,21 @@ export function GroupSettings({ open, onOpenChange, groupId, groupName, members,
                       variant="ghost"
                       size="sm"
                       onClick={handleCancelEdit}
-                      className="text-muted-foreground hover:text-foreground"
+                      className="text-muted-foreground hover:text-foreground h-7 w-7 p-0"
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-3.5 w-3.5" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={updateGroupForm.handleSubmit(onSubmitUpdateGroup)}
-                      className="text-green-600 hover:text-green-700"
+                      className="text-green-600 hover:text-green-700 h-7 w-7 p-0"
                       disabled={updateGroupMutation.isPending}
                     >
                       {updateGroupMutation.isPending ? (
-                        <RotateCcw className="h-4 w-4 animate-spin" />
+                        <RotateCcw className="h-3.5 w-3.5 animate-spin" />
                       ) : (
-                        <Save className="h-4 w-4" />
+                        <Save className="h-3.5 w-3.5" />
                       )}
                     </Button>
                   </div>
@@ -277,16 +277,16 @@ export function GroupSettings({ open, onOpenChange, groupId, groupName, members,
                       control={updateGroupForm.control}
                       name="name"
                       render={({ field }) => (
-                        <FormItem>
+                        <FormItem className="space-y-1">
                           <FormControl>
                             <Input 
                               placeholder="Group name" 
                               {...field} 
                               autoFocus 
-                              className="text-sm"
+                              className="text-sm h-8"
                             />
                           </FormControl>
-                          <FormMessage />
+                          <FormMessage className="text-xs" />
                         </FormItem>
                       )}
                     />
@@ -296,23 +296,23 @@ export function GroupSettings({ open, onOpenChange, groupId, groupName, members,
             </div>
           )}
           
-          <Separator />
+          <Separator className="my-2" />
           
           {/* Group members section */}
-          <div className="py-4">
-            <h3 className="text-sm font-medium mb-3">Group members</h3>
-            <div className="space-y-4">
+          <div className="py-2">
+            <h3 className="text-sm font-medium mb-2">Group members</h3>
+            <div className="space-y-2">
               {members.map((member) => (
                 <div key={member.userId} className="flex items-center justify-between">
                   <div className="flex items-center">
-                    <Avatar className="h-9 w-9 mr-3">
-                      <AvatarFallback>
+                    <Avatar className="h-7 w-7 mr-2">
+                      <AvatarFallback className="text-xs">
                         {member.user.name.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="text-sm font-medium">{member.user.name}</p>
-                      <p className="text-xs text-muted-foreground">{member.user.email}</p>
+                      <p className="text-sm font-medium leading-none">{member.user.name}</p>
+                      <p className="text-xs text-muted-foreground leading-tight">{member.user.email}</p>
                     </div>
                   </div>
                   
@@ -321,10 +321,10 @@ export function GroupSettings({ open, onOpenChange, groupId, groupName, members,
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                      className="text-red-500 hover:text-red-600 hover:bg-red-50 h-7 px-2"
                       onClick={() => handleRemoveMember(member)}
                     >
-                      <UserMinus className="h-4 w-4 mr-1" />
+                      <UserMinus className="h-3.5 w-3.5 mr-1" />
                       Remove
                     </Button>
                   )}
@@ -336,27 +336,27 @@ export function GroupSettings({ open, onOpenChange, groupId, groupName, members,
           {/* Delete group section */}
           {isCreator && (
             <>
-              <Separator />
-              <div className="py-4">
-                <h3 className="text-sm font-medium text-red-500 mb-3">Danger zone</h3>
+              <Separator className="my-2" />
+              <div className="py-2">
+                <h3 className="text-sm font-medium text-red-500 mb-2">Danger zone</h3>
                 <Button 
                   variant="outline" 
-                  className="border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600 w-full justify-start"
+                  className="border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600 w-full justify-start h-8 text-xs"
                   onClick={() => setShowDeleteGroupConfirmation(true)}
                 >
-                  <Trash2 className="h-4 w-4 mr-2" />
+                  <Trash2 className="h-3.5 w-3.5 mr-1.5" />
                   Delete group
                 </Button>
-                <p className="text-xs text-muted-foreground mt-2">
+                <p className="text-[10px] text-muted-foreground mt-1 leading-tight">
                   This will permanently delete the group and all associated data. All balances must be settled first.
                 </p>
               </div>
             </>
           )}
           
-          <DialogFooter className="mt-4">
+          <DialogFooter className="mt-2 pt-2 pb-0">
             <DialogClose asChild>
-              <Button variant="outline">Close</Button>
+              <Button variant="outline" size="sm" className="h-8 text-xs w-full sm:w-auto">Close</Button>
             </DialogClose>
           </DialogFooter>
         </DialogContent>
@@ -364,19 +364,18 @@ export function GroupSettings({ open, onOpenChange, groupId, groupName, members,
       
       {/* Confirmation dialog for removing a member */}
       <AlertDialog open={showRemoveConfirmation} onOpenChange={setShowRemoveConfirmation}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove {selectedMember?.user.name}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to remove this member from the group? 
+        <AlertDialogContent className="max-w-[350px] p-4">
+          <AlertDialogHeader className="p-0 pb-2">
+            <AlertDialogTitle className="text-base">Remove {selectedMember?.user.name}?</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs">
               They will no longer have access to the group's expenses and history.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="flex-row gap-2 mt-2 space-x-0">
+            <AlertDialogCancel className="h-8 text-xs flex-1">Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleConfirmRemove}
-              className="bg-red-500 hover:bg-red-600"
+              className="bg-red-500 hover:bg-red-600 h-8 text-xs flex-1"
             >
               Remove
             </AlertDialogAction>
@@ -386,45 +385,45 @@ export function GroupSettings({ open, onOpenChange, groupId, groupName, members,
       
       {/* Error dialog for balance issues */}
       <AlertDialog open={!!removeError} onOpenChange={() => setRemoveError(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-red-500">
-              <AlertTriangle className="h-5 w-5" />
+        <AlertDialogContent className="max-w-[350px] p-4">
+          <AlertDialogHeader className="p-0 pb-2">
+            <AlertDialogTitle className="flex items-center gap-1.5 text-red-500 text-base">
+              <AlertTriangle className="h-4 w-4" />
               Cannot Remove Member
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              {removeError || "This member has outstanding balances with others in the group. All balances must be settled before they can be removed."}
+            <AlertDialogDescription className="text-xs leading-tight">
+              {removeError || "This member has outstanding balances with others in the group. All balances must be settled first."}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction>OK</AlertDialogAction>
+          <AlertDialogFooter className="mt-2">
+            <AlertDialogAction className="h-8 text-xs w-full">OK</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
       
       {/* Confirmation dialog for deleting the group */}
       <AlertDialog open={showDeleteGroupConfirmation} onOpenChange={setShowDeleteGroupConfirmation}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-red-500">
-              <AlertTriangle className="h-5 w-5" />
+        <AlertDialogContent className="max-w-[350px] p-4">
+          <AlertDialogHeader className="p-0 pb-2">
+            <AlertDialogTitle className="flex items-center gap-1.5 text-red-500 text-base">
+              <AlertTriangle className="h-4 w-4" />
               Delete group?
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this group? This action cannot be undone, and all group data will be permanently removed.
-              <p className="mt-2 font-semibold">Note: All balances must be settled before a group can be deleted.</p>
+            <AlertDialogDescription className="text-xs leading-tight">
+              This action cannot be undone, and all group data will be permanently removed.
+              <p className="mt-1 font-semibold text-[11px]">Note: All balances must be settled first.</p>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="flex-row gap-2 mt-2 space-x-0">
+            <AlertDialogCancel className="h-8 text-xs flex-1">Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={() => deleteGroupMutation.mutate()}
-              className="bg-red-500 hover:bg-red-600"
+              className="bg-red-500 hover:bg-red-600 h-8 text-xs flex-1"
               disabled={deleteGroupMutation.isPending}
             >
               {deleteGroupMutation.isPending ? (
                 <>
-                  <RotateCcw className="h-4 w-4 mr-2 animate-spin" />
+                  <RotateCcw className="h-3.5 w-3.5 mr-1.5 animate-spin" />
                   Deleting...
                 </>
               ) : (
