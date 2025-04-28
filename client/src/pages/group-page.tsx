@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, Users, Plus, PlusCircle, CreditCard, RefreshCw, Settings } from "lucide-react";
 import { ExpenseForm } from "@/components/expenses/expense-form";
-import { ExpenseEditFixed } from "@/components/expenses/expense-edit-fixed";
+import { MinimalExpenseEdit } from "@/components/expenses/minimal-expense-edit";
 import { PaymentForm } from "@/components/expenses/payment-form";
 import { GroupDetail } from "@/components/groups/group-detail";
 import { GroupSettings } from "@/components/groups/group-settings";
@@ -528,7 +528,7 @@ export default function GroupPage() {
       />
       {/* Expense Edit Modal */}
       {selectedExpenseId && (
-        <ExpenseEditFixed
+        <MinimalExpenseEdit
           open={showExpenseEditModal}
           onOpenChange={setShowExpenseEditModal}
           expenseId={selectedExpenseId}
