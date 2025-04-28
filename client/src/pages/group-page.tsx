@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useParams, useLocation } from "wouter";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useInfiniteQuery } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/main-layout";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -113,15 +113,45 @@ export default function GroupPage() {
     }
   }, [members, groupId]);
 
-  // Fetch group expenses - adding staleTime: 0 to ensure data is always fresh on navigation
+  // Mobile optimization: Use pagination for expenses with a reasonable initial load
+  const EXPENSES_PER_PAGE = 5;
+  const [currentExpensePage, setCurrentExpensePage] = useState(0);
+  const [isLoadingMoreExpenses, setIsLoadingMoreExpenses] = useState(false);
+  
+  // Fetch group expenses with pagination for better mobile performance
   const { 
-    data: expenses = [], 
-    isLoading: isLoadingExpenses 
-  } = useQuery({
+    data: expensesData,
+    isLoading: isLoadingExpenses,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: [`/api/groups/${groupIdStr}/expenses`],
+    queryFn: async ({ pageParam = 0 }) => {
+      const response = await fetch(`/api/groups/${groupIdStr}/expenses?limit=${EXPENSES_PER_PAGE}&offset=${pageParam * EXPENSES_PER_PAGE}`);
+      const data = await response.json();
+      return data;
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.hasMore ? allPages.length : undefined;
+    },
     enabled: groupId > 0 && !!group,
     staleTime: 0 // Always refetch on component mount
   });
+  
+  // Flatten the paged data for easier use in the component
+  const expenses = useMemo(() => {
+    if (!expensesData) return [];
+    return expensesData.pages.flatMap(page => page.expenses || []);
+  }, [expensesData]);
+  
+  // Function to load more expenses when user scrolls
+  const loadMoreExpenses = useCallback(async () => {
+    if (isFetchingNextPage || !hasNextPage) return;
+    setIsLoadingMoreExpenses(true);
+    await fetchNextPage();
+    setIsLoadingMoreExpenses(false);
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   // Fetch group payments
   const { 
