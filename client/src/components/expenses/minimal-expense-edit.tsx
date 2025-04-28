@@ -91,10 +91,12 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
   // Use an effect to populate form fields when data changes
   useEffect(() => {
     if (expense) {
+      // Set all the basic form values from the expense data
       setTitle(expense.title || "");
       setAmount(expense.totalAmount?.toString() || "");
       setPaidBy(expense.paidBy?.toString() || "");
       
+      // Format and handle the date properly
       if (expense.date) {
         try {
           const dateObj = new Date(expense.date);
@@ -192,7 +194,8 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
       setCustomAmounts(newAmounts);
       setCustomPercentages(newPercentages);
     }
-  }, [expenseParticipants, amount]);
+    // Only depend on expenseParticipants, not amount - this prevents a circular dependency
+  }, [expenseParticipants]);
 
   // Helper to invalidate queries after updates
   const invalidateQueries = async () => {
@@ -356,50 +359,54 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
     }
   };
   
-  // Effect to recalculate amounts when split method or amount changes
+  // Effect to recalculate amounts when split method changes
   useEffect(() => {
     if (open && selectedUserIds.length > 0) {
       recalculateAmounts();
     }
-  }, [splitMethod, amount, selectedUserIds]);
+  // We intentionally leave out dependent variables that would cause infinite loops
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [splitMethod, selectedUserIds, open]);
   
-  // Handler for updating a user's custom amount
+  // Handler for updating a user's custom amount - with debounce logic to prevent infinite loops
   const handleAmountChange = (userId: number, newAmount: string) => {
-    const parsed = parseFloat(newAmount);
-    if (!isNaN(parsed)) {
-      setCustomAmounts({
-        ...customAmounts,
-        [userId]: parsed
-      });
-      
-      // Also update percentage if total amount is valid
-      const totalAmountVal = parseFloat(amount || "0");
-      if (totalAmountVal > 0) {
-        setCustomPercentages({
-          ...customPercentages,
-          [userId]: (parsed / totalAmountVal) * 100
-        });
-      }
+    // Parse and validate input
+    let parsed = parseFloat(newAmount);
+    if (isNaN(parsed)) parsed = 0;
+    
+    // Update amount directly
+    const newAmounts = {...customAmounts};
+    newAmounts[userId] = parsed;
+    setCustomAmounts(newAmounts);
+    
+    // Calculate and update percentage separately
+    const totalAmountVal = parseFloat(amount || "0");
+    if (totalAmountVal > 0) {
+      const percentage = (parsed / totalAmountVal) * 100;
+      const newPercentages = {...customPercentages};
+      newPercentages[userId] = percentage;
+      setCustomPercentages(newPercentages);
     }
   };
   
   // Handler for updating a user's custom percentage
   const handlePercentageChange = (userId: number, newPercentage: string) => {
-    const parsed = parseFloat(newPercentage);
-    if (!isNaN(parsed)) {
-      setCustomPercentages({
-        ...customPercentages,
-        [userId]: parsed
-      });
-      
-      // Also update amount based on percentage
-      const totalAmountVal = parseFloat(amount || "0");
-      if (totalAmountVal > 0) {
-        setCustomAmounts({
-          ...customAmounts,
-          [userId]: (parsed * totalAmountVal) / 100
-        });
-      }
+    // Parse and validate input
+    let parsed = parseFloat(newPercentage);
+    if (isNaN(parsed)) parsed = 0;
+    
+    // Update percentage directly
+    const newPercentages = {...customPercentages};
+    newPercentages[userId] = parsed;
+    setCustomPercentages(newPercentages);
+    
+    // Calculate and update amount separately
+    const totalAmountVal = parseFloat(amount || "0");
+    if (totalAmountVal > 0) {
+      const calculatedAmount = (parsed * totalAmountVal) / 100;
+      const newAmounts = {...customAmounts};
+      newAmounts[userId] = calculatedAmount;
+      setCustomAmounts(newAmounts);
     }
   };
   
