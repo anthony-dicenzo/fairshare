@@ -168,15 +168,18 @@ export default function GroupsPage() {
                 return (
                   <div 
                     key={group.id}
-                    className="cursor-pointer"
+                    className="cursor-pointer bg-white rounded-md p-3 shadow-sm hover:shadow-md transition-shadow"
                     onClick={() => setLocation(`/group/${group.id}`)}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
-                        <div className="w-10 h-10 rounded-md bg-fairshare-primary/10 flex items-center justify-center mr-3 text-fairshare-primary">
+                        <div className="w-10 h-10 rounded-full bg-fairshare-primary/10 flex items-center justify-center mr-3 text-fairshare-primary">
                           <span className="font-medium">{group.name.charAt(0)}</span>
                         </div>
-                        <h3 className="font-medium text-fairshare-dark">{group.name}</h3>
+                        <div>
+                          <h3 className="font-medium text-fairshare-dark">{group.name}</h3>
+                          <p className="text-xs text-fairshare-dark/50">{group.memberCount || 2} members</p>
+                        </div>
                       </div>
                       
                       <div className="text-right">
@@ -184,17 +187,17 @@ export default function GroupsPage() {
                           <span className="text-fairshare-dark/60 text-sm">settled up</span>
                         ) : (group.balance || 0) > 0 ? (
                           <div className="text-right">
-                            <p className="text-sm text-fairshare-dark/70">you are owed</p>
                             <p className="font-medium text-emerald-500">
-                              ${(group.balance || 0).toFixed(2)}
+                              +${(group.balance || 0).toFixed(2)}
                             </p>
+                            <p className="text-xs text-fairshare-dark/70">You Are Owed</p>
                           </div>
                         ) : (
                           <div className="text-right">
-                            <p className="text-sm text-fairshare-dark/70">you owe</p>
-                            <p className="font-medium text-fairshare-primary">
-                              ${Math.abs(group.balance || 0).toFixed(2)}
+                            <p className="font-medium text-rose-500">
+                              -${Math.abs(group.balance || 0).toFixed(2)}
                             </p>
+                            <p className="text-xs text-fairshare-dark/70">You Owe</p>
                           </div>
                         )}
                       </div>
