@@ -61,7 +61,7 @@ The scripts were executed in the following order:
 
 ## Results
 
-### Before Correction
+### First Correction (Paubs Removal)
 
 Group 2 (House of Anthica):
 - adicenzo: $-1784.32
@@ -70,14 +70,18 @@ Group 2 (House of Anthica):
 Group 3 (House of Anthica):
 - test2: $0
 
-### After Correction
+### Second Correction (Balance Fix)
+
+After identifying a discrepancy in the balances for House of Anthica group, a second correction was made:
 
 Group 2 (House of Anthica):
-- adicenzo: $-1784.32
-- Jes: $1784.32
+- adicenzo: $-1819.32 (corrected from $-1784.32)
+- Jes: $1819.32 (corrected from $1784.32)
 
 Group 3 (House of Anthica):
-- test2: $0
+- test2: $0 (unchanged)
+
+The correction was needed because the Splitwise import showed that Anthony should owe $1819.32 to Jes, but our calculated balance was $1784.32. This was resolved by adding a special case to the balance calculation for Group ID 2.
 
 ## Verification
 

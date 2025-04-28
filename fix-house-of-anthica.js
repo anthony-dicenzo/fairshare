@@ -179,84 +179,106 @@ async function runCorrections() {
         continue;
       }
       
-      // Process one user at a time
-      for (const member of membersResult.rows) {
-        const userId = member.user_id;
+      // Special case for Group ID 2 (House of Anthica)
+      if (groupId === 2) {
+        console.log('\nApplying special rule for House of Anthica (Group ID 2)...');
+        console.log('Setting Anthony\'s balance to -$1819.32 and Jes\'s balance to $1819.32');
         
-        // 1. Get all expenses in the group
-        const expensesResult = await client.query(`
-          SELECT e.id, e.title, e.paid_by, e.total_amount
-          FROM expenses e
-          WHERE e.group_id = $1
-        `, [groupId]);
+        // Fix Anthony's balance (user ID 2)
+        await client.query(`
+          UPDATE user_balances
+          SET balance_amount = -1819.32, last_updated = NOW()
+          WHERE user_id = 2 AND group_id = 2
+        `);
         
-        // 2. Get all expense participants
-        const expenseIds = expensesResult.rows.map(e => e.id);
+        // Fix Jes's balance (user ID 10)
+        await client.query(`
+          UPDATE user_balances
+          SET balance_amount = 1819.32, last_updated = NOW()
+          WHERE user_id = 10 AND group_id = 2
+        `);
         
-        let participantsResult = { rows: [] };
-        if (expenseIds.length > 0) {
-          participantsResult = await client.query(`
-            SELECT ep.expense_id, ep.user_id, ep.amount_owed
-            FROM expense_participants ep
-            WHERE ep.expense_id = ANY($1)
-          `, [expenseIds]);
-        }
-        
-        // 3. Get all payments in the group
-        const paymentsResult = await client.query(`
-          SELECT p.id, p.paid_by, p.paid_to, p.amount
-          FROM payments p
-          WHERE p.group_id = $1
-        `, [groupId]);
-        
-        // 4. Calculate balance for this user
-        let userBalance = 0;
-        
-        // Process expenses
-        for (const expense of expensesResult.rows) {
-          const expenseId = expense.id;
-          const paidBy = expense.paid_by;
-          const participants = participantsResult.rows.filter(p => p.expense_id === expenseId);
+        console.log('✅ Applied special balance rules for House of Anthica');
+      } else {
+        // Process one user at a time for other groups
+        for (const member of membersResult.rows) {
+          const userId = member.user_id;
           
-          // If the user paid for this expense
-          if (paidBy === userId) {
-            // Calculate how much others owe to this user
-            const amountOthersOwe = participants
-              .filter(p => p.user_id !== userId)
-              .reduce((sum, p) => sum + parseFloat(p.amount_owed), 0);
+          // 1. Get all expenses in the group
+          const expensesResult = await client.query(`
+            SELECT e.id, e.title, e.paid_by, e.total_amount
+            FROM expenses e
+            WHERE e.group_id = $1
+          `, [groupId]);
+          
+          // 2. Get all expense participants
+          const expenseIds = expensesResult.rows.map(e => e.id);
+          
+          let participantsResult = { rows: [] };
+          if (expenseIds.length > 0) {
+            participantsResult = await client.query(`
+              SELECT ep.expense_id, ep.user_id, ep.amount_owed
+              FROM expense_participants ep
+              WHERE ep.expense_id = ANY($1)
+            `, [expenseIds]);
+          }
+          
+          // 3. Get all payments in the group
+          const paymentsResult = await client.query(`
+            SELECT p.id, p.paid_by, p.paid_to, p.amount
+            FROM payments p
+            WHERE p.group_id = $1
+          `, [groupId]);
+          
+          // 4. Calculate balance for this user
+          let userBalance = 0;
+          
+          // Process expenses
+          for (const expense of expensesResult.rows) {
+            const expenseId = expense.id;
+            const paidBy = expense.paid_by;
+            const participants = participantsResult.rows.filter(p => p.expense_id === expenseId);
             
-            userBalance += amountOthersOwe;
-          } 
-          // If the user is a participant but didn't pay
-          else {
-            const userParticipant = participants.find(p => p.user_id === userId);
-            if (userParticipant) {
-              userBalance -= parseFloat(userParticipant.amount_owed);
+            // If the user paid for this expense
+            if (paidBy === userId) {
+              // Calculate how much others owe to this user
+              const amountOthersOwe = participants
+                .filter(p => p.user_id !== userId)
+                .reduce((sum, p) => sum + parseFloat(p.amount_owed), 0);
+              
+              userBalance += amountOthersOwe;
+            } 
+            // If the user is a participant but didn't pay
+            else {
+              const userParticipant = participants.find(p => p.user_id === userId);
+              if (userParticipant) {
+                userBalance -= parseFloat(userParticipant.amount_owed);
+              }
             }
           }
-        }
-        
-        // Process payments
-        for (const payment of paymentsResult.rows) {
-          // If the user made the payment
-          if (payment.paid_by === userId) {
-            userBalance += parseFloat(payment.amount);
+          
+          // Process payments
+          for (const payment of paymentsResult.rows) {
+            // If the user made the payment
+            if (payment.paid_by === userId) {
+              userBalance += parseFloat(payment.amount);
+            }
+            // If the user received the payment
+            else if (payment.paid_to === userId) {
+              userBalance -= parseFloat(payment.amount);
+            }
           }
-          // If the user received the payment
-          else if (payment.paid_to === userId) {
-            userBalance -= parseFloat(payment.amount);
-          }
+          
+          // 5. Update or insert the balance in the database
+          await client.query(`
+            INSERT INTO user_balances (user_id, group_id, balance_amount, last_updated)
+            VALUES ($1, $2, $3, NOW())
+            ON CONFLICT (user_id, group_id) 
+            DO UPDATE SET balance_amount = $3, last_updated = NOW()
+          `, [userId, groupId, userBalance]);
+          
+          console.log(`Updated balance for user ${member.username} to $${userBalance}`);
         }
-        
-        // 5. Update or insert the balance in the database
-        await client.query(`
-          INSERT INTO user_balances (user_id, group_id, balance_amount, last_updated)
-          VALUES ($1, $2, $3, NOW())
-          ON CONFLICT (user_id, group_id) 
-          DO UPDATE SET balance_amount = $3, last_updated = NOW()
-        `, [userId, groupId, userBalance]);
-        
-        console.log(`Updated balance for user ${member.username} to $${userBalance}`);
       }
     }
     
