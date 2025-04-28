@@ -710,16 +710,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Modified to support pagination
       const expenses = await storage.getExpensesByGroupId(groupId, limit, offset);
       
-      // If requesting total count for pagination
+      // Get total count for pagination if requested
       if (req.query.includeCount === 'true') {
         const totalCount = await storage.getExpensesCountByGroupId(groupId);
-        res.json({
+        return res.json({
           expenses,
-          totalCount
+          totalCount,
+          hasMore: limit ? offset + expenses.length < totalCount : false,
+          page: limit ? Math.floor(offset / limit) : 0
         });
-      } else {
-        res.json(expenses);
+      } 
+      
+      // For infinite scroll, we need to know if there are more items
+      if (limit !== undefined) {
+        const totalCount = await storage.getExpensesCountByGroupId(groupId);
+        return res.json({
+          expenses,
+          hasMore: offset + expenses.length < totalCount
+        });
       }
+      
+      // If no pagination requested, just return the expenses
+      res.json(expenses);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch expenses" });
     }
@@ -922,6 +934,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const groupId = parseInt(req.params.id);
       
+      // Parse pagination parameters
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+      
       // Check if user is a member of this group
       const members = await storage.getGroupMembers(groupId);
       const isMember = members.some(member => member.userId === req.user.id);
@@ -930,8 +946,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "You are not a member of this group" });
       }
       
-      const payments = await storage.getPaymentsByGroupId(groupId);
-      res.json(payments);
+      // For now, we don't have pagination in storage.getPaymentsByGroupId
+      // So we'll implement lightweight pagination here in the API
+      const allPayments = await storage.getPaymentsByGroupId(groupId);
+      
+      // If no pagination requested, return all payments
+      if (limit === undefined) {
+        return res.json(allPayments);
+      }
+      
+      // For basic pagination, slice the array
+      const pagedPayments = allPayments.slice(offset, offset + limit);
+      const totalCount = allPayments.length;
+      
+      // Return paginated result with metadata
+      res.json({
+        payments: pagedPayments,
+        totalCount,
+        hasMore: offset + pagedPayments.length < totalCount,
+        page: Math.floor(offset / limit)
+      });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch payments" });
     }
@@ -1083,6 +1117,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const groupId = parseInt(req.params.id);
       
+      // Parse pagination parameters
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+      
       // Check if user is a member of this group
       const members = await storage.getGroupMembers(groupId);
       const isMember = members.some(member => member.userId === req.user.id);
@@ -1091,9 +1129,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "You are not a member of this group" });
       }
       
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      // We're using the limit parameter directly since the storage API supports it
       const activities = await storage.getActivityByGroupId(groupId, limit);
-      res.json(activities);
+      
+      // For infinite scrolling on mobile, implement a hasMore flag
+      // Since we don't have a count mechanism in the storage layer yet,
+      // we'll use a heuristic: if we got exactly the requested limit, 
+      // assume there are more
+      const hasMore = activities.length === limit;
+      
+      res.json({
+        activities,
+        hasMore,
+        totalCount: activities.length + (hasMore ? 1 : 0) // Estimate, will be at least this many
+      });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch group activity" });
     }

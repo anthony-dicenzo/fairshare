@@ -118,6 +118,12 @@ export default function GroupPage() {
   const [currentExpensePage, setCurrentExpensePage] = useState(0);
   const [isLoadingMoreExpenses, setIsLoadingMoreExpenses] = useState(false);
   
+  // Define the response type for expenses pagination
+  interface ExpensePaginatedResponse {
+    expenses: any[];
+    hasMore: boolean;
+  }
+  
   // Fetch group expenses with pagination for better mobile performance
   const { 
     data: expensesData,
@@ -125,16 +131,17 @@ export default function GroupPage() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteQuery({
+  } = useInfiniteQuery<ExpensePaginatedResponse>({
     queryKey: [`/api/groups/${groupIdStr}/expenses`],
     queryFn: async ({ pageParam = 0 }) => {
       const response = await fetch(`/api/groups/${groupIdStr}/expenses?limit=${EXPENSES_PER_PAGE}&offset=${pageParam * EXPENSES_PER_PAGE}`);
       const data = await response.json();
-      return data;
+      return data as ExpensePaginatedResponse;
     },
     getNextPageParam: (lastPage, allPages) => {
       return lastPage.hasMore ? allPages.length : undefined;
     },
+    initialPageParam: 0,
     enabled: groupId > 0 && !!group,
     staleTime: 0 // Always refetch on component mount
   });
@@ -153,15 +160,53 @@ export default function GroupPage() {
     setIsLoadingMoreExpenses(false);
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
-  // Fetch group payments
+  // Mobile optimization: Use pagination for payments with a reasonable initial load
+  const PAYMENTS_PER_PAGE = 5;
+  const [currentPaymentPage, setCurrentPaymentPage] = useState(0);
+  const [isLoadingMorePayments, setIsLoadingMorePayments] = useState(false);
+  
+  // Define the response type for payments pagination
+  interface PaymentPaginatedResponse {
+    payments: any[];
+    hasMore: boolean;
+    totalCount: number;
+  }
+  
+  // Fetch group payments with pagination
   const { 
-    data: payments = [], 
-    isLoading: isLoadingPayments 
-  } = useQuery({
+    data: paymentsData,
+    isLoading: isLoadingPayments,
+    fetchNextPage: fetchNextPaymentPage,
+    hasNextPage: hasNextPaymentPage,
+    isFetchingNextPage: isFetchingNextPaymentPage 
+  } = useInfiniteQuery<PaymentPaginatedResponse>({
     queryKey: [`/api/groups/${groupIdStr}/payments`],
+    queryFn: async ({ pageParam = 0 }) => {
+      const response = await fetch(`/api/groups/${groupIdStr}/payments?limit=${PAYMENTS_PER_PAGE}&offset=${pageParam * PAYMENTS_PER_PAGE}`);
+      const data = await response.json();
+      return data as PaymentPaginatedResponse;
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.hasMore ? allPages.length : undefined;
+    },
+    initialPageParam: 0,
     enabled: groupId > 0 && !!group,
-    staleTime: 0
+    staleTime: 0 // Always refetch on component mount
   });
+  
+  // Flatten the paged data for easier use in the component
+  const payments = useMemo(() => {
+    if (!paymentsData) return [];
+    return paymentsData.pages.flatMap(page => page.payments || []);
+  }, [paymentsData]);
+  
+  // Function to load more payments when user scrolls
+  const loadMorePayments = useCallback(async () => {
+    if (isFetchingNextPaymentPage || !hasNextPaymentPage) return;
+    setIsLoadingMorePayments(true);
+    await fetchNextPaymentPage();
+    setIsLoadingMorePayments(false);
+  }, [fetchNextPaymentPage, hasNextPaymentPage, isFetchingNextPaymentPage]);
 
   // Fetch group balances - with aggressive refresh strategy
   const { 
@@ -427,6 +472,32 @@ export default function GroupPage() {
                       </div>
                     );
                   })}
+                  
+                  {/* Load more expenses button for infinite scrolling */}
+                  {hasNextPage && (
+                    <div className="p-4 text-center">
+                      <Button 
+                        onClick={loadMoreExpenses}
+                        variant="outline"
+                        disabled={isLoadingMoreExpenses || isFetchingNextPage}
+                        className="w-full"
+                      >
+                        {isLoadingMoreExpenses || isFetchingNextPage ? (
+                          <span className="flex items-center">
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Loading...
+                          </span>
+                        ) : (
+                          <span className="flex items-center">
+                            Load more expenses
+                          </span>
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </TabsContent>
