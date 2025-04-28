@@ -136,7 +136,7 @@ export default function AuthPage() {
               <h1 className="text-3xl font-bold text-fairshare-primary">FairShare</h1>
             </div>
             <h2 className="text-4xl font-serif font-medium text-fairshare-dark mt-10 mb-2">
-              Your expenses,<br />simplified
+              Split Expenses,<br />Without the Drama
             </h2>
             <p className="text-fairshare-dark/80 text-lg">
               Split expenses fairly with friends.
@@ -383,6 +383,65 @@ export default function AuthPage() {
                 </div>
               </TabsContent>
             </Tabs>
+          </div>
+          
+          {/* User Experience Features Section */}
+          <div className="mt-12 mb-6">
+            <h3 className="text-xl font-medium text-fairshare-dark text-center mb-6">What You Get with FairShare</h3>
+            
+            <div className="space-y-6">
+              <div className="flex items-start gap-4">
+                <div className="w-8 h-8 rounded-full bg-fairshare-primary/20 flex items-center justify-center shrink-0 mt-1">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5 13L9 17L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-fairshare-primary" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="font-medium text-fairshare-dark">Effortless Expense Tracking</h4>
+                  <p className="text-fairshare-dark/70 text-sm">Log expenses and split them equally or with custom amounts</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-4">
+                <div className="w-8 h-8 rounded-full bg-fairshare-primary/20 flex items-center justify-center shrink-0 mt-1">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5 13L9 17L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-fairshare-primary" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="font-medium text-fairshare-dark">Smart Group Management</h4>
+                  <p className="text-fairshare-dark/70 text-sm">Create groups for roommates, trips, or events</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-4">
+                <div className="w-8 h-8 rounded-full bg-fairshare-primary/20 flex items-center justify-center shrink-0 mt-1">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5 13L9 17L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-fairshare-primary" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="font-medium text-fairshare-dark">Real-time Balance Tracking</h4>
+                  <p className="text-fairshare-dark/70 text-sm">See who owes what with automatic calculations</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-4">
+                <div className="w-8 h-8 rounded-full bg-fairshare-primary/20 flex items-center justify-center shrink-0 mt-1">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5 13L9 17L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-fairshare-primary" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="font-medium text-fairshare-dark">Simplified Settlements</h4>
+                  <p className="text-fairshare-dark/70 text-sm">Record payments and keep everyone's balances up to date</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-8 text-center">
+              <p className="text-fairshare-primary font-medium">Free for everyone. No hidden fees.</p>
+            </div>
           </div>
         </div>
       </div>
