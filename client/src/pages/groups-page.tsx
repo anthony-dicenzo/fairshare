@@ -118,37 +118,37 @@ export default function GroupsPage() {
   
   return (
     <MainLayout>
-      <div className="p-4 bg-fairshare-cream">
+      <div className="p-3 bg-fairshare-cream">
         {/* Search and Create Group header */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           <div className="relative w-full">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-fairshare-dark/60" />
+            <Search className="absolute left-3 top-2 h-4 w-4 text-fairshare-dark/60" />
             <Input
               placeholder="Search groups"
-              className="pl-9 pr-4 py-2 w-full bg-white border-fairshare-dark/10"
+              className="pl-9 pr-4 py-1.5 w-full h-9 bg-white border-fairshare-dark/10 text-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           <Button 
             onClick={() => setShowGroupModal(true)}
-            className="ml-2 whitespace-nowrap text-white bg-fairshare-primary hover:bg-fairshare-primary/90 rounded-xl"
+            className="ml-2 whitespace-nowrap text-white bg-fairshare-primary hover:bg-fairshare-primary/90 rounded-xl h-9 text-sm py-0"
           >
             Create group
           </Button>
         </div>
         
         {/* Overall balance section with corrected calculation */}
-        <div className="mb-6">
+        <div className="mb-3">
           <div>
-            <h2 className="text-xl font-medium text-fairshare-dark">
+            <h2 className="text-lg font-medium text-fairshare-dark">
               Overall, you owe <span className="text-fairshare-primary">${netOwed.toFixed(2)}</span>
             </h2>
           </div>
         </div>
         
         {/* Group listings with optimized rendering */}
-        <div className="space-y-6">
+        <div className="space-y-3">
           {filteredGroups.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-fairshare-dark/60">No groups found</p>
@@ -168,13 +168,13 @@ export default function GroupsPage() {
                 return (
                   <div 
                     key={group.id}
-                    className="cursor-pointer bg-white rounded-md p-3 shadow-sm hover:shadow-md transition-shadow"
+                    className="cursor-pointer bg-white rounded-md p-2 shadow-sm hover:shadow-md transition-shadow"
                     onClick={() => setLocation(`/group/${group.id}`)}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
-                        <div className="w-10 h-10 rounded-full bg-fairshare-primary/10 flex items-center justify-center mr-3 text-fairshare-primary">
-                          <span className="font-medium">{group.name.charAt(0)}</span>
+                        <div className="w-8 h-8 rounded-full bg-fairshare-primary/10 flex items-center justify-center mr-2 text-fairshare-primary">
+                          <span className="font-medium text-sm">{group.name.charAt(0)}</span>
                         </div>
                         <div>
                           <h3 className="font-medium text-fairshare-dark">{group.name}</h3>
