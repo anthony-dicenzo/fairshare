@@ -30,7 +30,8 @@ export interface IStorage {
   // Group operations
   createGroup(group: InsertGroup): Promise<Group>;
   getGroup(id: number): Promise<Group | undefined>;
-  getGroupsByUserId(userId: number): Promise<Group[]>;
+  getGroupsByUserId(userId: number, limit?: number, offset?: number): Promise<Group[]>;
+  getUserGroupsCount(userId: number): Promise<number>;
   updateGroup(groupId: number, updates: Partial<Group>): Promise<Group>;
   deleteGroup(groupId: number): Promise<boolean>;
   addUserToGroup(member: InsertGroupMember): Promise<GroupMember>;

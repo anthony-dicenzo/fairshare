@@ -47,8 +47,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     
     try {
-      // Get basic group data
-      const groups = await storage.getGroupsByUserId(req.user.id);
+      // Parse pagination parameters with defaults
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+      const aboveTheFold = req.query.aboveTheFold === 'true';
+      
+      // Get basic group data with pagination
+      const groups = await storage.getGroupsByUserId(req.user.id, limit, offset);
       
       // Enhance groups with balance information
       const enhancedGroups = await Promise.all(groups.map(async (group) => {
@@ -71,7 +76,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }));
       
-      res.json(enhancedGroups);
+      // If requesting above-the-fold data, also include the total count
+      if (aboveTheFold) {
+        const totalCount = await storage.getUserGroupsCount(req.user.id);
+        res.json({
+          groups: enhancedGroups,
+          totalCount
+        });
+      } else {
+        res.json(enhancedGroups);
+      }
     } catch (error) {
       console.error("Error fetching groups with balances:", error);
       res.status(500).json({ error: "Failed to fetch groups" });
@@ -100,6 +114,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(group);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch group" });
+    }
+  });
+  
+  // New endpoint for lightweight group summary (header + members + pre-cached balance)
+  app.get("/api/groups/:id/summary", async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    try {
+      const groupId = parseInt(req.params.id);
+      const group = await storage.getGroup(groupId);
+      
+      if (!group) {
+        return res.status(404).json({ error: "Group not found" });
+      }
+      
+      // Check if user is a member of this group
+      const members = await storage.getGroupMembers(groupId);
+      const isMember = members.some(member => member.userId === req.user.id);
+      
+      if (!isMember) {
+        return res.status(403).json({ error: "You are not a member of this group" });
+      }
+      
+      // Get user's cached balance in this group
+      const userBalance = await storage.getUserCachedBalance(req.user.id, groupId);
+      
+      // Return a lightweight summary object
+      res.json({
+        id: group.id,
+        name: group.name,
+        createdAt: group.createdAt,
+        createdBy: group.createdBy,
+        members: members.map(member => ({
+          userId: member.user.id,
+          name: member.user.name
+        })),
+        userBalance: userBalance ? parseFloat(userBalance.balanceAmount) : 0
+      });
+    } catch (error) {
+      console.error("Error fetching group summary:", error);
+      res.status(500).json({ error: "Failed to fetch group summary" });
     }
   });
   
