@@ -675,8 +675,9 @@ export class DatabaseStorage implements IStorage {
     
     // Apply pagination if limit is provided
     if (limit !== undefined) {
-      query = query.limit(limit).offset(offset);
+      query = query.limit(limit);
     }
+    query = query.offset(offset);
     
     const result = await query;
     return result.map(r => r.group);
@@ -1004,8 +1005,9 @@ export class DatabaseStorage implements IStorage {
       
     // Apply pagination if limit is provided
     if (limit !== undefined) {
-      query = query.limit(limit).offset(offset);
+      query = query.limit(limit);
     }
+    query = query.offset(offset);
     
     const result = await query;
     return result;
