@@ -1078,14 +1078,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Filter activities by type if specified
       if (type === 'expenses') {
         const expenseActivities = activities.filter(a => a.actionType === 'add_expense');
-        return res.json(expenseActivities);
+        return res.json({
+          activities: expenseActivities,
+          totalCount: expenseActivities.length,
+          hasMore: false
+        });
       } else if (type === 'payments') {
         const paymentActivities = activities.filter(a => a.actionType === 'record_payment');
-        return res.json(paymentActivities);
+        return res.json({
+          activities: paymentActivities,
+          totalCount: paymentActivities.length,
+          hasMore: false
+        });
       }
       
       // Return all activities if no type specified
-      res.json(activities);
+      res.json({
+        activities: activities,
+        totalCount: activities.length,
+        hasMore: false
+      });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch activity" });
     }
