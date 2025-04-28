@@ -49,29 +49,29 @@ type Activity = {
 export default function ActivityPage() {
   const [activeTab, setActiveTab] = useState<string>("all");
   
-  const { data: allActivity, isLoading: isLoadingAll } = useQuery({
+  const { data: allActivityData, isLoading: isLoadingAll } = useQuery<{ activities: Activity[] }>({
     queryKey: ["/api/activity"],
   });
   
+  const allActivity = allActivityData?.activities || [];
+  
   // Fetch activity data for expense tab
-  const { data: rawExpenseActivity, isLoading: isLoadingExpense } = useQuery({
+  const { data: rawExpenseActivityData, isLoading: isLoadingExpense } = useQuery({
     queryKey: ["/api/activity", "expenses"],
-    queryFn: async () => {
-      const response = await apiRequest("/api/activity?type=expenses");
-      return response as Activity[];
-    },
+    queryFn: () => apiRequest("/api/activity?type=expenses") as Promise<{ activities: Activity[] }>,
     enabled: activeTab === "expenses",
   });
   
+  const rawExpenseActivity = rawExpenseActivityData?.activities || [];
+  
   // Fetch activity data for payment tab
-  const { data: rawPaymentActivity, isLoading: isLoadingPayment } = useQuery({
+  const { data: rawPaymentActivityData, isLoading: isLoadingPayment } = useQuery({
     queryKey: ["/api/activity", "payments"],
-    queryFn: async () => {
-      const response = await apiRequest("/api/activity?type=payments");
-      return response as Activity[];
-    },
+    queryFn: () => apiRequest("/api/activity?type=payments") as Promise<{ activities: Activity[] }>,
     enabled: activeTab === "payments",
   });
+  
+  const rawPaymentActivity = rawPaymentActivityData?.activities || [];
 
   // Filter activities by type when needed and remove "create_invite" and "create_invite_link" activities
   const filteredAllActivities = allActivity?.filter((a: Activity) => 

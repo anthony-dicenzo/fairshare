@@ -40,9 +40,11 @@ type Activity = {
 };
 
 export function ActivityFeed() {
-  const { data: activities, isLoading } = useQuery<Activity[]>({
+  const { data, isLoading } = useQuery<{ activities: Activity[] }>({
     queryKey: ["/api/activity"],
   });
+  
+  const activities = data?.activities || [];
 
   if (isLoading) {
     return <ActivityFeedSkeleton />;

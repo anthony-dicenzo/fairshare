@@ -20,9 +20,11 @@ export function Sidebar({ className }: SidebarProps) {
   const [location] = useLocation();
   const [showGroupModal, setShowGroupModal] = useState(false);
 
-  const { data: groups = [] } = useQuery<Group[]>({
+  const { data } = useQuery<{ groups: Group[] }>({
     queryKey: ["/api/groups"],
   });
+  
+  const groups = data?.groups || [];
 
   return (
     <>

@@ -12,9 +12,11 @@ export function GroupsList() {
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [, setLocation] = useLocation();
   
-  const { data: groups, isLoading } = useQuery<(Group & { balance?: number; memberCount?: number })[]>({
+  const { data, isLoading } = useQuery<{ groups: (Group & { balance?: number; memberCount?: number })[], totalCount: number }>({
     queryKey: ["/api/groups"],
   });
+  
+  const groups = data?.groups || [];
 
   if (isLoading) {
     return <GroupsListSkeleton />;
