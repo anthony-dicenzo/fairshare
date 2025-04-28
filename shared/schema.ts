@@ -23,7 +23,8 @@ export const groupMembers = pgTable("group_members", {
   groupId: integer("group_id").notNull().references(() => groups.id),
   userId: integer("user_id").notNull().references(() => users.id),
   role: text("role").default("member").notNull(),
-  joinedAt: timestamp("joined_at").defaultNow().notNull()
+  joinedAt: timestamp("joined_at").defaultNow().notNull(),
+  archived: boolean("archived").default(false).notNull()
 });
 
 export const expenses = pgTable("expenses", {
@@ -108,7 +109,8 @@ export const insertGroupSchema = createInsertSchema(groups).omit({
 
 export const insertGroupMemberSchema = createInsertSchema(groupMembers).omit({
   id: true,
-  joinedAt: true
+  joinedAt: true,
+  archived: true
 });
 
 export const insertExpenseSchema = createInsertSchema(expenses, {

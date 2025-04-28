@@ -1,0 +1,79 @@
+📄 Feature Specification: Remove Group Member with Zero Balance Enforcement
+1. Feature Title
+Remove Group Member with Zero Balance Enforcement
+
+2. Feature Goal
+Allow the group creator (admin) to remove (archive) a member from a group only if the member has a total group balance of exactly $0.00.
+This preserves full transaction history, maintains financial accuracy, and prevents balance distortions.
+
+3. Core Behavior Rules
+
+Rule	Details
+Only the group creator (admin) can remove members	Regular group members cannot remove others.
+No outstanding balances allowed	A user can only be removed if their net balance across the group is exactly $0 (no money owed or owing).
+No partial settlements allowed	Users must fully settle their balances with others before being eligible for removal. Partial payments are insufficient.
+No debt forgiveness	No ability to "forgive" or wipe balances automatically to allow deletion. Settlements must happen naturally.
+Archive, not delete	Removing a user soft deletes their membership: the user remains in historical records but is marked as "Archived." No actual payments are modified or reassigned.
+Historical transactions remain intact	All past payments made to or from the user remain visible and linked to their identity. No reassignment of payer/recipient occurs.
+Friendly UI blocking	If an admin attempts to remove a user who has outstanding balances, they should receive a friendly error message and the action is blocked.
+4. UI/UX Behavior
+
+Scenario	Expected UI Behavior
+User eligible for removal	Admin can archive the user. They are removed from active group member lists but shown in payment history as "(Archived)" next to their name.
+User not eligible (nonzero balance)	Admin sees a popup or toast message:
+"Cannot remove [User]. They still owe $XX.XX to other members."	
+Payment history display	In historical transactions, display "(Archived)" or "(Deleted User)" next to the user's name. (Grayed out styling recommended.)
+Group balance summary	Archived users do not appear in active balances or group member totals after removal. Only active users are shown in live balances.
+5. Backend Logic / Pseudocode
+attemptUserRemoval(groupId, userId, currentUserId)
+
+Steps:
+
+Check if currentUserId == group.adminId
+
+If not, reject with 403 Unauthorized - Only the group creator can remove members.
+
+Fetch the target user's total balance across the group.
+
+Net of all what they owe others and what others owe them.
+
+If balance !== 0
+
+Reject with error:
+Cannot remove user. Outstanding balances must be settled first.
+
+If balance === 0
+
+Update the users_groups record for the user:
+
+Set archived = true
+
+No changes are made to payment records.
+
+6. Database Changes (if not already existing)
+
+Table	Change Needed
+users_groups (or equivalent group membership table)	Add archived: boolean (default false)
+users (optional, for future flexibility)	Add deleted_at: timestamp for full user-level soft deletes across app (optional now).
+payments	No changes needed — payment records must remain intact and linked to real users.
+7. API Responses (Optional Enhancements)
+When fetching group members:
+
+By default, exclude archived users unless includeArchived=true is passed as a query parameter.
+
+When returning payments involving archived users, add a archived: true flag in the response so the frontend can display the "(Archived)" tag.
+
+8. Out of Scope
+
+Out of Scope Item	Reason
+Forgiving debts automatically	Debt forgiveness not allowed yet — users must manually settle balances.
+Reassigning payments to other users	Never modify or reassign payments historically.
+Allowing regular users to remove others	Only group creator has this permission.
+🔥 Final Notes for Developer
+⚡ Always preserve financial history exactly as it happened.
+
+⚡ Only archive users once they have $0.00 balance.
+
+⚡ Always block removal if any debt exists.
+
+⚡ Keep UX friendly and explain clearly why the removal isn't allowed if blocked.

@@ -34,8 +34,9 @@ export interface IStorage {
   updateGroup(groupId: number, updates: Partial<Group>): Promise<Group>;
   deleteGroup(groupId: number): Promise<boolean>;
   addUserToGroup(member: InsertGroupMember): Promise<GroupMember>;
-  getGroupMembers(groupId: number): Promise<(GroupMember & { user: User })[]>;
-  removeUserFromGroup(groupId: number, userId: number): Promise<boolean>;
+  getGroupMembers(groupId: number, includeArchived?: boolean): Promise<(GroupMember & { user: User })[]>;
+  getArchivedGroupMembers(groupId: number): Promise<(GroupMember & { user: User })[]>;
+  removeUserFromGroup(groupId: number, userId: number, currentUserId: number): Promise<boolean>;
   checkUserHasOutstandingBalances(groupId: number, userId: number): Promise<boolean>;
   
   // Group invite operations
@@ -707,14 +708,39 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
   
-  async getGroupMembers(groupId: number): Promise<(GroupMember & { user: User })[]> {
+  async getGroupMembers(groupId: number, includeArchived: boolean = false): Promise<(GroupMember & { user: User })[]> {
+    let query = db
+      .select({
+        member: groupMembers,
+        user: users
+      })
+      .from(groupMembers)
+      .where(eq(groupMembers.groupId, groupId));
+    
+    // Filter out archived members unless specifically requested
+    if (!includeArchived) {
+      query = query.where(eq(groupMembers.archived, false));
+    }
+    
+    const result = await query.innerJoin(users, eq(groupMembers.userId, users.id));
+    
+    return result.map(r => ({
+      ...r.member,
+      user: r.user
+    }));
+  }
+  
+  async getArchivedGroupMembers(groupId: number): Promise<(GroupMember & { user: User })[]> {
     const result = await db
       .select({
         member: groupMembers,
         user: users
       })
       .from(groupMembers)
-      .where(eq(groupMembers.groupId, groupId))
+      .where(and(
+        eq(groupMembers.groupId, groupId),
+        eq(groupMembers.archived, true)
+      ))
       .innerJoin(users, eq(groupMembers.userId, users.id));
     
     return result.map(r => ({
@@ -743,48 +769,36 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
-  async removeUserFromGroup(groupId: number, userId: number): Promise<boolean> {
+  async removeUserFromGroup(groupId: number, userId: number, currentUserId: number): Promise<boolean> {
     try {
-      console.log(`Starting removal of user ${userId} from group ${groupId}`);
+      console.log(`Starting removal of user ${userId} from group ${groupId} by user ${currentUserId}`);
       
-      // Check if user has any outstanding balances with group members
-      const hasOutstandingBalances = await this.checkUserHasOutstandingBalances(groupId, userId);
-      
-      if (hasOutstandingBalances) {
-        console.log(`Cannot remove user ${userId} from group ${groupId} due to outstanding balances`);
-        throw new Error("User has outstanding debts with other group members. All balances must be settled before they can be removed.");
+      // 1. Check if the current user is the group admin
+      const group = await this.getGroup(groupId);
+      if (!group) {
+        throw new Error("Group not found");
       }
       
-      // Handle payments involving the user to be removed
-      await this.handlePaymentsForRemovedUser(groupId, userId);
+      if (group.createdBy !== currentUserId) {
+        console.log(`User ${currentUserId} is not the admin of group ${groupId}`);
+        throw new Error("Only the group creator can remove members");
+      }
       
-      // First, delete any balance cache records for this user in this group
-      console.log(`Removing balance cache records for user ${userId} in group ${groupId}`);
-      await db
-        .delete(userBalances)
-        .where(and(
-          eq(userBalances.userId, userId),
-          eq(userBalances.groupId, groupId)
-        ));
+      // 2. Get the user's current balance in the group
+      const userBalance = await this.getUserCachedBalance(userId, groupId);
+      const balanceAmount = userBalance ? parseFloat(userBalance.balanceAmount.toString()) : 0;
       
-      // Delete user-to-user balance records involving this user
-      console.log(`Removing user-to-user balance records for user ${userId} in group ${groupId}`);
-      await db
-        .delete(userBalancesBetweenUsers)
-        .where(
-          and(
-            eq(userBalancesBetweenUsers.groupId, groupId),
-            or(
-              eq(userBalancesBetweenUsers.fromUserId, userId),
-              eq(userBalancesBetweenUsers.toUserId, userId)
-            )
-          )
-        );
+      // 3. Check if the balance is exactly zero
+      if (balanceAmount !== 0) {
+        console.log(`Cannot remove user ${userId} from group ${groupId} - nonzero balance: ${balanceAmount}`);
+        throw new Error(`Cannot remove user. They still have a balance of $${Math.abs(balanceAmount).toFixed(2)} ${balanceAmount > 0 ? 'to be paid to them' : 'to pay to others'}. All balances must be settled first.`);
+      }
       
-      // Now remove the user from the group
-      console.log(`Removing user ${userId} from group members for group ${groupId}`);
+      // 4. Archive the user (soft delete) instead of removing them
+      console.log(`Archiving user ${userId} in group ${groupId}`);
       const result = await db
-        .delete(groupMembers)
+        .update(groupMembers)
+        .set({ archived: true })
         .where(
           and(
             eq(groupMembers.groupId, groupId),
@@ -792,8 +806,18 @@ export class DatabaseStorage implements IStorage {
           )
         )
         .returning();
+        
+      // 5. Log this action
+      await this.logActivity({
+        groupId,
+        userId: currentUserId,
+        actionType: 'remove_member',
+        metadata: JSON.stringify({
+          removedUserId: userId
+        })
+      });
       
-      console.log(`User removal complete. Results: ${JSON.stringify(result)}`);
+      console.log(`User archival complete. Results: ${JSON.stringify(result)}`);
       return result.length > 0;
     } catch (error) {
       console.error(`Error in removeUserFromGroup: ${error}`);
