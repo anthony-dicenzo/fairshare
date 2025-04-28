@@ -57,7 +57,9 @@ const expenseFormSchema = z.object({
   ),
   groupId: z.string().min(1, "Group is required"),
   paidBy: z.string().min(1, "Payer is required"),
-  splitMethod: z.enum(["equal", "unequal", "percentage"]),
+  splitMethod: z.enum(["equal", "unequal", "percentage", "full"]),
+  // For full split method, store the userId who owes the full amount
+  fullAmountOwedBy: z.string().optional(),
   // Use string for date to avoid type issues with the input field
   date: z.string().min(1, "Date is required"),
   notes: z.string().optional(),
@@ -96,6 +98,7 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
       groupId: groupId?.toString() || "",
       paidBy: user?.id.toString() || "",
       splitMethod: "equal",
+      fullAmountOwedBy: "",
       date: formatISO(new Date(), { representation: "date" }),
       notes: "",
     },
@@ -224,38 +227,51 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
     
     const splitMethod = values.splitMethod;
     
-    // Calculate amount owed based on split method
-    const participants = participantIds.map((userId) => {
-      let amountOwed = 0;
+    let participants = [];
+    
+    // Handle "full" split method separately
+    if (splitMethod === "full" && values.fullAmountOwedBy) {
+      const fullAmountOwerId = parseInt(values.fullAmountOwedBy);
       
-      if (splitMethod === "equal") {
-        // Equal split
-        amountOwed = totalAmount / participantIds.length;
-      } 
-      else if (splitMethod === "unequal") {
-        // Unequal split - use custom amounts if available
-        if (customAmounts[userId]) {
-          amountOwed = customAmounts[userId];
-        } else {
-          // Fall back to equal split if no custom amount
+      // Create a single participant who owes the full amount
+      participants = [{
+        userId: fullAmountOwerId,
+        amountOwed: totalAmount
+      }];
+    } else {
+      // For other split methods, calculate per-person amounts
+      participants = participantIds.map((userId) => {
+        let amountOwed = 0;
+        
+        if (splitMethod === "equal") {
+          // Equal split
           amountOwed = totalAmount / participantIds.length;
+        } 
+        else if (splitMethod === "unequal") {
+          // Unequal split - use custom amounts if available
+          if (customAmounts[userId]) {
+            amountOwed = customAmounts[userId];
+          } else {
+            // Fall back to equal split if no custom amount
+            amountOwed = totalAmount / participantIds.length;
+          }
+        } 
+        else if (splitMethod === "percentage") {
+          // Percentage split - use custom percentages if available
+          if (customPercentages[userId]) {
+            amountOwed = (totalAmount * customPercentages[userId]) / 100;
+          } else {
+            // Fall back to equal percentage split
+            amountOwed = totalAmount / participantIds.length;
+          }
         }
-      } 
-      else if (splitMethod === "percentage") {
-        // Percentage split - use custom percentages if available
-        if (customPercentages[userId]) {
-          amountOwed = (totalAmount * customPercentages[userId]) / 100;
-        } else {
-          // Fall back to equal percentage split
-          amountOwed = totalAmount / participantIds.length;
-        }
-      }
-      
-      return {
-        userId,
-        amountOwed,
-      };
-    });
+        
+        return {
+          userId,
+          amountOwed,
+        };
+      });
+    }
 
     // The date is already in the correct format from the input field
     const formattedDate = values.date;
@@ -418,7 +434,7 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                       onValueChange={field.onChange}
                       defaultValue={field.value}
                       value={field.value}
-                      className="flex space-x-4"
+                      className="flex flex-wrap gap-y-2 gap-x-4"
                     >
                       <div className="flex items-center space-x-1">
                         <RadioGroupItem value="equal" className="h-3.5 w-3.5" id="equal-split" />
@@ -431,6 +447,10 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                       <div className="flex items-center space-x-1">
                         <RadioGroupItem value="percentage" className="h-3.5 w-3.5" id="percentage-split" />
                         <FormLabel htmlFor="percentage-split" className="text-xs cursor-pointer font-normal">Percentage</FormLabel>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <RadioGroupItem value="full" className="h-3.5 w-3.5" id="full-split" />
+                        <FormLabel htmlFor="full-split" className="text-xs cursor-pointer font-normal">Full Amount</FormLabel>
                       </div>
                     </RadioGroup>
                   </FormControl>
@@ -524,6 +544,52 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
                     </div>
                   )}
                   </div>
+                ) : (
+                  <div className="py-2 text-center text-xs text-muted-foreground">
+                    No members found in this group
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {form.getValues("splitMethod") === "full" && (
+              <div className="border border-input rounded-md p-2">
+                {!selectedGroupId ? (
+                  <div className="py-2 text-center text-xs text-muted-foreground">
+                    Please select a group to see member options
+                  </div>
+                ) : Array.isArray(groupMembers) && groupMembers.length > 0 ? (
+                  <FormField
+                    control={form.control}
+                    name="fullAmountOwedBy"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-medium">Charged to:</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="h-8 mt-1">
+                              <SelectValue placeholder="Select who will pay the full amount" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {groupMembers.map((member) => (
+                              <SelectItem 
+                                key={member?.userId} 
+                                value={(member?.userId || 0).toString()}
+                              >
+                                {member?.userId === user?.id ? "You" : member?.user?.name || "Unknown User"}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    )}
+                  />
                 ) : (
                   <div className="py-2 text-center text-xs text-muted-foreground">
                     No members found in this group
