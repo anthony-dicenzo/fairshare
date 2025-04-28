@@ -1,5 +1,5 @@
 const { db } = require('./server/db');
-const { eq, and, or, inArray } = require('drizzle-orm');
+const { eq, and, or, inArray, like } = require('drizzle-orm');
 const { 
   users, 
   groups, 
@@ -15,6 +15,11 @@ const {
 /**
  * Data Correction Script
  * Purpose: Remove all references to "Paubs" from Group "House of Anthica"
+ * 
+ * Key requirements:
+ * 1. Remove Paubs from the group without affecting other members' balances
+ * 2. Keep the balances for other users unchanged
+ * 3. Maintain data integrity and consistency
  */
 async function fixPaubsBalanceIssues() {
   console.log('Starting data correction script for "House of Anthica" group...');
@@ -22,23 +27,58 @@ async function fixPaubsBalanceIssues() {
   try {
     // 1. Get Paubs' user ID and the Group ID for "House of Anthica"
     const paubsId = 7; // Known from our queries
+    const paubsUsername = 'Paubs';
     const groupIds = [2, 3]; // Both "House of Anthica" groups - check both to be thorough
     
-    console.log(`Targeting user ID ${paubsId} (Paubs) in groups:`, groupIds);
+    console.log(`Targeting user ID ${paubsId} (${paubsUsername}) in groups:`, groupIds);
+    
+    // First, let's capture the current balances of all users in the groups
+    // This will help us verify that other users' balances aren't affected
+    const previousBalances = {};
+    
+    for (const groupId of groupIds) {
+      // Get current balances before changes
+      const currentBalances = await db.select({
+        userId: userBalances.userId,
+        balance: userBalances.balanceAmount
+      })
+      .from(userBalances)
+      .where(and(
+        eq(userBalances.groupId, groupId),
+        or(
+          eq(userBalances.userId, paubsId).not() // Not Paubs
+        )
+      ));
+      
+      previousBalances[groupId] = {};
+      currentBalances.forEach(b => {
+        previousBalances[groupId][b.userId] = parseFloat(b.balance);
+      });
+      
+      console.log(`Captured current balances for group ${groupId}:`, 
+        Object.entries(previousBalances[groupId])
+          .map(([userId, balance]) => `User ${userId}: $${balance}`)
+          .join(', ')
+      );
+    }
     
     // Begin transaction for atomicity
     await db.transaction(async (tx) => {
       console.log('Started database transaction');
       
-      // 2. Verify if Paubs was ever a member of these groups (archive status check)
-      const groupMemberships = await tx.select()
-        .from(groupMembers)
+      // 2. Check activity logs involving Paubs for audit
+      const activityLogs = await tx.select()
+        .from(activityLog)
         .where(and(
-          eq(groupMembers.userId, paubsId),
-          inArray(groupMembers.groupId, groupIds)
+          or(
+            eq(activityLog.userId, paubsId),
+            like(activityLog.metadata, `%${paubsId}%`),
+            like(activityLog.metadata, `%${paubsUsername}%`)
+          ),
+          inArray(activityLog.groupId, groupIds)
         ));
       
-      console.log(`Found ${groupMemberships.length} group memberships (including archived)`);
+      console.log(`Found ${activityLogs.length} activity logs involving ${paubsUsername}`);
       
       // 3. Remove any expense participants involving Paubs
       const deletedExpParticipants = await tx.delete(expenseParticipants)
@@ -54,15 +94,31 @@ async function fixPaubsBalanceIssues() {
       
       console.log(`Deleted ${deletedExpParticipants.length} expense participants`);
       
-      // 4. Remove expenses where Paubs is the payer 
-      const deletedExpenses = await tx.delete(expenses)
+      // 4. Identify expenses where Paubs is the payer
+      const paubsExpenses = await tx.select()
+        .from(expenses)
         .where(and(
           eq(expenses.paidBy, paubsId),
           inArray(expenses.groupId, groupIds)
-        ))
-        .returning();
+        ));
       
-      console.log(`Deleted ${deletedExpenses.length} expenses`);
+      console.log(`Found ${paubsExpenses.length} expenses paid by ${paubsUsername}`);
+      
+      // Remove expenses where Paubs is the payer 
+      if (paubsExpenses.length > 0) {
+        const expenseIds = paubsExpenses.map(e => e.id);
+        
+        // Delete related expense participants first
+        await tx.delete(expenseParticipants)
+          .where(inArray(expenseParticipants.expenseId, expenseIds));
+        
+        // Then delete the expenses
+        const deletedExpenses = await tx.delete(expenses)
+          .where(inArray(expenses.id, expenseIds))
+          .returning();
+        
+        console.log(`Deleted ${deletedExpenses.length} expenses`);
+      }
       
       // 5. Remove payments where Paubs is payer or recipient
       const deletedPayments = await tx.delete(payments)
@@ -100,8 +156,15 @@ async function fixPaubsBalanceIssues() {
       
       console.log(`Deleted ${deletedBalancesBetween.length} user balances between users`);
       
-      // Note: We'll keep the activity logs for audit purposes, but optionally could remove them
-      console.log('Activity logs have been preserved for audit purposes.');
+      // 8. Check for group memberships and remove them
+      const membershipRecords = await tx.select()
+        .from(groupMembers)
+        .where(and(
+          eq(groupMembers.userId, paubsId),
+          inArray(groupMembers.groupId, groupIds)
+        ));
+      
+      console.log(`Found ${membershipRecords.length} group membership records for ${paubsUsername}`);
       
       // Ensure Paubs is fully removed (including archived status)
       const deletedMemberships = await tx.delete(groupMembers)
@@ -113,34 +176,67 @@ async function fixPaubsBalanceIssues() {
       
       console.log(`Deleted ${deletedMemberships.length} group memberships`);
       
+      // 9. Optional: Add an activity log entry about this data correction
+      for (const groupId of groupIds) {
+        await tx.insert(activityLog)
+          .values({
+            groupId,
+            userId: 1, // Assuming admin/system user ID 1
+            actionType: 'data_correction',
+            metadata: JSON.stringify({
+              description: `Removed all data for user ${paubsUsername} (ID: ${paubsId}) from group`,
+              timestamp: new Date().toISOString()
+            })
+          });
+      }
+      
+      console.log('Added activity log entries for data correction');
+      
       // Log success
       console.log('Transaction committed successfully.');
     });
     
-    // 8. Force recalculation of balances for all remaining members
-    // The app has a mechanism to update balances automatically
-    // We can trigger it for the affected groups
-    console.log('Triggering balance recalculation for affected groups...');
+    // After transaction, verify balances to ensure they're unchanged for other users
+    console.log('\nVerifying balances after data correction...');
     
     for (const groupId of groupIds) {
-      // Find all active members in the group
-      const members = await db.select({
-        userId: groupMembers.userId
+      // Get current balances after changes
+      const currentBalances = await db.select({
+        userId: userBalances.userId,
+        balance: userBalances.balanceAmount
       })
-      .from(groupMembers)
+      .from(userBalances)
       .where(and(
-        eq(groupMembers.groupId, groupId),
-        eq(groupMembers.archived, false)
+        eq(userBalances.groupId, groupId),
+        or(
+          eq(userBalances.userId, paubsId).not() // Not Paubs
+        )
       ));
       
-      console.log(`Recalculating balances for group ${groupId} with ${members.length} active members`);
+      // Compare with previous balances
+      console.log(`\nVerifying group ${groupId} balances:`);
+      let allBalancesMatch = true;
       
-      // This would call your balance recalculation function
-      // For this example, we're just logging it
-      console.log(`Balance recalculation would be triggered here for group ${groupId}`);
+      for (const { userId, balance } of currentBalances) {
+        const previousBalance = previousBalances[groupId][userId] || 0;
+        const currentBalance = parseFloat(balance);
+        const matches = Math.abs(previousBalance - currentBalance) < 0.01; // Allow for small floating point differences
+        
+        console.log(`User ${userId}: Previous $${previousBalance} → Current $${currentBalance} (${matches ? 'Match ✓' : 'Different ✗'})`);
+        
+        if (!matches) {
+          allBalancesMatch = false;
+        }
+      }
+      
+      if (allBalancesMatch) {
+        console.log(`✅ All balances for group ${groupId} preserved correctly`);
+      } else {
+        console.log(`⚠️ Some balances for group ${groupId} have changed - may need manual review`);
+      }
     }
     
-    console.log('Data correction completed successfully.');
+    console.log('\nData correction completed successfully.');
     console.log('Warning: You should manually verify that all group balances are correct after this script runs.');
     
     return { success: true, message: 'Successfully removed all references to Paubs from House of Anthica groups' };
