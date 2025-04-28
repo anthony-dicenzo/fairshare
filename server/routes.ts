@@ -662,6 +662,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedExpense = await storage.updateExpense(expenseId, updateData);
       console.log(`Expense updated successfully:`, updatedExpense);
       
+      // Handle expense participants
+      if (Array.isArray(req.body.participants)) {
+        // First, let's delete existing participants
+        try {
+          // This assumes there's a deleteExpenseParticipants method - we'll need to check this
+          await storage.deleteExpenseParticipants(expenseId);
+          console.log(`Deleted existing participants for expense ${expenseId}`);
+        } catch (participantDeleteError) {
+          console.error(`Error deleting expense participants:`, participantDeleteError);
+          // Continue anyway to try adding the new participants
+        }
+        
+        // Add new participants
+        for (const participant of req.body.participants) {
+          try {
+            await storage.addExpenseParticipant({
+              expenseId,
+              userId: participant.userId,
+              amountOwed: participant.amountOwed.toString() // Ensure amount is a string
+            });
+            console.log(`Added participant ${participant.userId} with amount ${participant.amountOwed} to expense ${expenseId}`);
+          } catch (participantAddError) {
+            console.error(`Error adding participant:`, participantAddError);
+            // Continue with other participants
+          }
+        }
+      }
+      
       // Update cached balances
       await storage.updateAllBalancesInGroup(expense.groupId);
       

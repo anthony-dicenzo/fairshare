@@ -53,6 +53,7 @@ export interface IStorage {
   deleteExpense(expenseId: number): Promise<boolean>;
   addExpenseParticipant(participant: InsertExpenseParticipant): Promise<ExpenseParticipant>;
   getExpenseParticipants(expenseId: number): Promise<ExpenseParticipant[]>;
+  deleteExpenseParticipants(expenseId: number): Promise<boolean>;
   
   // Payment operations
   createPayment(payment: InsertPayment): Promise<Payment>;
@@ -829,6 +830,18 @@ export class DatabaseStorage implements IStorage {
       .where(eq(expenseParticipants.expenseId, expenseId));
     
     return result;
+  }
+  
+  async deleteExpenseParticipants(expenseId: number): Promise<boolean> {
+    try {
+      await db
+        .delete(expenseParticipants)
+        .where(eq(expenseParticipants.expenseId, expenseId));
+      return true;
+    } catch (error) {
+      console.error(`Error deleting expense participants for expense ${expenseId}:`, error);
+      return false;
+    }
   }
   
   async updateExpense(expenseId: number, updates: Partial<Expense>): Promise<Expense> {
