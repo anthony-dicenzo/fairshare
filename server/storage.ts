@@ -38,6 +38,7 @@ export interface IStorage {
   getArchivedGroupMembers(groupId: number): Promise<(GroupMember & { user: User })[]>;
   removeUserFromGroup(groupId: number, userId: number, currentUserId: number): Promise<boolean>;
   checkUserHasOutstandingBalances(groupId: number, userId: number): Promise<boolean>;
+  clearAllBalances(groupId: number): Promise<boolean>;
   
   // Group invite operations
   createGroupInvite(inviteData: InsertGroupInvite): Promise<GroupInvite>;
@@ -129,6 +130,33 @@ export class DatabaseStorage implements IStorage {
       pool,
       createTableIfMissing: true
     });
+  }
+  
+  // Method to clear all balances for a group - for admin use only
+  async clearAllBalances(groupId: number): Promise<boolean> {
+    try {
+      console.log(`Admin operation: Clearing all balances for group ${groupId}`);
+      
+      // Delete user-to-user balances for this group
+      await db
+        .delete(userBalancesBetweenUsers)
+        .where(eq(userBalancesBetweenUsers.groupId, groupId));
+      
+      // Reset all user balances for this group to 0
+      await db
+        .update(userBalances)
+        .set({ 
+          balanceAmount: "0",
+          lastUpdated: new Date()
+        })
+        .where(eq(userBalances.groupId, groupId));
+      
+      console.log(`Successfully cleared all balances for group ${groupId}`);
+      return true;
+    } catch (error) {
+      console.error(`Error clearing balances for group ${groupId}:`, error);
+      return false;
+    }
   }
 
   // Helper function to ensure a user balance record exists

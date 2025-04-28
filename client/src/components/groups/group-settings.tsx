@@ -192,6 +192,38 @@ export function GroupSettings({ open, onOpenChange, groupId, groupName, members,
     }
   });
   
+  // Mutation for force deleting the group (for admin use in special cases)
+  const forceDeleteGroupMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest('DELETE', `/api/admin/groups/${groupId}/force-delete`);
+    },
+    onSuccess: () => {
+      // Show success toast
+      toast({
+        title: "Group force deleted",
+        description: "The group has been deleted successfully with all balances cleared.",
+      });
+      
+      // Invalidate queries
+      queryClient.invalidateQueries({ queryKey: [`/api/groups`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/activity`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/balances`] });
+      
+      // Close the dialog and redirect to home
+      onOpenChange(false);
+      navigate("/");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to force delete group. Please try again later.",
+        variant: "destructive"
+      });
+      
+      setShowDeleteGroupConfirmation(false);
+    }
+  });
+  
   // Handle updating group name
   const onSubmitUpdateGroup = (values: UpdateGroupFormValues) => {
     updateGroupMutation.mutate(values);
@@ -448,6 +480,32 @@ export function GroupSettings({ open, onOpenChange, groupId, groupName, members,
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
+          
+          {/* Special admin button for force delete */}
+          {groupId === 2 && (
+            <div className="mt-3 pt-3 border-t border-gray-100">
+              <div className="text-[10px] text-amber-600 mb-2">
+                <span className="font-semibold">Admin option:</span> Force delete for group with corrupted balance data. 
+                Use only when normal deletion fails due to unresolvable balance issues.
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 w-full border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100 text-[11px]"
+                onClick={() => forceDeleteGroupMutation.mutate()}
+                disabled={forceDeleteGroupMutation.isPending}
+              >
+                {forceDeleteGroupMutation.isPending ? (
+                  <>
+                    <RotateCcw className="h-3 w-3 mr-1 animate-spin" />
+                    Force Deleting...
+                  </>
+                ) : (
+                  "Force Delete (Ignore Balances)"
+                )}
+              </Button>
+            </div>
+          )}
         </AlertDialogContent>
       </AlertDialog>
       

@@ -180,6 +180,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Special admin route to force delete a group (bypass balance checks)
+  app.delete("/api/admin/groups/:id/force-delete", async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    try {
+      const groupId = parseInt(req.params.id);
+      const group = await storage.getGroup(groupId);
+      
+      if (!group) {
+        return res.status(404).json({ error: "Group not found" });
+      }
+      
+      // Check if user is the creator of this group
+      if (group.createdBy !== req.user.id) {
+        return res.status(403).json({ error: "Only the group creator can force delete the group" });
+      }
+      
+      console.log(`ADMIN ACTION: Force deleting group ${groupId} by user ${req.user.id}`);
+      
+      // First, clear all balances for this group
+      await storage.clearAllBalances(groupId);
+      
+      // Delete the group and all related data
+      const deleted = await storage.deleteGroup(groupId);
+      
+      if (deleted) {
+        res.json({ success: true, message: "Group has been force deleted" });
+      } else {
+        res.status(500).json({ error: "Failed to force delete group" });
+      }
+    } catch (error) {
+      console.error("Error force deleting group:", error);
+      res.status(500).json({ error: "Failed to force delete group" });
+    }
+  });
+  
   app.get("/api/groups/:id/members", async (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     
