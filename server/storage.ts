@@ -1110,56 +1110,83 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getUserBalanceInGroup(userId: number, groupId: number): Promise<number> {
+    console.log(`Calculating balance for user ${userId} in group ${groupId}`);
+    
     // Get all expenses in the group
     const expenses = await this.getExpensesByGroupId(groupId);
+    console.log(`Found ${expenses.length} expenses in group ${groupId}`);
     
     // Get all expense participants
     const expenseParticipants: ExpenseParticipant[] = [];
     for (const expense of expenses) {
       const participants = await this.getExpenseParticipants(expense.id);
+      console.log(`Expense #${expense.id} (${expense.title}) - ${participants.length} participants:`);
+      participants.forEach(p => {
+        console.log(`  User ${p.userId}: $${p.amountOwed}`);
+      });
       expenseParticipants.push(...participants);
     }
     
     // Get all payments in the group
     const payments = await this.getPaymentsByGroupId(groupId);
+    console.log(`Found ${payments.length} payments in group ${groupId}`);
     
     let balance = 0;
     
     // Calculate the balance from expenses
     for (const expense of expenses) {
+      console.log(`Processing expense #${expense.id} (${expense.title}) - Paid by: ${expense.paidBy}`);
+      
       // If user paid for the expense, add the amount they are owed by others
       if (expense.paidBy === userId) {
         const userParticipants = expenseParticipants.filter(
           p => p.expenseId === expense.id && p.userId !== userId
         );
+        
         const totalOthersOwe = userParticipants.reduce(
           (sum, p) => sum + Number(p.amountOwed), 0
         );
+        
+        console.log(`  ${userId} paid for expense - others owe: $${totalOthersOwe}`);
         balance += totalOthersOwe;
+        console.log(`  Balance updated: $${balance}`);
       }
       
       // If user is a participant, subtract the amount they owe
       const userParticipant = expenseParticipants.find(
         p => p.expenseId === expense.id && p.userId === userId
       );
+      
       if (userParticipant && expense.paidBy !== userId) {
-        balance -= Number(userParticipant.amountOwed);
+        const amountOwed = Number(userParticipant.amountOwed);
+        console.log(`  ${userId} owes: $${amountOwed} for expense paid by ${expense.paidBy}`);
+        balance -= amountOwed;
+        console.log(`  Balance updated: $${balance}`);
       }
     }
     
     // Calculate the balance from payments
     for (const payment of payments) {
+      console.log(`Processing payment #${payment.id} - $${payment.amount} from ${payment.paidBy} to ${payment.paidTo}`);
+      
       // If user received a payment, it reduces what they are owed (or increases what they owe)
       if (payment.paidTo === userId) {
-        balance -= Number(payment.amount);
+        const paymentAmount = Number(payment.amount);
+        console.log(`  ${userId} received payment: -$${paymentAmount}`);
+        balance -= paymentAmount;
+        console.log(`  Balance updated: $${balance}`);
       }
       
       // If user made a payment, it increases what they are owed (or reduces what they owe)
       if (payment.paidBy === userId) {
-        balance += Number(payment.amount);
+        const paymentAmount = Number(payment.amount);
+        console.log(`  ${userId} made payment: +$${paymentAmount}`);
+        balance += paymentAmount;
+        console.log(`  Balance updated: $${balance}`);
       }
     }
     
+    console.log(`Final balance for user ${userId}: $${balance}`);
     return balance;
   }
   
