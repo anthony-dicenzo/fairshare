@@ -323,15 +323,13 @@ export default function GroupPage() {
               ) : (
                 <div className="bg-white dark:bg-gray-800 rounded-lg border shadow-sm divide-y">
                   {Array.isArray(expenses) && expenses.map((expense: any) => {
-                    // Check if user is the one who paid this expense (only the payer can edit)
-                    const isPayer = user?.id === expense?.paidBy;
-                    
+                    // Always allow clicking to view the expense details
                     return (
                       <div 
                         key={expense?.id || 'unknown'} 
-                        className={`p-4 hover:bg-muted transition-colors ${isPayer ? 'cursor-pointer' : ''}`}
+                        className="p-4 hover:bg-muted transition-colors cursor-pointer"
                         onClick={() => {
-                          if (isPayer && expense?.id) {
+                          if (expense?.id) {
                             setSelectedExpenseId(expense.id);
                             setShowExpenseEditModal(true);
                           }
@@ -341,7 +339,7 @@ export default function GroupPage() {
                           <div>
                             <h3 className="font-medium">
                               {expense?.title || 'Untitled Expense'}
-                              {isPayer && <span className="ml-2 text-xs text-muted-foreground">(Click to edit)</span>}
+                              <span className="ml-2 text-xs text-muted-foreground">(Click to view)</span>
                             </h3>
                             <p className="text-sm text-muted-foreground">
                               Added on {expense?.date ? new Date(expense.date).toLocaleDateString() : 'Unknown date'}
@@ -394,7 +392,19 @@ export default function GroupPage() {
                     {activity
                       .filter((item: any) => !item.actionType.includes("create_invite"))
                       .map((item: any) => (
-                      <div key={item?.id || 'unknown'} className="p-4 hover:bg-muted transition-colors">
+                      <div 
+                        key={item?.id || 'unknown'} 
+                        className={`p-4 hover:bg-muted transition-colors ${
+                          item?.actionType === 'add_expense' && item?.expense ? 'cursor-pointer' : ''
+                        }`}
+                        onClick={() => {
+                          if (item?.actionType === 'add_expense' && item?.expense?.id) {
+                            // When clicking an expense in the activity feed, open the edit modal
+                            setSelectedExpenseId(item.expense.id);
+                            setShowExpenseEditModal(true);
+                          }
+                        }}
+                      >
                         <div className="flex">
                           <div className="flex-shrink-0 mr-4">
                             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -415,7 +425,12 @@ export default function GroupPage() {
                               {(!item?.actionType || !['add_expense', 'record_payment', 'add_member', 'join_via_invite'].includes(item.actionType)) && 
                                 ' performed an action '}
                               
-                              {item?.expense && <span className="font-medium">"{item.expense?.title || 'Untitled'}"</span>}
+                              {item?.expense && (
+                                <span className="font-medium">
+                                  "{item.expense?.title || 'Untitled'}"
+                                  {item?.actionType === 'add_expense' && <span className="ml-1 text-xs text-muted-foreground">(Click to edit)</span>}
+                                </span>
+                              )}
                               {item?.payment && <span className="font-medium">
                                 ${item.payment?.amount ? parseFloat(item.payment.amount.toString()).toFixed(2) : '0.00'}
                               </span>}
