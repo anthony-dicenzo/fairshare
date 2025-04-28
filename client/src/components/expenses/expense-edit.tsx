@@ -7,7 +7,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { ShoppingBag, Trash } from "lucide-react";
+import { ShoppingBag, Trash, Check } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -92,7 +92,7 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
   });
 
   // Fetch group members for the dropdown
-  const { data: groupMembers = [] } = useQuery({
+  const { data: groupMembers = [] } = useQuery<any[]>({
     queryKey: [`/api/groups/${groupId}/members`],
     enabled: !!groupId && open,
     staleTime: 0, // Always fetch fresh data
@@ -276,7 +276,7 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
       const res = await apiRequest("DELETE", `/api/expenses/${expenseId}`);
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: "Expense deleted",
         description: "Your expense has been deleted successfully.",
@@ -287,7 +287,7 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
       onOpenChange(false);
       
       // Invalidate all relevant queries
-      invalidateQueries();
+      await invalidateQueries();
     },
     onError: (error) => {
       toast({
@@ -540,7 +540,12 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
                     <FormLabel className="text-sm">Split:</FormLabel>
                     <FormControl>
                       <RadioGroup
-                        onValueChange={field.onChange}
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          // Reset custom values when changing split method
+                          if (value !== "unequal") setCustomAmounts({});
+                          if (value !== "percentage") setCustomPercentages({});
+                        }}
                         defaultValue={field.value}
                         value={field.value}
                         className="flex space-x-6"
@@ -563,6 +568,200 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
                   </FormItem>
                 )}
               />
+              
+              {/* Users to split with section */}
+              <div>
+                <FormLabel className="text-sm">Split with:</FormLabel>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {Array.isArray(groupMembers) && groupMembers.map((member: any) => {
+                    // Skip the person who paid
+                    if (member?.userId === parseInt(form.getValues("paidBy"))) return null;
+                    
+                    return (
+                      <div 
+                        key={member?.userId} 
+                        className={`
+                          px-3 py-2 rounded-md text-sm cursor-pointer flex items-center
+                          ${selectedUserIds.includes(member?.userId || 0) 
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted hover:bg-muted/80'
+                          }
+                        `}
+                        onClick={() => {
+                          const userId = member?.userId || 0;
+                          if (selectedUserIds.includes(userId)) {
+                            setSelectedUserIds(prev => prev.filter(id => id !== userId));
+                            
+                            // Remove custom amounts for this user
+                            if (customAmounts[userId]) {
+                              const newAmounts = { ...customAmounts };
+                              delete newAmounts[userId];
+                              setCustomAmounts(newAmounts);
+                            }
+                            
+                            // Remove custom percentages for this user
+                            if (customPercentages[userId]) {
+                              const newPercentages = { ...customPercentages };
+                              delete newPercentages[userId];
+                              setCustomPercentages(newPercentages);
+                            }
+                          } else {
+                            setSelectedUserIds(prev => [...prev, userId]);
+                          }
+                        }}
+                      >
+                        {member?.user?.name || "Unknown User"}
+                        {selectedUserIds.includes(member?.userId || 0) && (
+                          <Check className="ml-1 h-4 w-4" />
+                        )}
+                      </div>
+                    );
+                  })}
+                  
+                  {/* Always include yourself option if you're not the one who paid */}
+                  {user?.id && parseInt(form.getValues("paidBy")) !== user.id && (
+                    <div 
+                      className={`
+                        px-3 py-2 rounded-md text-sm cursor-pointer flex items-center
+                        ${selectedUserIds.includes(user.id) 
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted hover:bg-muted/80'
+                        }
+                      `}
+                      onClick={() => {
+                        if (selectedUserIds.includes(user.id)) {
+                          setSelectedUserIds(prev => prev.filter(id => id !== user.id));
+                          
+                          // Remove custom amounts for this user
+                          if (customAmounts[user.id]) {
+                            const newAmounts = { ...customAmounts };
+                            delete newAmounts[user.id];
+                            setCustomAmounts(newAmounts);
+                          }
+                          
+                          // Remove custom percentages for this user
+                          if (customPercentages[user.id]) {
+                            const newPercentages = { ...customPercentages };
+                            delete newPercentages[user.id];
+                            setCustomPercentages(newPercentages);
+                          }
+                        } else {
+                          setSelectedUserIds(prev => [...prev, user.id]);
+                        }
+                      }}
+                    >
+                      You (Current User)
+                      {selectedUserIds.includes(user.id) && (
+                        <Check className="ml-1 h-4 w-4" />
+                      )}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Show custom amount inputs for unequal split */}
+                {form.getValues("splitMethod") === "unequal" && selectedUserIds.length > 0 && (
+                  <div className="mt-4 space-y-3">
+                    <h3 className="text-sm font-medium">Custom amounts:</h3>
+                    {selectedUserIds.map(userId => {
+                      const memberName = groupMembers?.find((m: any) => m.userId === userId)?.user?.name || 
+                                         (userId === user?.id ? "You" : "Unknown User");
+                      
+                      return (
+                        <div key={userId} className="flex items-center gap-2">
+                          <label className="w-24 text-sm">{memberName}:</label>
+                          <div className="relative flex-1">
+                            <span className="absolute left-3 top-2.5 text-sm">$</span>
+                            <Input 
+                              type="number"
+                              placeholder="0.00"
+                              className="pl-8 h-10"
+                              value={customAmounts[userId] || ""}
+                              onChange={(e) => {
+                                const newValue = parseFloat(e.target.value);
+                                if (!isNaN(newValue)) {
+                                  setCustomAmounts(prev => ({
+                                    ...prev,
+                                    [userId]: newValue
+                                  }));
+                                } else {
+                                  const newAmounts = { ...customAmounts };
+                                  delete newAmounts[userId];
+                                  setCustomAmounts(newAmounts);
+                                }
+                              }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                    
+                    {/* Show total of custom amounts */}
+                    <div className="text-sm mt-2">
+                      <span>Total custom amount: </span>
+                      <span className="font-medium">
+                        ${Object.values(customAmounts).reduce((sum, amount) => sum + (amount || 0), 0).toFixed(2)}
+                      </span>
+                      {form.getValues("totalAmount") && (
+                        <span className="ml-2">
+                          (of ${parseFloat(form.getValues("totalAmount")).toFixed(2)})
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Show percentage inputs for percentage split */}
+                {form.getValues("splitMethod") === "percentage" && selectedUserIds.length > 0 && (
+                  <div className="mt-4 space-y-3">
+                    <h3 className="text-sm font-medium">Custom percentages:</h3>
+                    {selectedUserIds.map(userId => {
+                      const memberName = groupMembers?.find((m: any) => m.userId === userId)?.user?.name || 
+                                         (userId === user?.id ? "You" : "Unknown User");
+                      
+                      return (
+                        <div key={userId} className="flex items-center gap-2">
+                          <label className="w-24 text-sm">{memberName}:</label>
+                          <div className="relative flex-1">
+                            <Input 
+                              type="number"
+                              placeholder="0"
+                              className="pr-8 h-10"
+                              value={customPercentages[userId] || ""}
+                              onChange={(e) => {
+                                const newValue = parseFloat(e.target.value);
+                                if (!isNaN(newValue)) {
+                                  setCustomPercentages(prev => ({
+                                    ...prev,
+                                    [userId]: newValue
+                                  }));
+                                } else {
+                                  const newPercentages = { ...customPercentages };
+                                  delete newPercentages[userId];
+                                  setCustomPercentages(newPercentages);
+                                }
+                              }}
+                            />
+                            <span className="absolute right-3 top-2.5 text-sm">%</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    
+                    {/* Show total of percentages */}
+                    <div className="text-sm mt-2">
+                      <span>Total percentage: </span>
+                      <span className={`font-medium ${
+                        Math.abs(Object.values(customPercentages).reduce((sum, pct) => sum + (pct || 0), 0) - 100) < 0.01
+                          ? 'text-emerald-600'
+                          : 'text-red-500'
+                      }`}>
+                        {Object.values(customPercentages).reduce((sum, pct) => sum + (pct || 0), 0).toFixed(2)}%
+                      </span>
+                      <span className="ml-2">(should equal 100%)</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             <Button 

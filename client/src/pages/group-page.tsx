@@ -129,7 +129,7 @@ export default function GroupPage() {
     staleTime: 0
   });
 
-  // Fetch group balances
+  // Fetch group balances - with refetchInterval to ensure freshness
   const { 
     data: balances = [], 
     isLoading: isLoadingBalances,
@@ -137,7 +137,11 @@ export default function GroupPage() {
   } = useQuery({
     queryKey: [`/api/groups/${groupIdStr}/balances`],
     enabled: groupId > 0 && !!group,
-    staleTime: 0
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    // Force refresh every time component is shown/remounted
+    refetchOnReconnect: true
   });
   
   // Mutation for refreshing balances
