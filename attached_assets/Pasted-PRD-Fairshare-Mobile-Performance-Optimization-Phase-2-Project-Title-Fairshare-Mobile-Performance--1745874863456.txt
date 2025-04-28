@@ -1,0 +1,141 @@
+PRD: Fairshare Mobile Performance Optimization — Phase 2
+Project Title
+Fairshare Mobile Performance Optimization: Above-the-Fold Loading
+
+Objective
+Further optimize Fairshare’s mobile performance by ensuring time-to-meaningful-content is under 1 second.
+Focus on above-the-fold data loading, progressive rendering, and minimal first-paint payloads.
+
+Problem Statement
+Currently, even with balance caching, Fairshare loads too much data immediately after page load (full balance lists, expenses, etc.).
+This results in slow mobile load times (1.5–2.5 seconds on 4G conditions).
+
+Target Outcome
+First Visual Paint (Balances visible): < 1.0 second
+
+Full Content Loaded: < 2.0 seconds
+
+No Visual Jank: Skeleton loaders where necessary
+
+Perception: Instant load experience for Dashboard and Group pages.
+
+Stack and Architecture Reference
+Frontend: React + TypeScript, TanStack Query, Wouter, Tailwind CSS, shadcn/ui
+
+Backend: Express.js with REST API, PostgreSQL via Drizzle ORM
+
+Caching: TanStack Query caching + Balance Cache System already implemented
+
+Optimization Approach
+1. Dashboard Page (Home)
+Current Behavior:
+
+Fetches all groups/friends and their balances immediately.
+
+Updated Behavior:
+
+On initial load, fetch only the first 3 groups or friends (above-the-fold items).
+
+Remaining groups/friends should be loaded lazily after page is interactive.
+
+Technical Implementation:
+
+Modify API: Add pagination parameters (limit=3, offset=0) to the GET /balances endpoint.
+
+Frontend:
+
+First API call → get first 3 balances immediately.
+
+Trigger background fetch for remaining balances using TanStack Query's useInfiniteQuery or fetchNextPage().
+
+UX: Display skeleton loaders for items below the third group while data loads.
+
+2. Group Page
+Current Behavior:
+
+Fetches full group info + complete expense/payment history at mount.
+
+Updated Behavior:
+
+Immediately load:
+
+Group header
+
+Group member names + avatars
+
+Pre-cached group balance
+
+Defer:
+
+Full expense list
+
+Full payment history
+
+Technical Implementation:
+
+Backend: Split API response — add a lightweight GET /group/:id/summary endpoint separate from GET /group/:id/expenses.
+
+Frontend:
+
+Load summary data immediately.
+
+Trigger lazy background fetch for full expense and payment lists using TanStack Query after page is interactive.
+
+UX: Show expense/payment skeleton loaders while the full list loads.
+
+3. API Optimization
+Use selective field fetching in Drizzle ORM (only fetch what’s necessary for summaries).
+
+No heavy joins or nested queries in first load API calls.
+
+Ensure expense list API supports cursor pagination for future scalability.
+
+4. Client Rendering Improvements
+Use React Suspense (if practical) around heavy components (expense lists).
+
+Defer non-essential scripts (e.g., animations, analytics) until after main content is painted.
+
+Prioritize TanStack Query prefetches where appropriate.
+
+Detailed Task Breakdown
+
+Priority	Task	Owner	Time Estimate
+1	Add pagination support to balance APIs	Backend Dev	2–3h
+2	Create lightweight group summary API	Backend Dev	2–3h
+3	Update Dashboard to fetch top 3 groups first	Frontend Dev	3–4h
+4	Lazy load full group expense history	Frontend Dev	3–4h
+5	Implement skeleton loaders (shadcn/ui)	Frontend Dev	1–2h
+6	Optimize API field selection with Drizzle	Backend Dev	1–2h
+Deliverable Acceptance Criteria
+Dashboard Page:
+
+Top 3 groups/friends visible within 1 second.
+
+Remaining groups fade in smoothly (no UI blocking).
+
+Group Page:
+
+Group header + balances render under 1 second.
+
+Expenses/payments fade in separately without blocking interaction.
+
+Testing Environment:
+
+4G mobile network simulation (Chrome DevTools or equivalent).
+
+Metrics:
+
+Web Vitals TTFB (Time to First Byte) < 200ms
+
+Largest Contentful Paint (LCP) < 1s
+
+Speed Index < 1.5s
+
+Notes
+Mobile-first assumptions apply — desktop can be slightly less aggressive.
+
+After this optimization phase, future sprints may explore Server Components (if moving toward Next.js or Remix) for even faster experiences.
+
+Summary
+This phase ensures that Fairshare loads almost instantly for users — creating a "real app" feel instead of a "website" feel.
+It will significantly improve retention, user happiness, and brand perception.
