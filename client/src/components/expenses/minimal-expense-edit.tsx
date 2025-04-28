@@ -586,26 +586,22 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
                   
                   return (
                     <div key={userId} className="flex justify-between items-center">
-                      <div 
-                        className="flex items-center cursor-pointer"
-                        onClick={() => {
-                          const newValue = !isSelected;
-                          if (newValue) {
-                            setSelectedUserIds(prev => [...prev, userId]);
-                          } else {
-                            setSelectedUserIds(prev => prev.filter(id => id !== userId));
-                          }
-                        }}
-                      >
+                      <div className="flex items-center">
                         <Checkbox 
                           id={`user-${userId}`}
                           checked={isSelected}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedUserIds(prev => [...prev, userId]);
+                            } else {
+                              setSelectedUserIds(prev => prev.filter(id => id !== userId));
+                            }
+                          }}
                           className="h-3 w-3"
-                          // Remove onCheckedChange so it doesn't conflict with parent div's onClick
                         />
-                        <span className="ml-1 text-xs">
+                        <label htmlFor={`user-${userId}`} className="ml-1 text-xs">
                           {member.user.name}
-                        </span>
+                        </label>
                       </div>
                       
                       {isSelected && (
