@@ -5,8 +5,8 @@
  * prior to implementing safety measures that prevent deleting members with non-zero balances.
  * 
  * Specifically, this script:
- * 1. Ensures all references to Paubs (user ID 7) are removed from House of Anthica groups
- * 2. Corrects any lingering balance issues between Anthony users and other members
+ * 1. Ensures all references to specified user are removed from specified groups
+ * 2. Corrects any lingering balance issues between remaining members
  * 3. Updates the cached balance tables to reflect the correct values
  * 4. Logs all corrections in the activity log for audit purposes
  */
@@ -23,28 +23,46 @@ import {
 } from './shared/schema.js';
 import { storage } from './server/storage.js';
 
-const PAUBS_USER_ID = 7;
-const ANTHONY_USER_IDS = [2, 3]; // adicenzo and test2
-const HOUSE_OF_ANTHICA_GROUP_IDS = [2, 3];
+// Default values
+const DEFAULT_USER_ID = 7; // Paubs
+const DEFAULT_GROUP_IDS = [2, 3]; // House of Anthica groups
 const TEST_USER_ID = 1; // Using test user as the actor for logging corrections
+
+// Global configuration set by parameters
+let USER_ID = DEFAULT_USER_ID;
+let GROUP_IDS = DEFAULT_GROUP_IDS;
+let DRY_RUN = false;
 
 /**
  * Main function to run the balance correction
+ * 
+ * @param {number[]} groupIds - List of group IDs to process (default: House of Anthica groups)
+ * @param {number} userId - User ID to remove references to (default: Paubs)
+ * @param {boolean} dryRun - If true, will only log what would be changed without making actual changes
  */
-async function correctBalances() {
-  console.log("🚀 Starting balance correction script...");
+async function correctBalances(groupIds = DEFAULT_GROUP_IDS, userId = DEFAULT_USER_ID, dryRun = false) {
+  console.log(`🚀 Starting balance correction script for user ID ${userId} in groups: ${groupIds.join(', ')}`);
+  
+  if (dryRun) {
+    console.log("⚠️ DRY RUN MODE: Changes will be logged but not applied to database");
+  }
+  
+  // Set the global configuration
+  USER_ID = userId;
+  GROUP_IDS = groupIds;
+  DRY_RUN = dryRun;
   
   try {
-    // Step 1: Find and remove any remaining payments involving Paubs
-    await removePaymentsInvolvingPaubs();
+    // Step 1: Find and remove any remaining payments involving the specified user
+    await removePaymentsInvolvingUser();
     
-    // Step 2: Find and remove any remaining expenses paid by Paubs
-    await removeExpensesPaidByPaubs();
+    // Step 2: Find and remove any remaining expenses paid by the specified user
+    await removeExpensesPaidByUser();
     
-    // Step 3: Find and remove any remaining expense participants involving Paubs
-    await removeExpenseParticipantsInvolvingPaubs();
+    // Step 3: Find and remove any remaining expense participants involving the specified user
+    await removeExpenseParticipantsInvolvingUser();
     
-    // Step 4: Clean up any incorrect balance records involving Paubs
+    // Step 4: Clean up any incorrect balance records involving the specified user
     await cleanupBalanceRecords();
     
     // Step 5: Recalculate all balances for the affected groups
@@ -53,105 +71,116 @@ async function correctBalances() {
     // Step 6: Log a summary of corrections made
     await logDataCorrection();
     
-    console.log("✅ Balance correction completed successfully!");
+    console.log("✅ Balance correction steps completed successfully!");
     
   } catch (error) {
     console.error("❌ Error during balance correction:", error);
+    throw error;
   } finally {
     // Close the database connection
-    await pool.end();
+    if (!DRY_RUN) {
+      await pool.end();
+    }
   }
 }
 
 /**
- * Removes payments involving Paubs or between Anthony and other users in House of Anthica
+ * Removes payments involving the specified user in the specified groups
  */
-async function removePaymentsInvolvingPaubs() {
-  console.log("\n🔍 Checking for payments involving Paubs...");
+async function removePaymentsInvolvingUser() {
+  console.log(`\n🔍 Checking for payments involving user ID ${USER_ID}...`);
   
-  // Find payments involving Paubs in House of Anthica groups
+  // Find payments involving the user in the specified groups
   const paymentsToRemove = await db
     .select()
     .from(payments)
     .where(
       and(
-        inArray(payments.groupId, HOUSE_OF_ANTHICA_GROUP_IDS),
+        inArray(payments.groupId, GROUP_IDS),
         or(
-          eq(payments.paidBy, PAUBS_USER_ID),
-          eq(payments.paidTo, PAUBS_USER_ID)
+          eq(payments.paidBy, USER_ID),
+          eq(payments.paidTo, USER_ID)
         )
       )
     );
   
-  console.log(`Found ${paymentsToRemove.length} payments involving Paubs`);
+  console.log(`Found ${paymentsToRemove.length} payments involving user ID ${USER_ID}`);
   
   // Delete each payment and log the action
   for (const payment of paymentsToRemove) {
     console.log(`Removing payment #${payment.id}: $${payment.amount} from user ${payment.paidBy} to user ${payment.paidTo}`);
     
-    // Delete the payment
-    await db
-      .delete(payments)
-      .where(eq(payments.id, payment.id));
-    
-    // Log the deletion in activity log
-    await db.insert(activityLog).values({
-      groupId: payment.groupId,
-      userId: TEST_USER_ID,
-      actionType: 'data_correction',
-      metadata: JSON.stringify({
-        description: `Removed payment #${payment.id} ($${payment.amount}) from user ${payment.paidBy} to user ${payment.paidTo}`,
-        timestamp: new Date().toISOString(),
-        correctionType: 'balance_fix'
-      })
-    });
+    if (!DRY_RUN) {
+      // Delete the payment
+      await db
+        .delete(payments)
+        .where(eq(payments.id, payment.id));
+      
+      // Log the deletion in activity log
+      await db.insert(activityLog).values({
+        groupId: payment.groupId,
+        userId: TEST_USER_ID,
+        actionType: 'data_correction',
+        metadata: JSON.stringify({
+          description: `Removed payment #${payment.id} ($${payment.amount}) from user ${payment.paidBy} to user ${payment.paidTo}`,
+          timestamp: new Date().toISOString(),
+          correctionType: 'balance_fix'
+        })
+      });
+    } else {
+      console.log(`  [DRY RUN] Would delete payment #${payment.id}`);
+    }
   }
 }
 
 /**
- * Removes expenses paid by Paubs in House of Anthica
+ * Removes expenses paid by the specified user in the specified groups
  */
-async function removeExpensesPaidByPaubs() {
-  console.log("\n🔍 Checking for expenses paid by Paubs...");
+async function removeExpensesPaidByUser() {
+  console.log(`\n🔍 Checking for expenses paid by user ID ${USER_ID}...`);
   
-  // Find expenses paid by Paubs in House of Anthica groups
+  // Find expenses paid by the user in the specified groups
   const expensesToRemove = await db
     .select()
     .from(expenses)
     .where(
       and(
-        inArray(expenses.groupId, HOUSE_OF_ANTHICA_GROUP_IDS),
-        eq(expenses.paidBy, PAUBS_USER_ID)
+        inArray(expenses.groupId, GROUP_IDS),
+        eq(expenses.paidBy, USER_ID)
       )
     );
   
-  console.log(`Found ${expensesToRemove.length} expenses paid by Paubs`);
+  console.log(`Found ${expensesToRemove.length} expenses paid by user ID ${USER_ID}`);
   
   // Delete each expense and its participants
   for (const expense of expensesToRemove) {
     console.log(`Removing expense #${expense.id}: ${expense.title} ($${expense.totalAmount})`);
     
-    // First, delete all participants of this expense
-    await db
-      .delete(expenseParticipants)
-      .where(eq(expenseParticipants.expenseId, expense.id));
-    
-    // Then, delete the expense itself
-    await db
-      .delete(expenses)
-      .where(eq(expenses.id, expense.id));
-    
-    // Log the deletion in activity log
-    await db.insert(activityLog).values({
-      groupId: expense.groupId,
-      userId: TEST_USER_ID,
-      actionType: 'data_correction',
-      metadata: JSON.stringify({
-        description: `Removed expense #${expense.id} (${expense.title}) for $${expense.totalAmount}`,
-        timestamp: new Date().toISOString(),
-        correctionType: 'balance_fix'
-      })
-    });
+    if (!DRY_RUN) {
+      // First, delete all participants of this expense
+      await db
+        .delete(expenseParticipants)
+        .where(eq(expenseParticipants.expenseId, expense.id));
+      
+      // Then, delete the expense itself
+      await db
+        .delete(expenses)
+        .where(eq(expenses.id, expense.id));
+      
+      // Log the deletion in activity log
+      await db.insert(activityLog).values({
+        groupId: expense.groupId,
+        userId: TEST_USER_ID,
+        actionType: 'data_correction',
+        metadata: JSON.stringify({
+          description: `Removed expense #${expense.id} (${expense.title}) for $${expense.totalAmount}`,
+          timestamp: new Date().toISOString(),
+          correctionType: 'balance_fix'
+        })
+      });
+    } else {
+      console.log(`  [DRY RUN] Would delete expense #${expense.id} and all its participants`);
+    }
   }
 }
 

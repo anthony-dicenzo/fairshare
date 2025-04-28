@@ -789,14 +789,18 @@ export class DatabaseStorage implements IStorage {
         throw new Error("Only the group creator can remove members");
       }
       
-      // 2. Get the user's current balance in the group
-      const userBalance = await this.getUserCachedBalance(userId, groupId);
-      const balanceAmount = userBalance ? parseFloat(userBalance.balanceAmount.toString()) : 0;
+      // 2. Check if the user has any outstanding balances with other members
+      const hasOutstandingBalances = await this.checkUserHasOutstandingBalances(groupId, userId);
       
-      // 3. Check if the balance is exactly zero
-      if (balanceAmount !== 0) {
-        console.log(`Cannot remove user ${userId} from group ${groupId} - nonzero balance: ${balanceAmount}`);
-        throw new Error(`Cannot remove user. They still have a balance of $${Math.abs(balanceAmount).toFixed(2)} ${balanceAmount > 0 ? 'to be paid to them' : 'to pay to others'}. All balances must be settled first.`);
+      // 3. If there are outstanding balances, prevent removal
+      if (hasOutstandingBalances) {
+        console.log(`Cannot remove user ${userId} from group ${groupId} - has outstanding balances`);
+        
+        // Get the user's current overall balance in the group for the error message
+        const userBalance = await this.getUserCachedBalance(userId, groupId);
+        const balanceAmount = userBalance ? parseFloat(userBalance.balanceAmount.toString()) : 0;
+        
+        throw new Error(`Cannot remove user. They still have outstanding balances with other group members. All balances must be settled first.`);
       }
       
       // 4. Archive the user (soft delete) instead of removing them
