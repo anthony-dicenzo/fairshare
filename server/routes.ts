@@ -2,6 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
+import { db } from "./db";
+import { sql } from "drizzle-orm";
 import { 
   insertGroupSchema, insertExpenseSchema, insertExpenseParticipantSchema, 
   insertPaymentSchema, insertActivityLogSchema, insertGroupInviteSchema, 
@@ -180,35 +182,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Helper function to check if user is an admin
+  const isAdmin = async (userId: number): Promise<boolean> => {
+    const user = await storage.getUser(userId);
+    if (!user) return false;
+    
+    // List of admin emails
+    const adminEmails = ["adicenzo1@gmail.com"];
+    return adminEmails.includes(user.email);
+  };
+  
   // Special admin route to force delete a group (bypass balance checks)
   app.delete("/api/admin/groups/:id/force-delete", async (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     
     try {
       const groupId = parseInt(req.params.id);
-      const group = await storage.getGroup(groupId);
+      const userId = req.user.id;
       
+      // Check if user is an admin
+      const isAdminUser = await isAdmin(userId);
+      if (!isAdminUser) {
+        console.log(`Unauthorized admin access attempt by user ${userId}`);
+        return res.status(403).json({ error: "Unauthorized: Admin access required" });
+      }
+      
+      const group = await storage.getGroup(groupId);
       if (!group) {
         return res.status(404).json({ error: "Group not found" });
       }
       
-      // Check if user is the creator of this group
-      if (group.createdBy !== req.user.id) {
-        return res.status(403).json({ error: "Only the group creator can force delete the group" });
-      }
-      
-      console.log(`ADMIN ACTION: Force deleting group ${groupId} by user ${req.user.id}`);
+      console.log(`ADMIN ACTION: Force deleting group ${groupId} by admin user ${userId}`);
       
       // First, clear all balances for this group
+      console.log(`Admin operation: Clearing all balances for group ${groupId}`);
       await storage.clearAllBalances(groupId);
       
-      // Delete the group and all related data
-      const deleted = await storage.deleteGroup(groupId);
-      
-      if (deleted) {
+      try {
+        // First, handle all the foreign key constraints manually
+        const db = storage.db;
+        const { sql } = storage;
+        
+        // Execute a transaction to ensure atomicity
+        await db.transaction(async (tx) => {
+          // Remove references from activity log first
+          await tx.execute(sql`
+            UPDATE activity_log
+            SET payment_id = NULL
+            WHERE payment_id IN (SELECT id FROM payments WHERE group_id = ${groupId})
+          `);
+          
+          await tx.execute(sql`
+            UPDATE activity_log
+            SET expense_id = NULL
+            WHERE expense_id IN (SELECT id FROM expenses WHERE group_id = ${groupId})
+          `);
+          
+          // Delete expense participants
+          await tx.execute(sql`
+            DELETE FROM expense_participants
+            WHERE expense_id IN (SELECT id FROM expenses WHERE group_id = ${groupId})
+          `);
+          
+          // Delete expenses
+          await tx.execute(sql`DELETE FROM expenses WHERE group_id = ${groupId}`);
+          
+          // Delete payments
+          await tx.execute(sql`DELETE FROM payments WHERE group_id = ${groupId}`);
+          
+          // Delete user balances
+          await tx.execute(sql`DELETE FROM user_balances WHERE group_id = ${groupId}`);
+          
+          // Delete balances between users
+          await tx.execute(sql`DELETE FROM user_balances_between_users WHERE group_id = ${groupId}`);
+          
+          // Delete group invites
+          await tx.execute(sql`DELETE FROM group_invites WHERE group_id = ${groupId}`);
+          
+          // Delete group members
+          await tx.execute(sql`DELETE FROM group_members WHERE group_id = ${groupId}`);
+          
+          // Delete activity log entries
+          await tx.execute(sql`DELETE FROM activity_log WHERE group_id = ${groupId}`);
+          
+          // Finally delete the group
+          await tx.execute(sql`DELETE FROM groups WHERE id = ${groupId}`);
+        });
+        
+        console.log(`Successfully force deleted group ${groupId}`);
         res.json({ success: true, message: "Group has been force deleted" });
-      } else {
-        res.status(500).json({ error: "Failed to force delete group" });
+      } catch (txError) {
+        console.error(`Transaction error while deleting group ${groupId}:`, txError);
+        res.status(500).json({ error: "Failed to delete group due to database constraints" });
       }
     } catch (error) {
       console.error("Error force deleting group:", error);

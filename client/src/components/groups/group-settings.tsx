@@ -482,7 +482,7 @@ export function GroupSettings({ open, onOpenChange, groupId, groupName, members,
           </AlertDialogFooter>
           
           {/* Special admin button for force delete */}
-          {groupId === 2 && (
+          {groupId === 2 && user?.email === "adicenzo1@gmail.com" && (
             <div className="mt-3 pt-3 border-t border-gray-100">
               <div className="text-[10px] text-amber-600 mb-2">
                 <span className="font-semibold">Admin option:</span> Force delete for group with corrupted balance data. 
