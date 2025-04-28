@@ -40,10 +40,6 @@ export function GroupDetail({ group, members = [], balances = [], expenses = [],
   const totalExpenseAmount = expenses.reduce((sum, expense) => sum + Number(expense.totalAmount || 0), 0);
   const userExpenseAmount = expenses.filter(expense => expense.paidBy === user.id)
     .reduce((sum, expense) => sum + Number(expense.totalAmount || 0), 0);
-  const paymentsMade = payments.filter(payment => payment.paidBy === user.id)
-    .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
-  const paymentsReceived = payments.filter(payment => payment.paidTo === user.id)
-    .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
     
   // Calculate the user's fair share of expenses
   const membersCount = members.length || 1;
@@ -74,7 +70,13 @@ export function GroupDetail({ group, members = [], balances = [], expenses = [],
             </div>
             
             <div className="bg-muted/50 rounded-lg p-4">
-              <h3 className="text-sm font-medium mb-3">Your Balance</h3>
+              <h3 className="text-sm font-medium mb-3">
+                {userBalance > 0 
+                  ? "You Are Owed" 
+                  : userBalance < 0 
+                    ? "You Owe" 
+                    : "Your Balance"}
+              </h3>
               <p className={`text-2xl font-semibold ${
                 userBalance > 0 
                   ? "text-emerald-500" 
@@ -82,14 +84,10 @@ export function GroupDetail({ group, members = [], balances = [], expenses = [],
                     ? "text-rose-500" 
                     : ""
               }`}>
-                {userBalance > 0 ? "+" : ""}${Math.abs(Number(userBalance)).toFixed(2)}
+                {userBalance > 0 ? "+" : userBalance < 0 ? "-" : ""}${Math.abs(Number(userBalance)).toFixed(2)}
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                {userBalance > 0 
-                  ? "You are owed money" 
-                  : userBalance < 0 
-                    ? "You owe money" 
-                    : "All settled up"}
+                {Math.abs(Number(userBalance)) < 0.01 ? "All settled up" : "Total balance"}
               </p>
             </div>
           </div>
@@ -155,13 +153,17 @@ export function GroupDetail({ group, members = [], balances = [], expenses = [],
           </div>
           
           <div className="bg-muted/50 rounded-lg p-4">
-            <h3 className="text-sm font-medium mb-1">Payments Made</h3>
-            <p className="text-xl font-semibold">${paymentsMade.toFixed(2)}</p>
+            <h3 className="text-sm font-medium mb-1">You Owe</h3>
+            <p className="text-xl font-semibold text-rose-500">
+              ${Math.abs(Math.min(0, userBalance)).toFixed(2)}
+            </p>
           </div>
           
           <div className="bg-muted/50 rounded-lg p-4">
-            <h3 className="text-sm font-medium mb-1">Payments Received</h3>
-            <p className="text-xl font-semibold">${paymentsReceived.toFixed(2)}</p>
+            <h3 className="text-sm font-medium mb-1">You Are Owed</h3>
+            <p className="text-xl font-semibold text-emerald-500">
+              ${Math.max(0, userBalance).toFixed(2)}
+            </p>
           </div>
         </div>
       </CardContent>
