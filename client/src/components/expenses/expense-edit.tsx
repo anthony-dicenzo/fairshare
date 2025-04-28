@@ -77,16 +77,18 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
   // Track custom percentages for percentage splits
   const [customPercentages, setCustomPercentages] = useState<Record<number, number>>({});
   
-  // Fetch expense details
+  // Fetch expense details - always get fresh data when opening the modal
   const { data: expense, isLoading: isLoadingExpense } = useQuery({
     queryKey: [`/api/expenses/${expenseId}`],
     enabled: open && expenseId > 0,
+    staleTime: 0, // Always fetch fresh data from the server
   });
 
   // Fetch expense participants
   const { data: expenseParticipants = [], isLoading: isLoadingParticipants } = useQuery({
     queryKey: [`/api/expenses/${expenseId}/participants`],
     enabled: open && expenseId > 0,
+    staleTime: 0, // Always fetch fresh data from the server
   });
 
   // Fetch group members for the dropdown
@@ -298,6 +300,11 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
 
   // Helper to invalidate all relevant queries
   const invalidateQueries = () => {
+    // Invalidate the specific expense queries
+    queryClient.invalidateQueries({ queryKey: [`/api/expenses/${expenseId}`] });
+    queryClient.invalidateQueries({ queryKey: [`/api/expenses/${expenseId}/participants`] });
+    
+    // Invalidate general balances and activity queries
     queryClient.invalidateQueries({ queryKey: ["/api/balances"] });
     queryClient.invalidateQueries({ queryKey: ["/api/activity"] });
     queryClient.invalidateQueries({ queryKey: ["/api/activity", "expenses"] });

@@ -250,7 +250,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       console.error("Error removing user from group:", error);
-      res.status(500).json({ error: error.message || "Failed to remove user from group" });
+      const errorMessage = error instanceof Error ? error.message : "Failed to remove user from group";
+      res.status(500).json({ error: errorMessage });
     }
   });
   
