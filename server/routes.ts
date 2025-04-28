@@ -224,26 +224,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "The group creator cannot be removed" });
       }
       
-      // Check if the user has any outstanding balances
-      const hasOutstandingBalances = await storage.checkUserHasOutstandingBalances(groupId, userIdToRemove);
-      if (hasOutstandingBalances) {
-        return res.status(400).json({ 
-          error: "This user has outstanding debts with other group members. All balances must be settled before they can be removed."
-        });
-      }
-      
-      // Remove the user from the group
-      const removed = await storage.removeUserFromGroup(groupId, userIdToRemove);
+      // Remove the user from the group with the updated method that includes zero-balance enforcement
+      // The method now handles balance checks, archiving instead of deleting, and activity logging
+      const removed = await storage.removeUserFromGroup(groupId, userIdToRemove, req.user.id);
       
       if (removed) {
-        // Log activity
-        await storage.logActivity({
-          groupId,
-          userId: req.user.id,
-          actionType: "remove_member",
-          metadata: JSON.stringify({ removedUserId: userIdToRemove })
-        });
-        
+        // Activity logging is now handled inside the removeUserFromGroup method
         res.json({ success: true, message: "User has been removed from the group" });
       } else {
         res.status(404).json({ error: "User not found in this group" });
