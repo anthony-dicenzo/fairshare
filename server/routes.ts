@@ -219,60 +219,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.clearAllBalances(groupId);
       
       try {
-        // First, handle all the foreign key constraints manually
-        const db = storage.db;
-        const { sql } = storage;
+        // Use a simpler approach with direct SQL queries
+        await db.execute(sql`
+          UPDATE activity_log
+          SET payment_id = NULL
+          WHERE payment_id IN (SELECT id FROM payments WHERE group_id = ${groupId})
+        `);
         
-        // Execute a transaction to ensure atomicity
-        await db.transaction(async (tx) => {
-          // Remove references from activity log first
-          await tx.execute(sql`
-            UPDATE activity_log
-            SET payment_id = NULL
-            WHERE payment_id IN (SELECT id FROM payments WHERE group_id = ${groupId})
-          `);
-          
-          await tx.execute(sql`
-            UPDATE activity_log
-            SET expense_id = NULL
-            WHERE expense_id IN (SELECT id FROM expenses WHERE group_id = ${groupId})
-          `);
-          
-          // Delete expense participants
-          await tx.execute(sql`
-            DELETE FROM expense_participants
-            WHERE expense_id IN (SELECT id FROM expenses WHERE group_id = ${groupId})
-          `);
-          
-          // Delete expenses
-          await tx.execute(sql`DELETE FROM expenses WHERE group_id = ${groupId}`);
-          
-          // Delete payments
-          await tx.execute(sql`DELETE FROM payments WHERE group_id = ${groupId}`);
-          
-          // Delete user balances
-          await tx.execute(sql`DELETE FROM user_balances WHERE group_id = ${groupId}`);
-          
-          // Delete balances between users
-          await tx.execute(sql`DELETE FROM user_balances_between_users WHERE group_id = ${groupId}`);
-          
-          // Delete group invites
-          await tx.execute(sql`DELETE FROM group_invites WHERE group_id = ${groupId}`);
-          
-          // Delete group members
-          await tx.execute(sql`DELETE FROM group_members WHERE group_id = ${groupId}`);
-          
-          // Delete activity log entries
-          await tx.execute(sql`DELETE FROM activity_log WHERE group_id = ${groupId}`);
-          
-          // Finally delete the group
-          await tx.execute(sql`DELETE FROM groups WHERE id = ${groupId}`);
-        });
+        await db.execute(sql`
+          UPDATE activity_log
+          SET expense_id = NULL
+          WHERE expense_id IN (SELECT id FROM expenses WHERE group_id = ${groupId})
+        `);
+        
+        await db.execute(sql`
+          DELETE FROM expense_participants
+          WHERE expense_id IN (SELECT id FROM expenses WHERE group_id = ${groupId})
+        `);
+        
+        await db.execute(sql`DELETE FROM expenses WHERE group_id = ${groupId}`);
+        await db.execute(sql`DELETE FROM payments WHERE group_id = ${groupId}`);
+        await db.execute(sql`DELETE FROM user_balances WHERE group_id = ${groupId}`);
+        await db.execute(sql`DELETE FROM user_balances_between_users WHERE group_id = ${groupId}`);
+        await db.execute(sql`DELETE FROM group_invites WHERE group_id = ${groupId}`);
+        await db.execute(sql`DELETE FROM group_members WHERE group_id = ${groupId}`);
+        await db.execute(sql`DELETE FROM activity_log WHERE group_id = ${groupId}`);
+        await db.execute(sql`DELETE FROM groups WHERE id = ${groupId}`);
         
         console.log(`Successfully force deleted group ${groupId}`);
         res.json({ success: true, message: "Group has been force deleted" });
-      } catch (txError) {
-        console.error(`Transaction error while deleting group ${groupId}:`, txError);
+      } catch (dbError) {
+        console.error(`Database error while deleting group ${groupId}:`, dbError);
         res.status(500).json({ error: "Failed to delete group due to database constraints" });
       }
     } catch (error) {
