@@ -7,7 +7,8 @@ import {
   ShoppingBag, 
   CreditCard, 
   UserPlus, 
-  Users
+  Users,
+  Edit
 } from "lucide-react";
 import { ActivityItemAction } from "@/components/activity/activity-item-action";
 
@@ -147,6 +148,12 @@ function ActivityIcon({ type }: { type: string }) {
           <Users className={`${iconClassName} text-blue-500 dark:text-blue-400`} />
         </div>
       );
+    case "update_group":
+      return (
+        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center">
+          <Edit className={`${iconClassName} text-amber-500 dark:text-amber-400`} />
+        </div>
+      );
     default:
       return (
         <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
@@ -176,6 +183,8 @@ function getActionText(activity: Activity) {
       return "created group";
     case "join_via_invite":
       return "joined";
+    case "update_group":
+      return "updated group";
     default:
       return `performed action "${activity.actionType}" in`;
   }
