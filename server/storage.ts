@@ -853,7 +853,7 @@ export class DatabaseStorage implements IStorage {
         console.log(`  User made payment to ${payment.paidTo}, updating payer to ${groupRep.userId}`);
         await this.updatePayment(payment.id, {
           paidBy: groupRep.userId,
-          notes: payment.notes ? `${payment.notes} (originally paid by removed user)` : 'Originally paid by removed user'
+          note: payment.note ? `${payment.note} (originally paid by removed user)` : 'Originally paid by removed user'
         });
         
         // Log this special action for transparency
@@ -875,7 +875,7 @@ export class DatabaseStorage implements IStorage {
         console.log(`  User received payment from ${payment.paidBy}, updating recipient to ${groupRep.userId}`);
         await this.updatePayment(payment.id, {
           paidTo: groupRep.userId,
-          notes: payment.notes ? `${payment.notes} (originally paid to removed user)` : 'Originally paid to removed user'
+          note: payment.note ? `${payment.note} (originally paid to removed user)` : 'Originally paid to removed user'
         });
         
         // Log this special action for transparency

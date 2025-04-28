@@ -8,7 +8,9 @@ import {
   CreditCard, 
   UserPlus, 
   Users,
-  Edit
+  Edit,
+  RefreshCw,
+  UserMinus
 } from "lucide-react";
 import { ActivityItemAction } from "@/components/activity/activity-item-action";
 
@@ -136,10 +138,22 @@ function ActivityIcon({ type }: { type: string }) {
           <CreditCard className={`${iconClassName} text-emerald-500 dark:text-emerald-400`} />
         </div>
       );
+    case "payment_reassigned":
+      return (
+        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center">
+          <RefreshCw className={`${iconClassName} text-amber-500 dark:text-amber-400`} />
+        </div>
+      );
     case "add_member":
       return (
         <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center">
           <UserPlus className={`${iconClassName} text-purple-500 dark:text-purple-400`} />
+        </div>
+      );
+    case "remove_member":
+      return (
+        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
+          <UserMinus className={`${iconClassName} text-red-500 dark:text-red-400`} />
         </div>
       );
     case "create_group":
@@ -177,8 +191,16 @@ function getActionText(activity: Activity) {
           {activity.payment?.paidBy === activity.user.id ? "paid" : "received payment"} in
         </>
       );
+    case "payment_reassigned":
+      return (
+        <>
+          reassigned a payment in
+        </>
+      );
     case "add_member":
       return "added a new member to";
+    case "remove_member":
+      return "removed a member from";
     case "create_group":
       return "created group";
     case "join_via_invite":
