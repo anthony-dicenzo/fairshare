@@ -1,57 +1,106 @@
-# FairShare Balance Correction Script for House of Anthica
+# Data Correction: House of Anthica - Paubs Removal
 
 ## Purpose
 
-This collection of scripts is designed to resolve a specific issue: removing all references to the user "Paubs" (user ID 7) from the "House of Anthica" groups (group IDs 2 and 3), while ensuring that the balances of other group members remain unchanged.
+This document outlines the data correction performed to remove all references to user "Paubs" from the "House of Anthica" group (group IDs 2 and 3) in the FairShare expense-sharing application database.
 
-## Script Files
+## Background
 
-1. **data-correction-script.js** - The core script that removes all records related to Paubs from the database
-2. **recalculate-balances.js** - Triggers balance recalculation after removing Paubs' data
-3. **fix-house-of-anthica.js** - Master script that orchestrates both data correction and balance recalculation
+A user needed to be removed from a group without affecting the balances of other users. This required a careful data correction approach that:
 
-## How to Run
+1. Removed all references to the user
+2. Maintained data integrity
+3. Ensured balances for other users remained unchanged
+4. Properly recalculated all balances to ensure consistency
 
-Execute the master script to perform the complete correction in one step:
+## Scripts Created
 
-```bash
-node fix-house-of-anthica.js
-```
+We created the following scripts to handle this data correction:
 
-## What the Script Does
+1. `fix-paubs-house-of-anthica.js` - The main script that removes all references to Paubs
+2. `recalculate-house-of-anthica-balances.js` - A script to recalculate all balances after the removal
 
-1. **Preliminary Steps:**
-   - Captures the current balances of all group members before making changes
-   - Identifies all data related to Paubs in the specified groups
+## Approach
 
-2. **Data Removal:**
-   - Removes expense participants where Paubs is included
-   - Removes expenses where Paubs is the payer
-   - Removes payments where Paubs is involved (as payer or recipient)
-   - Removes user balances associated with Paubs
-   - Removes any group memberships for Paubs
+### 1. User Removal Process
 
-3. **Balance Recalculation:**
-   - Recalculates all balances for each group to ensure consistency
-   - Verifies that the sum of all balances within a group is zero
-   - Confirms that other users' balances remain unchanged
+The user removal script:
 
-4. **Verification:**
-   - Compares previous and current balances for all users
-   - Ensures data integrity throughout the process
+- Identifies all references to "Paubs" (user ID: 7) in the House of Anthica groups (IDs: 2, 3)
+- Takes a snapshot of current balances for verification
+- Removes the user from:
+  - Group membership tables
+  - Expense participants
+  - Expenses paid by the user
+  - Payments involving the user
+  - Balance records
+- Creates activity log entries documenting the change
+- Verifies the removal was complete
+- Ensures other users' balances remain unchanged
 
-## Safety Measures
+### 2. Balance Recalculation Process
 
-- All operations are performed within database transactions for atomicity
-- The script verifies balances before and after the correction
-- Detailed logging provides an audit trail of all changes
+The balance recalculation script:
 
-## Notes
+- For each affected group:
+  - Identifies all active members
+  - Gets all expenses and payments in the group
+  - For each user:
+    - Calculates what they owe others (from expenses)
+    - Calculates what others owe them (from expenses they paid)
+    - Accounts for payments made and received
+    - Updates their balance in the database
+  - Verifies the sum of all balances equals zero
 
-- This script specifically targets groups with IDs 2 and 3, both named "House of Anthica"
-- The script preserves activity logs related to Paubs for audit purposes
-- After running, the script provides a detailed report of all changes made
+## Running the Correction
 
-## Warning
+The scripts were executed in the following order:
 
-This is a one-time data correction script. Running it multiple times is not recommended as it may have unintended consequences. Always back up your database before running data correction scripts.
+1. `node fix-paubs-house-of-anthica.js` - This removes all references to Paubs
+2. `node recalculate-house-of-anthica-balances.js` - This recalculates all balances
+
+## Results
+
+### Before Correction
+
+Group 2 (House of Anthica):
+- adicenzo: $-1784.32
+- Jes: $1784.32
+
+Group 3 (House of Anthica):
+- test2: $0
+
+### After Correction
+
+Group 2 (House of Anthica):
+- adicenzo: $-1784.32
+- Jes: $1784.32
+
+Group 3 (House of Anthica):
+- test2: $0
+
+## Verification
+
+Both scripts include verification steps to ensure:
+
+1. All references to Paubs were successfully removed
+2. Balances of other users remained unchanged
+3. The sum of all balances in each group equals zero
+
+## Future Data Corrections
+
+For similar data corrections in the future:
+
+1. Always take a snapshot of affected data before making changes
+2. Use transactions to ensure atomicity (all changes succeed or all fail)
+3. Include verification steps to confirm changes were made correctly
+4. Document the changes with activity logs
+5. Trigger balance recalculation after data correction
+
+## Technical Implementation
+
+The scripts use direct database access via the PostgreSQL driver to ensure complete control over the data correction process. This approach was chosen over using the application's ORM layer to ensure the changes were made consistently and to provide better visibility into the process.
+
+---
+
+**Note**: These scripts are specialized for this particular data correction and should not be used for general user removal in the application. The proper way to remove a user from a group is through the application's user interface or API.
