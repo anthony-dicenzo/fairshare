@@ -424,9 +424,6 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
             <ShoppingBag className="h-5 w-5 text-[#E3976E]" />
             Edit Expense
           </DialogTitle>
-          <button onClick={() => onOpenChange(false)} className="h-6 w-6 rounded-full flex items-center justify-center">
-            ✕
-          </button>
         </div>
         <p className="text-xs text-muted-foreground mt-1">
           Enter the details of your expense to split it with your group.
@@ -573,11 +570,16 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
               <div>
                 <FormLabel className="text-sm">Split with:</FormLabel>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {Array.isArray(groupMembers) && groupMembers.map((member: any) => {
-                    // Skip the person who paid
-                    if (member?.userId === parseInt(form.getValues("paidBy"))) return null;
-                    
-                    return (
+                  {/* Get all potential participants, ensuring no duplicates */}
+                  {Array.isArray(groupMembers) && groupMembers
+                    .filter((member: any) => {
+                      // Skip the person who paid
+                      const isPayer = member?.userId === parseInt(form.getValues("paidBy"));
+                      // Skip if this is the current user (we'll handle that separately)
+                      const isCurrentUser = member?.userId === user?.id;
+                      return !isPayer && !isCurrentUser;
+                    })
+                    .map((member: any) => (
                       <div 
                         key={member?.userId} 
                         className={`
@@ -615,10 +617,10 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
                           <Check className="ml-1 h-4 w-4" />
                         )}
                       </div>
-                    );
-                  })}
+                    ))
+                  }
                   
-                  {/* Always include yourself option if you're not the one who paid */}
+                  {/* Include current user option if not the one who paid */}
                   {user?.id && parseInt(form.getValues("paidBy")) !== user.id && (
                     <div 
                       className={`
@@ -650,7 +652,7 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
                         }
                       }}
                     >
-                      You (Current User)
+                      You
                       {selectedUserIds.includes(user.id) && (
                         <Check className="ml-1 h-4 w-4" />
                       )}
