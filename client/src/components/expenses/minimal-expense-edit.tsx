@@ -131,10 +131,16 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
       const participantIds = expenseParticipants.map((p: ExpenseParticipantData) => p.userId);
       setSelectedUserIds(participantIds);
       
+      // Set up custom amounts and percentages
+      const newAmounts: Record<number, number> = {};
+      const newPercentages: Record<number, number> = {};
+      const totalAmount = parseFloat(amount || '0');
+      const equalAmount = totalAmount / participantIds.length;
+      const equalPercentage = 100 / participantIds.length;
+      
       // Determine split method based on participant data
       if (expenseParticipants.length > 1) {
         const firstAmount = parseFloat(String(expenseParticipants[0]?.amountOwed || '0'));
-        const totalExpenseAmount = parseFloat(amount || '0');
         
         // Check if all amounts are equal
         const isEqualSplit = expenseParticipants.every((p: ExpenseParticipantData) => 
@@ -149,7 +155,7 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
             0
           );
           
-          if (Math.abs(totalOwed - totalExpenseAmount) < 0.01) {
+          if (Math.abs(totalOwed - totalAmount) < 0.01) {
             setSplitMethod("unequal");
           } else {
             setSplitMethod("percentage");
@@ -157,21 +163,29 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
         }
       }
       
-      // Set up custom amounts and percentages
-      const newAmounts: Record<number, number> = {};
-      const newPercentages: Record<number, number> = {};
-      const totalAmount = parseFloat(amount || '0');
+      // Populate amounts and percentages from expense participants
+      if (expenseParticipants.length > 0) {
+        expenseParticipants.forEach((p: ExpenseParticipantData) => {
+          const userId = p.userId;
+          const amountOwed = parseFloat(String(p.amountOwed || '0'));
+          
+          newAmounts[userId] = amountOwed;
+          
+          if (totalAmount > 0) {
+            newPercentages[userId] = (amountOwed / totalAmount) * 100;
+          } else {
+            newPercentages[userId] = equalPercentage;
+          }
+        });
+      }
       
-      expenseParticipants.forEach((p: ExpenseParticipantData) => {
-        const userId = p.userId;
-        const amountOwed = parseFloat(String(p.amountOwed || '0'));
-        
-        newAmounts[userId] = amountOwed;
-        
-        if (totalAmount > 0) {
-          newPercentages[userId] = (amountOwed / totalAmount) * 100;
-        } else {
-          newPercentages[userId] = 100 / expenseParticipants.length;
+      // Make sure all selected users have values
+      participantIds.forEach(userId => {
+        if (newAmounts[userId] === undefined) {
+          newAmounts[userId] = equalAmount;
+        }
+        if (newPercentages[userId] === undefined || newPercentages[userId] === 0) {
+          newPercentages[userId] = equalPercentage;
         }
       });
       
@@ -270,14 +284,15 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
     const totalAmountVal = parseFloat(amount || "0");
     if (isNaN(totalAmountVal) || totalAmountVal <= 0) return;
     
+    // Calculate default equal values
+    const equalAmount = totalAmountVal / selectedUserIds.length;
+    const equalPercentage = 100 / selectedUserIds.length;
+    
+    const newAmounts: Record<number, number> = {};
+    const newPercentages: Record<number, number> = {};
+    
     if (splitMethod === "equal") {
-      // Equal split
-      const equalAmount = totalAmountVal / selectedUserIds.length;
-      const equalPercentage = 100 / selectedUserIds.length;
-      
-      const newAmounts: Record<number, number> = {};
-      const newPercentages: Record<number, number> = {};
-      
+      // Equal split - set everything evenly
       selectedUserIds.forEach(userId => {
         newAmounts[userId] = equalAmount;
         newPercentages[userId] = equalPercentage;
@@ -285,16 +300,59 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
       
       setCustomAmounts(newAmounts);
       setCustomPercentages(newPercentages);
-    } else if (splitMethod === "percentage") {
-      // Percentage split - update amounts based on percentages
-      const newAmounts: Record<number, number> = {};
+    } 
+    else if (splitMethod === "percentage") {
+      // Initialize everything to equal percentages first if no percentages exist or they're zero
+      let needsInitialization = false;
       
+      // Check if we need to initialize the percentages
       selectedUserIds.forEach(userId => {
-        const percentage = customPercentages[userId] || 100 / selectedUserIds.length;
-        newAmounts[userId] = (totalAmountVal * percentage) / 100;
+        if (customPercentages[userId] === undefined || customPercentages[userId] === 0) {
+          needsInitialization = true;
+        }
       });
       
-      setCustomAmounts(newAmounts);
+      // If any user is missing a percentage or has zero, initialize all to equal
+      if (needsInitialization) {
+        selectedUserIds.forEach(userId => {
+          newPercentages[userId] = equalPercentage;
+          newAmounts[userId] = (totalAmountVal * equalPercentage) / 100;
+        });
+        
+        setCustomPercentages(newPercentages);
+        setCustomAmounts(newAmounts);
+      } 
+      else {
+        // Otherwise update amounts based on existing percentages
+        selectedUserIds.forEach(userId => {
+          const percentage = customPercentages[userId];
+          newAmounts[userId] = (totalAmountVal * percentage) / 100;
+        });
+        
+        setCustomAmounts(newAmounts);
+      }
+    } 
+    else if (splitMethod === "unequal") {
+      // Initialize to equal amounts if needed
+      let needsInitialization = false;
+      
+      // Check if we need to initialize the amounts
+      selectedUserIds.forEach(userId => {
+        if (customAmounts[userId] === undefined || customAmounts[userId] === 0) {
+          needsInitialization = true;
+        }
+      });
+      
+      // If any user is missing an amount or has zero, initialize all to equal
+      if (needsInitialization) {
+        selectedUserIds.forEach(userId => {
+          newAmounts[userId] = equalAmount;
+          newPercentages[userId] = equalPercentage;
+        });
+        
+        setCustomAmounts(newAmounts);
+        setCustomPercentages(newPercentages);
+      }
     }
   };
   
