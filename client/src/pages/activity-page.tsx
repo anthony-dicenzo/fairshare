@@ -49,26 +49,26 @@ type Activity = {
 export default function ActivityPage() {
   const [activeTab, setActiveTab] = useState<string>("all");
   
-  const { data: allActivity, isLoading: isLoadingAll } = useQuery<Activity[]>({
+  const { data: allActivity, isLoading: isLoadingAll } = useQuery({
     queryKey: ["/api/activity"],
   });
   
   // Fetch activity data for expense tab
-  const { data: rawExpenseActivity, isLoading: isLoadingExpense } = useQuery<Activity[]>({
+  const { data: rawExpenseActivity, isLoading: isLoadingExpense } = useQuery({
     queryKey: ["/api/activity", "expenses"],
     queryFn: async () => {
-      const response = await apiRequest<Activity[]>("/api/activity?type=expenses");
-      return response;
+      const response = await apiRequest("/api/activity?type=expenses");
+      return response as Activity[];
     },
     enabled: activeTab === "expenses",
   });
   
   // Fetch activity data for payment tab
-  const { data: rawPaymentActivity, isLoading: isLoadingPayment } = useQuery<Activity[]>({
+  const { data: rawPaymentActivity, isLoading: isLoadingPayment } = useQuery({
     queryKey: ["/api/activity", "payments"],
     queryFn: async () => {
-      const response = await apiRequest<Activity[]>("/api/activity?type=payments");
-      return response;
+      const response = await apiRequest("/api/activity?type=payments");
+      return response as Activity[];
     },
     enabled: activeTab === "payments",
   });
@@ -263,12 +263,22 @@ function getActionText(activity: Activity) {
           {activity.payment?.paidBy === activity.user.id ? "paid" : "received payment"} in
         </>
       );
+    case "payment_reassigned":
+      return (
+        <>
+          reassigned a payment in
+        </>
+      );
     case "add_member":
       return "added a new member to";
+    case "remove_member":
+      return "removed a member from";
     case "create_group":
       return "created group";
     case "join_via_invite":
       return "joined";
+    case "update_group":
+      return "updated group";
     default:
       return `performed action "${activity.actionType}" in`;
   }
