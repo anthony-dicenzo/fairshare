@@ -79,6 +79,7 @@ export function GroupSettings({ open, onOpenChange, groupId, groupName, members,
   const [showRemoveConfirmation, setShowRemoveConfirmation] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
   const [showDeleteGroupConfirmation, setShowDeleteGroupConfirmation] = useState(false);
+  const [deleteGroupError, setDeleteGroupError] = useState<string | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
   
   // Check if current user is the group creator/admin
@@ -180,11 +181,12 @@ export function GroupSettings({ open, onOpenChange, groupId, groupName, members,
       navigate("/");
     },
     onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete group. Please ensure all balances are settled.",
-        variant: "destructive"
-      });
+      // Check if the error is related to outstanding balances
+      if (error.message?.includes("outstanding") || error.message?.includes("balance") || error.message?.includes("settled")) {
+        setDeleteGroupError("Cannot delete group. There are outstanding balances between members. All debts must be settled first.");
+      } else {
+        setDeleteGroupError("Failed to delete group. Please try again later.");
+      }
       
       setShowDeleteGroupConfirmation(false);
     }
@@ -445,6 +447,30 @@ export function GroupSettings({ open, onOpenChange, groupId, groupName, members,
                 "Delete"
               )}
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Error dialog for group deletion */}
+      <AlertDialog open={!!deleteGroupError} onOpenChange={() => setDeleteGroupError(null)}>
+        <AlertDialogContent className="max-w-[350px] p-4">
+          <AlertDialogHeader className="p-0 pb-2">
+            <AlertDialogTitle className="flex items-center gap-1.5 text-red-500 text-base">
+              <AlertTriangle className="h-4 w-4" />
+              Cannot Delete Group
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-xs leading-tight">
+              {deleteGroupError || "This group has outstanding balances between members. All balances must be settled to $0 before the group can be deleted."}
+            </AlertDialogDescription>
+            <div className="mt-2 bg-amber-50 p-2 rounded-sm border border-amber-200 text-[11px] text-amber-700">
+              <p className="font-medium">How to settle balances:</p>
+              <p>1. Record payments using the "Pay" button</p>
+              <p>2. Make sure all members have $0 balance in the group</p>
+              <p>3. View the balances tab to verify all debts are settled</p>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-2">
+            <AlertDialogAction className="h-8 text-xs w-full">OK</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
