@@ -55,23 +55,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get basic group data with pagination
       const groups = await storage.getGroupsByUserId(req.user.id, limit, offset);
       
-      // Enhance groups with balance information
+      // Enhance groups with balance information and member counts
       const enhancedGroups = await Promise.all(groups.map(async (group) => {
         try {
           // Get the cached balance for this user in this group
           const userBalance = await storage.getUserCachedBalance(req.user.id, group.id);
           
-          // Return the enhanced group with balance information
+          // Get the actual member count for this group
+          const members = await storage.getGroupMembers(group.id);
+          const memberCount = members.length;
+          
+          // Return the enhanced group with balance information and member count
           return {
             ...group,
-            balance: userBalance ? parseFloat(userBalance.balanceAmount) : 0
+            balance: userBalance ? parseFloat(userBalance.balanceAmount) : 0,
+            memberCount: memberCount
           };
         } catch (balanceError) {
           console.log(`Error getting cached balance for group ${group.id}:`, balanceError);
           // If there's an error, just return the group without balance info
           return {
             ...group,
-            balance: 0
+            balance: 0,
+            memberCount: 0
           };
         }
       }));
@@ -107,7 +113,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "You are not a member of this group" });
       }
       
-      res.json(group);
+      // Add member count to the response
+      res.json({
+        ...group,
+        memberCount: members.length
+      });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch group" });
     }
@@ -146,6 +156,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: member.user.id,
           name: member.user.name
         })),
+        memberCount: members.length,
         userBalance: userBalance ? parseFloat(userBalance.balanceAmount) : 0
       });
     } catch (error) {
