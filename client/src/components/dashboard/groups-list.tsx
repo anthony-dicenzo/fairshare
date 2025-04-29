@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { Group } from "@shared/schema";
 import { useLocation } from "wouter";
-import { PlusCircle, ChevronDown } from "lucide-react";
+import { PlusCircle, ChevronDown, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect } from "react";
@@ -13,23 +13,37 @@ import { queryClient } from "@/lib/queryClient";
 const INITIAL_GROUPS_COUNT = 3;
 const ADDITIONAL_GROUPS_COUNT = 5;
 
+// Ultras-fast loading without balance data
+const ULTRAFAST_LOADING = true;
+
 export function GroupsList() {
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [, setLocation] = useLocation();
   const [visibleGroups, setVisibleGroups] = useState(INITIAL_GROUPS_COUNT);
+  const [showSkeleton, setShowSkeleton] = useState(true);
   
-  // First fetch just the initial groups with the aboveTheFold flag
+  // Step 1: Fetch minimal group data with no balances for immediate display
+  const { data: minimalData, isLoading: isMinimalLoading, isFetching: isMinimalFetching } = useQuery<{ 
+    groups: (Group & { memberCount?: number })[], 
+    totalCount: number 
+  }>({
+    queryKey: ["/api/groups", { limit: INITIAL_GROUPS_COUNT, offset: 0, ultraFast: true }],
+    staleTime: 30000, // Keep this data fresh for 30 seconds
+  });
+  
+  // Step 2: In parallel, fetch the initial groups with partial data
   const { data: initialData, isLoading: isInitialLoading } = useQuery<{ 
     groups: (Group & { balance?: number; memberCount?: number })[], 
     totalCount: number 
   }>({
     queryKey: ["/api/groups", { limit: INITIAL_GROUPS_COUNT, offset: 0, aboveTheFold: true }],
+    staleTime: 10000, // Keep this data fresh for 10 seconds
   });
   
-  // Get the total count from the initial query to know if we need to load more
-  const totalCount = initialData?.totalCount || 0;
+  // Get the total count from either query
+  const totalCount = initialData?.totalCount || minimalData?.totalCount || 0;
   
-  // Fetch all loaded groups based on the visibleGroups count
+  // Step 3: Fetch all loaded groups based on the visibleGroups count (deferred)
   const { data, isLoading } = useQuery<{ 
     groups: (Group & { balance?: number; memberCount?: number })[], 
     totalCount: number 
@@ -37,19 +51,39 @@ export function GroupsList() {
     queryKey: ["/api/groups", { limit: visibleGroups, offset: 0 }],
     // Skip this query if we're just showing the initial groups or if initial loading is still in progress
     enabled: visibleGroups > INITIAL_GROUPS_COUNT && !isInitialLoading,
+    staleTime: 5000, // Keep this data fresh for 5 seconds
   });
   
-  // Use initial data when we're just showing the first few groups
-  // Otherwise use the data from the full query
-  const groups = (visibleGroups <= INITIAL_GROUPS_COUNT || !data) 
-    ? (initialData?.groups || []) 
-    : (data?.groups || []);
-
-  if (isLoading) {
+  // Hide skeleton after initial data is loaded
+  useEffect(() => {
+    if (minimalData && !isMinimalFetching) {
+      // Critical: Show content immediately even if balances are still loading
+      setTimeout(() => setShowSkeleton(false), 100); 
+    }
+  }, [minimalData, isMinimalFetching]);
+  
+  // Choose the best available data based on what's loaded
+  // Order of preference: full data > initial data > minimal data
+  const groups = (() => {
+    // If we requested more than the initial count and have that data, use it
+    if (visibleGroups > INITIAL_GROUPS_COUNT && data?.groups) {
+      return data.groups;
+    }
+    // Otherwise, if we have the initial data with balances, use that
+    if (initialData?.groups) {
+      return initialData.groups;
+    }
+    // As a last resort, use the minimal data (without balances) for fastest display
+    return minimalData?.groups || [];
+  })();
+  
+  // This is critical - use minimal data immediately even if it doesn't have balances
+  // Don't show skeleton if we have any data to display
+  if (showSkeleton && isMinimalLoading && !minimalData) {
     return <GroupsListSkeleton />;
   }
 
-  if (!groups || groups.length === 0) {
+  if ((!isMinimalLoading && !minimalData?.groups?.length) || (!groups || groups.length === 0)) {
     return (
       <Card className="w-full">
         <CardHeader className="flex flex-row items-center justify-between pb-2 px-4 pt-4">
@@ -117,18 +151,27 @@ export function GroupsList() {
                         </p>
                       </div>
                     </div>
-                    {group.balance !== undefined && (
+                    {/* Only show balance if it's available (not available in ultra-fast loading) */}
+                    {'balance' in group ? (
                       <div className="text-right ml-2 flex-shrink-0">
                         <p className={`text-xs sm:text-sm font-medium ${
-                          group.balance > 0 
+                          (group as any).balance > 0 
                             ? "text-emerald-500 dark:text-emerald-400" 
                             : "text-rose-500 dark:text-rose-400"
                         }`}>
-                          {group.balance > 0 ? "+" : ""}${Math.abs(group.balance).toFixed(2)}
+                          {(group as any).balance > 0 ? "+" : ""}${Math.abs((group as any).balance).toFixed(2)}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {group.balance > 0 ? "You are owed" : "You owe"}
+                          {(group as any).balance > 0 ? "You are owed" : "You owe"}
                         </p>
+                      </div>
+                    ) : (
+                      /* Show a loading placeholder when we have minimal data without balances */
+                      <div className="text-right ml-2 flex-shrink-0">
+                        <div className="animate-pulse">
+                          <div className="h-4 w-12 bg-gray-200 rounded mb-1"></div>
+                          <div className="h-3 w-10 bg-gray-200 rounded"></div>
+                        </div>
                       </div>
                     )}
                   </div>

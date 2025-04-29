@@ -697,6 +697,21 @@ export class DatabaseStorage implements IStorage {
     return result[0].count;
   }
   
+  // Optimized method to get just the member count for a group without fetching all members
+  async getGroupMemberCount(groupId: number): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(groupMembers)
+      .where(
+        and(
+          eq(groupMembers.groupId, groupId),
+          eq(groupMembers.archived, false) // Only count active memberships
+        )
+      );
+      
+    return result[0].count;
+  }
+  
   async updateGroup(groupId: number, updates: Partial<Group>): Promise<Group> {
     const result = await db
       .update(groups)

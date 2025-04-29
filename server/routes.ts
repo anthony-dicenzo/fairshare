@@ -51,32 +51,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
       const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
       const aboveTheFold = req.query.aboveTheFold === 'true';
+      const ultraFast = req.query.ultraFast === 'true';
       
-      // Get basic group data with pagination
+      // Get total count early for ultra-fast mode
+      const totalCount = await storage.getUserGroupsCount(req.user.id);
+      
+      // ULTRA-FAST MODE: Return groups with minimal data (no balances, no member counts)
+      // This is extremely fast (<100ms) and used for immediate rendering
+      if (ultraFast) {
+        console.log(`Processing ultra-fast request for up to ${limit || 'all'} groups`);
+        
+        // Get basic group data with pagination - this is very fast as it's a simple SQL query
+        const groups = await storage.getGroupsByUserId(req.user.id, limit, offset);
+        
+        // Skip all extra processing and return immediately
+        return res.json({
+          groups, // Return just the basic group data
+          totalCount,
+          hasMore: limit ? offset + groups.length < totalCount : false,
+          page: limit ? Math.floor(offset / limit) : 0
+        });
+      }
+      
+      // Get basic group data with pagination - this happens for both normal and above-the-fold
       const groups = await storage.getGroupsByUserId(req.user.id, limit, offset);
       
       // Optimize balance and member count fetching based on request type
-      // For "above the fold" requests, we can use a more optimized approach
       let enhancedGroups;
       
       if (aboveTheFold) {
         console.log(`Processing above-the-fold request for ${groups.length} groups`);
         
         // For above-the-fold requests, prioritize speed over completeness
-        enhancedGroups = await Promise.all(groups.map(async (group) => {
+        // Process in parallel with Promise.all
+        const promises = groups.map(async (group) => {
           try {
-            // For fast loading, use pre-cached balances to avoid expensive calculations
+            // 1. Get the cached balance from the cache table - very fast
             const userBalance = await storage.getUserCachedBalance(req.user.id, group.id);
             
-            // Get member count (which is a simple database count operation)
-            // This could be further optimized by pre-caching member counts
-            const members = await storage.getGroupMembers(group.id);
-            const memberCount = members.length;
+            // 2. Get member count with a count(*) query - fast
+            const memberCount = await storage.getGroupMemberCount(group.id);
             
             return {
               ...group,
               balance: userBalance ? parseFloat(userBalance.balanceAmount) : 0,
-              memberCount: memberCount
+              memberCount
             };
           } catch (balanceError) {
             console.log(`Error getting cached balance for group ${group.id}:`, balanceError);
@@ -86,7 +105,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
               memberCount: 0
             };
           }
-        }));
+        });
+        
+        // Wait for all promises to complete
+        enhancedGroups = await Promise.all(promises);
       } else {
         console.log(`Processing full request for ${groups.length} groups`);
         
@@ -96,15 +118,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Get the cached balance for this user in this group
             const userBalance = await storage.getUserCachedBalance(req.user.id, group.id);
             
-            // Get the actual member count for this group
-            const members = await storage.getGroupMembers(group.id);
-            const memberCount = members.length;
+            // Get the member count - optimized to use count query instead of fetching all members
+            const memberCount = await storage.getGroupMemberCount(group.id);
             
             // Return the enhanced group with balance information and member count
             return {
               ...group,
               balance: userBalance ? parseFloat(userBalance.balanceAmount) : 0,
-              memberCount: memberCount
+              memberCount
             };
           } catch (balanceError) {
             console.log(`Error getting cached balance for group ${group.id}:`, balanceError);
@@ -118,8 +139,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }));
       }
       
-      // Always include a consistent response format with groups array and totalCount
-      const totalCount = await storage.getUserGroupsCount(req.user.id);
+      // Always include a consistent response format
       res.json({
         groups: enhancedGroups,
         totalCount,
