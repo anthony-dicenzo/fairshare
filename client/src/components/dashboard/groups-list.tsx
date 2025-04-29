@@ -2,21 +2,48 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { Group } from "@shared/schema";
 import { useLocation } from "wouter";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { GroupForm } from "../groups/group-form";
+import { queryClient } from "@/lib/queryClient";
+
+// Define the number of groups to show initially (above the fold)
+const INITIAL_GROUPS_COUNT = 3;
+const ADDITIONAL_GROUPS_COUNT = 5;
 
 export function GroupsList() {
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [, setLocation] = useLocation();
+  const [visibleGroups, setVisibleGroups] = useState(INITIAL_GROUPS_COUNT);
   
-  const { data, isLoading } = useQuery<{ groups: (Group & { balance?: number; memberCount?: number })[], totalCount: number }>({
-    queryKey: ["/api/groups"],
+  // First fetch just the initial groups with the aboveTheFold flag
+  const { data: initialData, isLoading: isInitialLoading } = useQuery<{ 
+    groups: (Group & { balance?: number; memberCount?: number })[], 
+    totalCount: number 
+  }>({
+    queryKey: ["/api/groups", { limit: INITIAL_GROUPS_COUNT, offset: 0, aboveTheFold: true }],
   });
   
-  const groups = data?.groups || [];
+  // Get the total count from the initial query to know if we need to load more
+  const totalCount = initialData?.totalCount || 0;
+  
+  // Fetch all loaded groups based on the visibleGroups count
+  const { data, isLoading } = useQuery<{ 
+    groups: (Group & { balance?: number; memberCount?: number })[], 
+    totalCount: number 
+  }>({
+    queryKey: ["/api/groups", { limit: visibleGroups, offset: 0 }],
+    // Skip this query if we're just showing the initial groups or if initial loading is still in progress
+    enabled: visibleGroups > INITIAL_GROUPS_COUNT && !isInitialLoading,
+  });
+  
+  // Use initial data when we're just showing the first few groups
+  // Otherwise use the data from the full query
+  const groups = (visibleGroups <= INITIAL_GROUPS_COUNT || !data) 
+    ? (initialData?.groups || []) 
+    : (data?.groups || []);
 
   if (isLoading) {
     return <GroupsListSkeleton />;
@@ -108,6 +135,21 @@ export function GroupsList() {
                 </div>
               </div>
             ))}
+            
+            {/* Show load more button if there are more groups to load */}
+            {totalCount > visibleGroups && (
+              <div className="px-3 sm:px-5 py-2 sm:py-3 flex justify-center">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-xs sm:text-sm text-muted-foreground flex items-center"
+                  onClick={() => setVisibleGroups(prev => Math.min(prev + ADDITIONAL_GROUPS_COUNT, totalCount))}
+                >
+                  Load more groups
+                  <ChevronDown className="h-3 w-3 ml-1" />
+                </Button>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
