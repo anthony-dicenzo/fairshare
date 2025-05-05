@@ -1,15 +1,23 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background -->
-  <rect width="512" height="512" rx="128" fill="#E3976E"/>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512px" height="512px" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E3976E;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#CE7F59;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="url(#bgGradient)" />
   
-  <!-- "F" letter stylized as money/sharing symbol -->
-  <path d="M144 128H368" stroke="white" stroke-width="48" stroke-linecap="round"/>
-  <path d="M144 256H320" stroke="white" stroke-width="48" stroke-linecap="round"/>
-  <path d="M144 128V384" stroke="white" stroke-width="48" stroke-linecap="round"/>
+  <!-- Coins/Circles representing sharing -->
+  <circle cx="170" cy="200" r="70" fill="#FFF" fill-opacity="0.9" />
+  <circle cx="340" cy="200" r="70" fill="#FFF" fill-opacity="0.7" />
+  <circle cx="255" cy="320" r="70" fill="#FFF" fill-opacity="0.8" />
   
-  <!-- Dollar sign overlay to represent expense sharing -->
-  <path d="M320 208V368" stroke="#E6F4D5" stroke-width="32" stroke-linecap="round"/>
-  <path d="M256 240H352" stroke="#E6F4D5" stroke-width="32" stroke-linecap="round"/>
-  <path d="M256 320H352" stroke="#E6F4D5" stroke-width="32" stroke-linecap="round"/>
+  <!-- Equal sign representing "fair" -->
+  <rect x="190" y="195" width="130" height="25" rx="8" fill="#2B3A55" />
+  <rect x="190" y="240" width="130" height="25" rx="8" fill="#2B3A55" />
+  
+  <!-- Arrow lines connecting the circles, representing "share" -->
+  <path d="M170,270 L230,320" stroke="#2B3A55" stroke-width="12" stroke-linecap="round" />
+  <path d="M340,270 L280,320" stroke="#2B3A55" stroke-width="12" stroke-linecap="round" />
 </svg>
