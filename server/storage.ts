@@ -128,6 +128,7 @@ export class DatabaseStorage implements IStorage {
   sessionStore: any; // Using any to avoid SessionStore type issues
   
   constructor() {
+    // Use the pool directly with PostgresSessionStore
     this.sessionStore = new PostgresSessionStore({ 
       pool,
       createTableIfMissing: true
