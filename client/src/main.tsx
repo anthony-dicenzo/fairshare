@@ -3,6 +3,7 @@ import React from "react";
 import App from "./App";
 import "./index.css";
 import { ThemeProvider } from "next-themes";
+import * as serviceWorkerRegistration from './lib/serviceWorkerRegistration';
 
 // Error boundary for catching rendering errors
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error: Error | null }> {
@@ -72,6 +73,12 @@ try {
       </React.StrictMode>
     );
     console.log("Render completed");
+    
+    // Register service worker for PWA support
+    serviceWorkerRegistration.register({
+      onSuccess: () => console.log('Service worker registered successfully'),
+      onUpdate: () => console.log('New content is available; please refresh the page')
+    });
   } else {
     console.error("Root element not found");
     document.body.innerHTML = '<div style="padding: 20px; font-family: system-ui;">Root element not found. Please check HTML structure.</div>';
