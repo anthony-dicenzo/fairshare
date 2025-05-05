@@ -5,6 +5,7 @@ const CACHE_NAME = 'fairshare-cache-v1';
 const APP_SHELL = [
   '/',
   '/index.html',
+  '/offline.html',
   '/src/main.tsx',
   '/src/index.css'
 ];
@@ -92,7 +93,7 @@ self.addEventListener('fetch', (event) => {
           console.log('Serving HTML from cache:', event.request.url);
           return caches.match(event.request)
             .then(response => {
-              return response || caches.match('/');
+              return response || caches.match('/offline.html');
             });
         })
     );
