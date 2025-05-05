@@ -1,0 +1,145 @@
+1. Overview & Objectives
+Purpose. Upgrade the existing FairShare expense-sharing web app into a Progressive Web App, leveraging the pwa-template’s manifest and service-worker patterns plus best practices. This initial PRD focuses on:
+
+App shell caching for fast, repeatable loads
+
+Basic offline read capability (view last-cached data)
+
+Installability readiness (manifest + icons)
+
+Success metrics.
+
+Lighthouse PWA score ≥ 90
+
+First-load (cold) time ≤ 1.5 s on mobile 3G
+
+Repeat-load (warm) time ≤ 200 ms
+
+2. Scope
+In Scope
+Web App Manifest
+
+Create manifest.json with name, short_name, icons, theme_color, background_color, display, start_url.
+
+Service Worker & Caching
+
+Integrate Workbox (or vanilla SW) to:
+
+Cache the app shell (HTML/CSS/JS) on install
+
+Cache API GET responses (expense data) with stale-while-revalidate
+
+Cache static assets (images/fonts) with cache-first and expiry rules
+
+Offline Read-Only Mode
+
+When offline, serve cached app shell and last-fetched expense data
+
+Show a simple “You’re offline” banner in the UI
+
+Installability Readiness
+
+Ensure manifest and SW meet Chrome/Edge criteria so the browser can prompt natively
+
+Validate icons & metadata on desktop and mobile
+
+Out of Scope (for this PR)
+Custom “Add to Home Screen” prompt flows
+
+Fine-grained offline fallback performance tuning
+
+Background Sync for writes
+
+Push Notifications
+
+Automated Lighthouse CI checks
+
+3. User Stories & Acceptance Criteria
+ID	User Story	Acceptance Criteria
+US1	As a user, I can install FairShare as a PWA when my browser prompts	• Browser “install” option appears when criteria met.
+• App opens in standalone mode.
+US2	As a user, I can load the app when offline	• SW serves cached app shell.
+• Last-cached expenses display in read-only mode.
+US3	As a user, I see fast repeat loads	• Repeat navigation to core screens ≤ 200 ms (confirmed via Lighthouse).
+
+4. Technical Requirements
+Repository Integration
+
+Merge pwa-template’s service-worker.js, manifest.json, and icons/ into FairShare’s repo.
+
+Update build (Vite/webpack) to emit manifest.json and optimized icons.
+
+Service Worker
+
+Use Workbox plugin:
+
+js
+Copy
+Edit
+new WorkboxPlugin.GenerateSW({
+  clientsClaim: true,
+  skipWaiting: true,
+  runtimeCaching: [
+    {
+      urlPattern: /\/api\/expenses\//,
+      handler: 'StaleWhileRevalidate',
+      options: { cacheName: 'api-expenses', expiration: { maxEntries: 50, maxAgeSeconds: 86400 } }
+    },
+    {
+      urlPattern: /\.(?:js|css|html|png|svg|woff2)$/,
+      handler: 'CacheFirst',
+      options: { cacheName: 'assets', expiration: { maxEntries: 100 } }
+    }
+  ],
+})
+Manifest
+
+json
+Copy
+Edit
+{
+  "name": "FairShare",
+  "short_name": "FairShare",
+  "start_url": "/?source=pwa",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4a90e2",
+  "icons": [
+    { "src": "/icons/192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
+Offline Read-Only UX
+
+In the app shell, detect navigator.onLine === false and show an “Offline mode: viewing last data” banner.
+
+Validation
+
+Run Lighthouse locally to confirm PWA score ≥ 90; adjust caching strategies as needed.
+
+5. Non-Functional Requirements
+Performance. Cold load ≤ 1.5 s (3G emulation).
+
+Security. SW only over HTTPS; scope limited to /.
+
+Compatibility. Latest two versions of Chrome, Edge, Firefox, and iOS Safari (13+).
+
+Accessibility. Offline banner meets WCAG contrast requirements.
+
+7. Risks & Mitigations
+Risk	Impact	Mitigation
+Stale cached data without refresh plan	Medium	Limit cache age; use stale-while-revalidate.
+Manifest misconfiguration	Low	Test across multiple devices/browsers.
+SW scope accidentally too broad or narrow	Low	Explicitly set scope: '/' in registration.
+
+Next Steps:
+
+Branch pwa-light from main.
+
+Merge in manifest + SW from pwa-template.
+
+Implement Milestone 1 through 3.
+
+Validate with Lighthouse and device testing.
+
+Once this rollout is stable, we’ll draft the follow-up PRD covering custom install prompts, background sync, push notifications, and automated audits.
