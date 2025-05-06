@@ -19,7 +19,7 @@ export function Toaster() {
         // This will trigger the dismiss process in the toast hook
         const timer = setTimeout(() => {
           dismiss(toast.id);
-        }, 1000); // 1 second matches TOAST_REMOVE_DELAY
+        }, 1250); // 1.25 seconds matches TOAST_REMOVE_DELAY
         
         return () => clearTimeout(timer);
       }
