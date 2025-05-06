@@ -428,7 +428,7 @@ export default function GroupPage() {
               </Button>
               {showInviteNotification && (
                 <PersistentNotification
-                  message="Tap to invite members"
+                  message="Invite members"
                   position="tooltip"
                   variant="default"
                   size="sm"
@@ -441,9 +441,10 @@ export default function GroupPage() {
                   style={{
                     bottom: "calc(100% + 8px)",
                     right: "auto",
-                    left: "-50px",
+                    left: "-130px",
                     whiteSpace: "nowrap",
                     zIndex: 50,
+                    maxWidth: "180px"
                   }}
                 />
               )}
