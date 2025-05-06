@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { useParams, useLocation } from "wouter";
+import { useParams, useLocation, useRoute } from "wouter";
 import { useQuery, useMutation, useInfiniteQuery } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/main-layout";
 import { Button } from "@/components/ui/button";
@@ -21,8 +21,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function GroupPage() {
-  // Get the group ID from the URL parameters
-  const params = useParams<{ id: string }>();
+  // Get the group ID and optional 'from' parameter from the URL
+  const params = useParams<{ id: string; from?: string }>();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   
@@ -476,7 +476,7 @@ export default function GroupPage() {
                   </p>
                   <Button 
                     onClick={() => setShowExpenseModal(true)}
-                    className="bg-[#E3976E] hover:bg-[#D38761] text-white border-[#E3976E]"
+                    className="bg-[#32846b] hover:bg-[#276b55] text-white border-[#32846b]"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Expense
@@ -557,7 +557,7 @@ export default function GroupPage() {
                   size="sm" 
                   onClick={() => refreshBalancesMutation.mutate()}
                   disabled={refreshBalancesMutation.isPending}
-                  className="gap-2 bg-[#E3976E] hover:bg-[#D38761] text-white border-[#E3976E]"
+                  className="gap-2 bg-[#32846b] hover:bg-[#276b55] text-white border-[#32846b]"
                 >
                   <RefreshCw className={`h-4 w-4 ${refreshBalancesMutation.isPending ? 'animate-spin' : ''}`} />
                   {refreshBalancesMutation.isPending ? 'Refreshing...' : 'Refresh Balances'}
@@ -664,17 +664,7 @@ export default function GroupPage() {
         </div>
       </div>
 
-      {/* Mobile action button */}
-      <div className="fixed bottom-20 right-4 sm:hidden">
-        <Button 
-          size="icon" 
-          variant="outline" 
-          className="h-14 w-14 rounded-full shadow-lg border-fairshare-secondary"
-          onClick={() => setShowPaymentModal(true)}
-        >
-          <CreditCard className="h-6 w-6 text-fairshare-dark" />
-        </Button>
-      </div>
+      {/* Mobile action button removed as requested */}
 
       {/* Modals */}
       <ExpenseForm 
