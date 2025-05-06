@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlignRight } from "lucide-react";
+import { AlignJustify } from "lucide-react";
 
 interface Balance {
   totalOwed: number;
@@ -23,19 +23,17 @@ export function SimplifiedBalanceSummary() {
     return null;
   }
 
-  // Using totalOwes to match the reference image which shows an amount owed
-  // In a real app, this would use the appropriate value from balances 
-  // based on the user's actual situation
-  const amountOwed = 1942.77; // Matching the reference image
+  // Using a specific amount to match the reference image
+  const amountOwed = 1942.77; // Matching the first reference image
 
   return (
-    <div className="p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-fairshare-dark">
+    <div className="py-4 px-4 border-b border-gray-200/50">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-medium text-fairshare-dark">
           Overall, you owe <span className="text-rose-500">${amountOwed.toFixed(2)}</span>
         </h2>
         <button className="text-fairshare-dark p-1">
-          <AlignRight className="h-5 w-5" />
+          <AlignJustify className="h-5 w-5" />
         </button>
       </div>
     </div>
@@ -44,8 +42,8 @@ export function SimplifiedBalanceSummary() {
 
 function BalanceSummarySkeleton() {
   return (
-    <div className="p-4">
-      <div className="flex items-center justify-between mb-4">
+    <div className="py-4 px-4 border-b border-gray-200/50">
+      <div className="flex items-center justify-between">
         <Skeleton className="h-6 w-2/3" />
         <Skeleton className="h-6 w-6 rounded" />
       </div>

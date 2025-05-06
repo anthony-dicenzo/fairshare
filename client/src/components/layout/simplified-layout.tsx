@@ -20,46 +20,49 @@ export function SimplifiedLayout({
   
   return (
     <div className="flex flex-col min-h-screen bg-fairshare-cream">
+      {/* Status bar area (to simulate mobile device) */}
+      <div className="h-8 bg-[#E8B195]"></div>
+      
       {/* Page header */}
       <header className={cn("p-4 text-fairshare-dark", pageBackground)}>
         <h1 className="text-xl font-bold">{headerText}</h1>
       </header>
       
       {/* Main content */}
-      <main className="flex-1 pb-20">
+      <main className="flex-1 pb-24">
         {children}
       </main>
       
-      {/* Bottom navigation */}
+      {/* Bottom navigation - larger buttons similar to second image */}
       <div className="fixed bottom-0 left-0 right-0 w-full bg-fairshare-cream border-t z-50">
-        <nav className="flex justify-around items-center px-2 py-3">
+        <nav className="flex justify-around items-center px-2 py-4">
           <Link href="/">
-            <div className="flex flex-col items-center gap-0.5 cursor-pointer">
-              <Home className={cn("h-5 w-5", location === "/" ? "text-fairshare-primary" : "text-fairshare-dark/60")} />
+            <div className="flex flex-col items-center gap-1 cursor-pointer">
+              <Home className={cn("h-6 w-6", location === "/" ? "text-fairshare-primary" : "text-fairshare-dark/60")} />
               <span className="text-xs font-medium">Home</span>
             </div>
           </Link>
           <Link href="/groups">
-            <div className="flex flex-col items-center gap-0.5 cursor-pointer">
-              <Users className={cn("h-5 w-5", location === "/groups" ? "text-fairshare-primary" : "text-fairshare-dark/60")} />
+            <div className="flex flex-col items-center gap-1 cursor-pointer">
+              <Users className={cn("h-6 w-6", location === "/groups" ? "text-fairshare-primary" : "text-fairshare-dark/60")} />
               <span className="text-xs font-medium">Groups</span>
             </div>
           </Link>
           <button 
             onClick={() => setShowExpenseModal(true)}
-            className="flex items-center justify-center w-12 h-12 rounded-full bg-fairshare-primary text-white shadow-lg -mt-6"
+            className="flex items-center justify-center w-16 h-16 rounded-full bg-fairshare-primary text-white shadow-lg -mt-8"
           >
-            <Plus className="h-6 w-6" />
+            <Plus className="h-8 w-8" />
           </button>
           <Link href="/activity">
-            <div className="flex flex-col items-center gap-0.5 cursor-pointer">
-              <BarChart4 className={cn("h-5 w-5", location === "/activity" ? "text-fairshare-primary" : "text-fairshare-dark/60")} />
+            <div className="flex flex-col items-center gap-1 cursor-pointer">
+              <BarChart4 className={cn("h-6 w-6", location === "/activity" ? "text-fairshare-primary" : "text-fairshare-dark/60")} />
               <span className="text-xs font-medium">Activity</span>
             </div>
           </Link>
           <Link href="/profile">
-            <div className="flex flex-col items-center gap-0.5 cursor-pointer">
-              <User className={cn("h-5 w-5", location === "/profile" ? "text-fairshare-primary" : "text-fairshare-dark/60")} />
+            <div className="flex flex-col items-center gap-1 cursor-pointer">
+              <User className={cn("h-6 w-6", location === "/profile" ? "text-fairshare-primary" : "text-fairshare-dark/60")} />
               <span className="text-xs font-medium">Profile</span>
             </div>
           </Link>

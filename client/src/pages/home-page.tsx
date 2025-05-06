@@ -15,10 +15,10 @@ export default function HomePage() {
 
   return (
     <SimplifiedLayout headerText="">
-      {/* Dashboard content area with colored header - using a softer orange to match reference image */}
+      {/* Dashboard content area with full-width header */}
       <div 
-        className="p-4 mb-2" 
-        style={{ background: '#E8B195' }} // Soft orange color from the reference image
+        className="py-3 px-4 w-full" 
+        style={{ background: '#E8B195' }} // Soft orange color from reference image
       >
         <h1 className="text-white text-xl font-bold">Dashboard</h1>
       </div>
