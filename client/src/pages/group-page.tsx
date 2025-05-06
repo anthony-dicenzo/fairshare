@@ -21,50 +21,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function GroupPage() {
-  // Get the group ID from the URL parameters
-  const params = useParams<{ id: string }>();
-  const [location, navigate] = useLocation();
+  // Get the group ID and optional 'from' parameter from the URL
+  const params = useParams<{ id: string; from?: string }>();
+  const [, navigate] = useLocation();
   const { toast } = useToast();
-  
-  // Check if this is a newly created group by checking URL query parameters
-  const isNewGroup = location.includes('?from=newGroup');
-  const [showInviteNotification, setShowInviteNotification] = useState(false);
-  
-  // Handle notifications and actions for newly created groups
-  useEffect(() => {
-    if (isNewGroup) {
-      // First, show the toast notification for group creation success
-      toast({
-        title: "Group created successfully!",
-        description: "Invite friends to start sharing expenses together.",
-        duration: 1000, // Very short duration for the toast (1 second)
-      });
-      
-      // Then show the invite arrow notification as soon as the toast is likely gone
-      const arrowTimer = setTimeout(() => {
-        setShowInviteNotification(true);
-        console.log("Showing invite arrow notification");
-      }, 1500); // Show after 1.5 seconds when toast is gone
-      
-      // Keep the arrow visible for 5 seconds
-      const dismissTimer = setTimeout(() => {
-        setShowInviteNotification(false);
-        console.log("Hiding invite arrow notification");
-      }, 6500); // 1.5s delay + 5s display time
-      
-      // Auto-open the invite modal shortly after the arrow appears
-      const inviteTimer = setTimeout(() => {
-        setShowInviteModal(true);
-        console.log("Auto-opening invite modal");
-      }, 2500); // 2.5 seconds total delay
-      
-      return () => {
-        clearTimeout(arrowTimer);
-        clearTimeout(dismissTimer);
-        clearTimeout(inviteTimer);
-      };
-    }
-  }, [isNewGroup, toast]);
   
   // Safely extract the group ID from params
   const groupId = params && params.id ? parseInt(params.id) : 0;
@@ -450,17 +410,9 @@ export default function GroupPage() {
                 <Users className="h-4 w-4" />
                 <span className="hidden sm:inline ml-1">Invite</span>
               </Button>
-              {showInviteNotification && (
-                <div className="fixed top-0 left-0 right-0 bottom-0 z-50 pointer-events-none">
-                  <div className="absolute top-24 right-20 animate-pulse flex flex-col items-center">
-                    <div className="bg-fairshare-primary text-white font-medium text-sm px-4 py-2 rounded-full mb-4 whitespace-nowrap shadow-md inline-block relative">
-                      <span>Tap to invite friends</span>
-                      <div className="absolute w-2 h-2 bg-fairshare-primary rotate-45 -bottom-1 right-6"></div>
-                    </div>
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="rotate-90 text-fairshare-primary drop-shadow-md">
-                      <path d="M5 12L19 12M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </div>
+              {params && params.from === 'newGroup' && (
+                <div className="absolute left-1/2 -translate-x-1/2 -bottom-8 whitespace-nowrap bg-fairshare-primary/10 text-fairshare-primary text-xs px-3 py-1 rounded-full animate-pulse">
+                  Invite members
                 </div>
               )}
             </div>
