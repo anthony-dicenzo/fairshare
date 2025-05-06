@@ -5,7 +5,8 @@ import { SimplifiedLayout } from "@/components/layout/simplified-layout";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronLeft, Users, Plus, PlusCircle, CreditCard, RefreshCw, Settings } from "lucide-react";
+import { ChevronLeft, Users, Plus, PlusCircle, CreditCard, RefreshCw, Settings, AlertCircle } from "lucide-react";
+import { PersistentNotification } from "@/components/ui/persistent-notification";
 import { ExpenseForm } from "@/components/expenses/expense-form";
 import { MinimalExpenseEdit } from "@/components/expenses/minimal-expense-edit";
 import { PaymentForm } from "@/components/expenses/payment-form";
@@ -42,6 +43,9 @@ export default function GroupPage() {
   
   // Use refs to prevent duplicate db operations
   const addedMembersRef = useRef(false);
+  
+  // Persistent notification state for invite notifications
+  const [showInviteNotification, setShowInviteNotification] = useState(false);
   
   // User authentication data
   const { user } = useAuth();
@@ -224,6 +228,13 @@ export default function GroupPage() {
     refetchOnReconnect: true
   });
   
+  // Set persistent notification when group is newly created
+  useEffect(() => {
+    if (params && params.from === 'newGroup') {
+      setShowInviteNotification(true);
+    }
+  }, [params]);
+
   // Force refresh balances and group data when component mounts
   useEffect(() => {
     if (groupId > 0) {
