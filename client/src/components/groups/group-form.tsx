@@ -22,7 +22,9 @@ import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Users } from "lucide-react";
+import { Users, Plus, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
 import { useLocation } from "wouter";
 
 type GroupFormProps = {
@@ -37,9 +39,15 @@ const groupFormSchema = z.object({
 
 type GroupFormValues = z.infer<typeof groupFormSchema>;
 
+// Email validation schema
+const emailSchema = z.string().email("Invalid email address");
+
 export function GroupForm({ open, onOpenChange }: GroupFormProps) {
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const [email, setEmail] = useState("");
+  const [invitees, setInvitees] = useState<string[]>([]);
+  const [emailError, setEmailError] = useState("");
 
   const form = useForm<GroupFormValues>({
     resolver: zodResolver(groupFormSchema),
@@ -67,11 +75,29 @@ export function GroupForm({ open, onOpenChange }: GroupFormProps) {
         console.error("Failed to create default invite link", error);
       }
       
+      // If there are invitees, invite them
+      if (invitees.length > 0) {
+        invitees.forEach(async (inviteeEmail) => {
+          try {
+            await apiRequest("POST", `/api/groups/${newGroup.id}/invite`, {
+              email: inviteeEmail,
+            });
+          } catch (error) {
+            toast({
+              title: "Failed to invite user",
+              description: `Could not invite ${inviteeEmail}. They may need to register first.`,
+              variant: "destructive",
+            });
+          }
+        });
+      }
+      
       // Navigate to the newly created group
       navigate(`/group/${newGroup.id}`);
       
       onOpenChange(false);
       form.reset();
+      setInvitees([]);
       
       // Invalidate all groups-related queries
       queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
@@ -92,6 +118,27 @@ export function GroupForm({ open, onOpenChange }: GroupFormProps) {
       name: values.name,
     });
   });
+
+  const handleAddInvitee = () => {
+    try {
+      emailSchema.parse(email);
+      if (!invitees.includes(email)) {
+        setInvitees([...invitees, email]);
+        setEmail("");
+        setEmailError("");
+      } else {
+        setEmailError("Email already added");
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        setEmailError(error.errors[0].message);
+      }
+    }
+  };
+
+  const handleRemoveInvitee = (emailToRemove: string) => {
+    setInvitees(invitees.filter((e) => e !== emailToRemove));
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -125,7 +172,56 @@ export function GroupForm({ open, onOpenChange }: GroupFormProps) {
               )}
             />
 
+            <div className="space-y-2">
+              <FormLabel>Invite Members</FormLabel>
+              <div className="flex gap-2">
+                <Input
+                  type="email"
+                  placeholder="Enter email address"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setEmailError("");
+                  }}
+                  className={emailError ? "border-destructive" : ""}
+                />
+                <Button
+                  type="button"
+                  size="icon"
+                  onClick={handleAddInvitee}
+                  disabled={!email}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              {emailError && (
+                <p className="text-sm font-medium text-destructive">{emailError}</p>
+              )}
 
+              {invitees.length > 0 && (
+                <div className="bg-muted p-3 rounded-md mt-2">
+                  <p className="text-sm text-muted-foreground mb-2">Invitees:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {invitees.map((inviteeEmail) => (
+                      <Badge
+                        key={inviteeEmail}
+                        variant="secondary"
+                        className="px-3 py-1 bg-primary/10 text-primary"
+                      >
+                        {inviteeEmail}
+                        <button
+                          type="button"
+                          className="ml-1 text-primary hover:text-primary/60"
+                          onClick={() => handleRemoveInvitee(inviteeEmail)}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
 
             <DialogFooter>
               <Button
