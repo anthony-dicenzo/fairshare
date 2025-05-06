@@ -20,8 +20,8 @@ export function SimplifiedLayout({
   
   return (
     <div className="flex flex-col min-h-screen bg-fairshare-cream">
-      {/* All header area in mango color */}
-      <div className="bg-[#E8B195]">
+      {/* All header area with requested color #e4946c */}
+      <div className="bg-[#e4946c]">
         {/* Status bar area (to simulate mobile device) */}
         <div className="h-8"></div>
         
