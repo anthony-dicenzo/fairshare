@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { FC, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { auth, googleProvider } from "@/lib/firebase";
-import { signInWithRedirect, signInWithPopup, getRedirectResult } from "firebase/auth";
+import { signInWithPopup } from "firebase/auth";
 import FirebaseDomainErrorGuide from "@/components/auth/firebase-domain-error-guide";
 import FirebaseOperationErrorGuide from "@/components/auth/firebase-operation-error-guide";
 
@@ -13,82 +13,8 @@ interface GoogleSignInButtonProps {
 export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = "" }) => {
   const { toast } = useToast();
   const [isSigningIn, setIsSigningIn] = useState(false);
-
-  // Check for redirect result on component mount
-  useEffect(() => {
-    const checkRedirectResult = async () => {
-      if (!auth) return;
-      
-      try {
-        console.log("Checking for Google auth redirect result...");
-        const result = await getRedirectResult(auth);
-        
-        if (result) {
-          console.log("Google redirect result received:", result.user.email);
-          
-          // Process the result by getting the ID token and sending to our backend
-          const idToken = await result.user.getIdToken();
-          const response = await fetch("/api/google-auth", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              token: idToken,
-              name: result.user.displayName,
-              email: result.user.email
-            }),
-            credentials: "include"
-          });
-          
-          if (!response.ok) {
-            throw new Error("Failed to authenticate with the server");
-          }
-          
-          const userData = await response.json();
-          console.log("Server authentication successful:", userData);
-          
-          // Save auth state to localStorage
-          localStorage.setItem("fairshare_auth_state", JSON.stringify({
-            userId: userData.id,
-            username: userData.username,
-            sessionId: userData.sessionId,
-            loggedInAt: new Date().toISOString()
-          }));
-          
-          toast({
-            title: "Google Sign-In successful",
-            description: `Welcome, ${userData.name || userData.username}!`
-          });
-          
-          // Refresh the page to update the UI
-          window.location.reload();
-        }
-      } catch (error) {
-        console.error("Error processing Google redirect result:", error);
-        
-        // Check for specific Firebase errors
-        if (error && typeof error === 'object' && 'code' in error) {
-          const firebaseError = error as { code: string; message?: string };
-          
-          if (firebaseError.code === 'auth/configuration-not-found') {
-            toast({
-              title: "Google Sign-In Failed",
-              description: "Firebase configuration issue detected. Make sure your app domain is registered in the Firebase console's authorized domains list.",
-              variant: "destructive"
-            });
-            return;
-          }
-        }
-        
-        toast({
-          title: "Google Sign-In Failed",
-          description: error instanceof Error ? error.message : "An unknown error occurred",
-          variant: "destructive"
-        });
-      }
-    };
-    
-    checkRedirectResult();
-  }, [toast]);
+  const [showDomainError, setShowDomainError] = useState(false);
+  const [showOperationError, setShowOperationError] = useState(false);
 
   // Function to handle Google Sign-In button click
   const handleGoogleSignIn = async () => {
@@ -101,139 +27,70 @@ export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = ""
         throw new Error("Google sign-in service is not available. Please try again later.");
       }
       
-      console.log("Firebase auth and Google provider are available:", {
-        auth: !!auth,
-        googleProvider: !!googleProvider
-      });
-      
       toast({
         title: "Initiating Google Sign-In",
-        description: "Redirecting to Google authentication..."
+        description: "Opening Google authentication popup..."
       });
       
-      console.log("About to call signInWithRedirect...");
+      // Use popup authentication directly
+      console.log("Attempting signInWithPopup...");
+      const result = await signInWithPopup(auth, googleProvider);
+      console.log("Popup sign-in successful!", result.user.email);
       
-      // Add a small timeout to make sure the toast message is displayed
-      setTimeout(async () => {
-        try {
-          // Redirect to Google sign-in - this will navigate away from our page
-          console.log("Calling signInWithRedirect now...");
-          
-          // Make sure auth and googleProvider are non-null
-          if (auth && googleProvider) {
-            try {
-              // Try redirect first
-              console.log("Attempting signInWithRedirect...");
-              await signInWithRedirect(auth as any, googleProvider as any);
-              console.log("If you see this message, the redirect did NOT happen");
-            } catch (redirectFailedError) {
-              // If redirect fails, try popup as fallback
-              console.log("Redirect failed, trying popup as fallback...", redirectFailedError);
-              
-              // Check if this is an unauthorized domain error
-              if (redirectFailedError && typeof redirectFailedError === 'object' && 'code' in redirectFailedError) {
-                const firebaseError = redirectFailedError as { code: string; message?: string };
-                
-                if (firebaseError.code === 'auth/unauthorized-domain') {
-                  setShowDomainError(true);
-                  localStorage.setItem('firebase_auth_error', firebaseError.code);
-                  
-                  // Dispatch custom event to notify other components
-                  const errorEvent = new CustomEvent('firebase-auth-error', { 
-                    detail: { error: firebaseError } 
-                  });
-                  window.dispatchEvent(errorEvent);
-                  
-                  toast({
-                    title: "Domain Not Authorized in Firebase",
-                    description: "Please add this domain to your Firebase authorized domains list.",
-                    variant: "destructive"
-                  });
-                  
-                  // Don't try popup if domain isn't authorized - it will fail too
-                  throw firebaseError;
-                }
-              }
-              
-              toast({
-                title: "Switching to popup authentication",
-                description: "Redirect didn't work, opening a popup window instead..."
-              });
-              
-              // Try popup authentication instead
-              const result = await signInWithPopup(auth as any, googleProvider as any);
-              console.log("Popup sign-in successful!", result.user.email);
-              
-              // Process the successful popup result
-              const idToken = await result.user.getIdToken();
-              const response = await fetch("/api/google-auth", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  token: idToken,
-                  name: result.user.displayName,
-                  email: result.user.email
-                }),
-                credentials: "include"
-              });
-              
-              if (!response.ok) {
-                throw new Error("Failed to authenticate with the server after successful popup");
-              }
-              
-              const userData = await response.json();
-              console.log("Server authentication successful:", userData);
-              
-              // Save auth state to localStorage
-              localStorage.setItem("fairshare_auth_state", JSON.stringify({
-                userId: userData.id,
-                username: userData.username,
-                sessionId: userData.sessionId,
-                loggedInAt: new Date().toISOString()
-              }));
-              
-              // Reset UI state
-              setIsSigningIn(false);
-              
-              toast({
-                title: "Google Sign-In successful",
-                description: `Welcome, ${userData.name || userData.username}!`
-              });
-              
-              // Refresh the page to update the UI
-              window.location.reload();
-            }
-          } else {
-            throw new Error("Firebase auth or Google provider became unavailable");
-          }
-        } catch (redirectError) {
-          console.error("Error during redirect (from setTimeout):", redirectError);
-          setIsSigningIn(false);
-          toast({
-            title: "Google Sign-In Failed",
-            description: "Error during redirect: " + (redirectError instanceof Error ? redirectError.message : "Unknown error"),
-            variant: "destructive"
-          });
-        }
-      }, 500);
+      // Process the successful popup result
+      const idToken = await result.user.getIdToken();
+      const response = await fetch("/api/google-auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token: idToken,
+          name: result.user.displayName,
+          email: result.user.email
+        }),
+        credentials: "include"
+      });
       
-      // Code below will still execute because we're using setTimeout for the redirect
-      console.log("Sign-in process initiated with timeout");
+      if (!response.ok) {
+        throw new Error("Failed to authenticate with the server after successful Google sign-in");
+      }
+      
+      const userData = await response.json();
+      console.log("Server authentication successful:", userData);
+      
+      // Save auth state to localStorage
+      localStorage.setItem("fairshare_auth_state", JSON.stringify({
+        userId: userData.id,
+        username: userData.username,
+        sessionId: userData.sessionId,
+        loggedInAt: new Date().toISOString()
+      }));
+      
+      // Reset UI state
+      setIsSigningIn(false);
+      
+      toast({
+        title: "Google Sign-In successful",
+        description: `Welcome, ${userData.name || userData.username}!`
+      });
+      
+      // Refresh the page to update the UI
+      window.location.reload();
+      
     } catch (error) {
       setIsSigningIn(false);
-      console.error("Google sign-in redirect error:", error);
+      console.error("Google sign-in error:", error);
       
       // Check for specific Firebase errors
       if (error && typeof error === 'object' && 'code' in error) {
         const firebaseError = error as { code: string; message?: string };
         
-        // Dispatch custom event to notify other components
+        // Fire event and store error
         const errorEvent = new CustomEvent('firebase-auth-error', { 
           detail: { error: firebaseError } 
         });
         window.dispatchEvent(errorEvent);
         
-        if (firebaseError.code === 'auth/configuration-not-found' || firebaseError.code === 'auth/unauthorized-domain') {
+        if (firebaseError.code === 'auth/unauthorized-domain') {
           setShowDomainError(true);
           localStorage.setItem('firebase_auth_error', firebaseError.code);
           
@@ -263,10 +120,6 @@ export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = ""
       });
     }
   };
-
-  // State to track if we've seen specific Firebase errors
-  const [showDomainError, setShowDomainError] = useState<boolean>(false);
-  const [showOperationError, setShowOperationError] = useState<boolean>(false);
   
   // Check for Firebase errors in localStorage on mount
   useEffect(() => {
@@ -284,10 +137,8 @@ export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = ""
     };
     
     checkForStoredErrors();
-  }, []);
-  
-  // Listen for errors in the current session
-  useEffect(() => {
+    
+    // Listen for errors in the current session
     const handleAuthError = (event: CustomEvent) => {
       if (event.detail?.error?.code) {
         const errorCode = event.detail.error.code;
