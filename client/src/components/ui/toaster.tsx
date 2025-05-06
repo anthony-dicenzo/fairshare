@@ -7,12 +7,27 @@ import {
   ToastTitle,
   ToastViewport,
 } from "@/components/ui/toast"
+import { useEffect } from "react"
 
 export function Toaster() {
-  const { toasts } = useToast()
+  const { toasts, dismiss } = useToast()
+
+  // Auto-dismiss toasts after the set delay
+  useEffect(() => {
+    toasts.forEach((toast) => {
+      if (toast.open) {
+        // This will trigger the dismiss process in the toast hook
+        const timer = setTimeout(() => {
+          dismiss(toast.id);
+        }, 1000); // 1 second matches TOAST_REMOVE_DELAY
+        
+        return () => clearTimeout(timer);
+      }
+    });
+  }, [toasts, dismiss]);
 
   return (
-    <ToastProvider>
+    <ToastProvider swipeDirection="right">
       {toasts.map(function ({ id, title, description, action, ...props }) {
         return (
           <Toast key={id} {...props}>
