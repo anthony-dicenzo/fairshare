@@ -13,20 +13,20 @@ if (!fs.existsSync(iconDir)) {
   fs.mkdirSync(iconDir, { recursive: true });
 }
 
-// Source SVG file
-const svgPath = path.join('client', 'src', 'assets', 'fairshare-icon.svg');
+// Source JPEG file
+const imagePath = path.join('client', 'src', 'assets', 'fairshare-icon.jpeg');
 
 // The sizes we need to generate
 const sizes = [192, 512];
 
 async function generatePWAIcons() {
-  console.log('Generating PWA icons from SVG...');
+  console.log('Generating PWA icons from image...');
   
   try {
     for (const size of sizes) {
       const outputPath = path.join(iconDir, `${size}.png`);
       
-      await sharp(svgPath)
+      await sharp(imagePath)
         .resize(size, size)
         .png()
         .toFile(outputPath);
