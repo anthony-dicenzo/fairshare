@@ -428,20 +428,19 @@ export default function GroupPage() {
               </Button>
               {showInviteNotification && (
                 <PersistentNotification
-                  message="Invite members to this group"
+                  message="Tap to invite members"
                   position="tooltip"
                   variant="default"
                   size="sm"
                   animate={true}
-                  icon={<AlertCircle className="h-3 w-3" />}
+                  icon={<AlertCircle className="h-3 w-3 text-fairshare-primary" />}
                   onDismiss={() => {
                     setShowInviteNotification(false);
                     localStorage.removeItem(`fairshare_invite_notification_${groupId}`);
                   }}
                   style={{
-                    top: "calc(100% + 8px)",
-                    left: "50%",
-                    transform: "translateX(-50%)",
+                    bottom: "calc(100% + 8px)",
+                    left: "0",
                     whiteSpace: "nowrap",
                     zIndex: 50,
                   }}
