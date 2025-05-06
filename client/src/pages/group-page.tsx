@@ -37,27 +37,26 @@ export default function GroupPage() {
       toast({
         title: "Group created successfully!",
         description: "Invite friends to start sharing expenses together.",
-        duration: 3000, // Short duration for the toast (3 seconds)
+        duration: 1000, // Very short duration for the toast (1 second)
       });
       
-      // Then show the invite arrow notification with a clearer delay
-      // so it doesn't compete with the toast
+      // Then show the invite arrow notification as soon as the toast is likely gone
       const arrowTimer = setTimeout(() => {
         setShowInviteNotification(true);
         console.log("Showing invite arrow notification");
-      }, 3500); // Show after 3.5 seconds when toast is likely gone
+      }, 1500); // Show after 1.5 seconds when toast is gone
       
-      // Keep the arrow visible for 6 seconds
+      // Keep the arrow visible for 5 seconds
       const dismissTimer = setTimeout(() => {
         setShowInviteNotification(false);
         console.log("Hiding invite arrow notification");
-      }, 9500); // 3.5s delay + 6s display time
+      }, 6500); // 1.5s delay + 5s display time
       
-      // Auto-open the invite modal slightly after the arrow appears
+      // Auto-open the invite modal shortly after the arrow appears
       const inviteTimer = setTimeout(() => {
         setShowInviteModal(true);
         console.log("Auto-opening invite modal");
-      }, 5000); // 5 seconds total delay
+      }, 2500); // 2.5 seconds total delay
       
       return () => {
         clearTimeout(arrowTimer);
