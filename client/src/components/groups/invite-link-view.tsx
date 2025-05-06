@@ -38,8 +38,7 @@ export function InviteLinkView({ open, onOpenChange, groupName, inviteCode }: In
         
         navigator.share({
           title: `Join my ${groupName} group on FairShare`,
-          text: shareText,
-          url: inviteLink
+          text: shareText
         })
         .catch((error) => {
           console.log('Error sharing:', error);
