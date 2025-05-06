@@ -27,34 +27,41 @@ export default function GroupPage() {
   const { toast } = useToast();
   
   // Check if this is a newly created group by checking URL query parameters
-  const [showInviteNotification, setShowInviteNotification] = useState(location.includes('?from=newGroup'));
+  const isNewGroup = location.includes('?from=newGroup');
+  const [showInviteNotification, setShowInviteNotification] = useState(false);
   
-  // Handle auto-actions for newly created groups
+  // Handle notifications and actions for newly created groups
   useEffect(() => {
-    if (showInviteNotification) {
-      // Show toast notification
+    if (isNewGroup) {
+      // Show toast notification immediately
       toast({
         title: "Group created successfully!",
         description: "Invite friends to start sharing expenses together.",
         variant: "default",
       });
       
-      // Auto-dismiss notification after 8 seconds
+      // Show the invite arrow notification after a short delay
+      const arrowTimer = setTimeout(() => {
+        setShowInviteNotification(true);
+      }, 1500);
+      
+      // Auto-dismiss notification after 5 seconds
       const dismissTimer = setTimeout(() => {
         setShowInviteNotification(false);
-      }, 8000);
+      }, 6500);
       
-      // Auto-focus on opening the invite modal after a 2 second delay
+      // Auto-focus on opening the invite modal after a delay
       const inviteTimer = setTimeout(() => {
         setShowInviteModal(true);
-      }, 2000);
+      }, 3000);
       
       return () => {
+        clearTimeout(arrowTimer);
         clearTimeout(dismissTimer);
         clearTimeout(inviteTimer);
       };
     }
-  }, [showInviteNotification, toast]);
+  }, [isNewGroup, toast]);
   
   // Safely extract the group ID from params
   const groupId = params && params.id ? parseInt(params.id) : 0;
@@ -441,13 +448,13 @@ export default function GroupPage() {
                 <span className="hidden sm:inline ml-1">Invite</span>
               </Button>
               {showInviteNotification && (
-                <div className="relative">
-                  <div className="absolute -right-4 -top-10 animate-bounce flex flex-col items-center">
-                    <div className="bg-fairshare-primary/10 text-fairshare-primary text-xs px-3 py-1 rounded-full mb-1 whitespace-nowrap">
+                <div className="relative z-10">
+                  <div className="absolute -right-6 -top-12 animate-bounce flex flex-col items-center">
+                    <div className="bg-fairshare-primary/20 text-fairshare-primary font-medium text-xs px-4 py-2 rounded-full mb-2 whitespace-nowrap shadow-sm">
                       Tap to invite friends
                     </div>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="rotate-90 text-fairshare-primary">
-                      <path d="M5 12L19 12M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="rotate-90 text-fairshare-primary">
+                      <path d="M5 12L19 12M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </div>
                 </div>
