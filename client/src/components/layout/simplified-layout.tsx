@@ -20,8 +20,8 @@ export function SimplifiedLayout({
   
   return (
     <div className="flex flex-col min-h-screen bg-fairshare-cream">
-      {/* All header area with requested color #e4946c */}
-      <div className="bg-[#e4946c]">
+      {/* All header area with new color #32846b */}
+      <div className={`${location === "/" ? "bg-[#32846b]" : "bg-[#e4946c]"}`}>
         {/* Status bar area (to simulate mobile device) */}
         <div className="h-8"></div>
         
@@ -41,8 +41,8 @@ export function SimplifiedLayout({
         <nav className="flex justify-around items-center px-2 py-4">
           <Link href="/">
             <div className="flex flex-col items-center gap-1 cursor-pointer">
-              <Home className={cn("h-6 w-6", location === "/" ? "text-fairshare-primary" : "text-fairshare-dark/60")} />
-              <span className="text-xs font-medium">Home</span>
+              <Home className={cn("h-6 w-6", location === "/" ? "text-[#32846b]" : "text-fairshare-dark/60")} />
+              <span className={`text-xs font-medium ${location === "/" ? "text-[#32846b]" : ""}`}>Home</span>
             </div>
           </Link>
           <Link href="/groups">
@@ -53,7 +53,9 @@ export function SimplifiedLayout({
           </Link>
           <button 
             onClick={() => setShowExpenseModal(true)}
-            className="flex items-center justify-center w-16 h-16 rounded-full bg-fairshare-primary text-white shadow-lg -mt-8"
+            className={`flex items-center justify-center w-16 h-16 rounded-full text-white shadow-lg -mt-8 ${
+              location === "/" ? "bg-[#32846b]" : "bg-fairshare-primary"
+            }`}
           >
             <Plus className="h-8 w-8" />
           </button>
