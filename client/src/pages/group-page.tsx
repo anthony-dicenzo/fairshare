@@ -440,7 +440,8 @@ export default function GroupPage() {
                   }}
                   style={{
                     bottom: "calc(100% + 8px)",
-                    left: "0",
+                    right: "auto",
+                    left: "-50px",
                     whiteSpace: "nowrap",
                     zIndex: 50,
                   }}
