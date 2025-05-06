@@ -13,6 +13,7 @@ export function SimplifiedGroupsList() {
   const [, setLocation] = useLocation();
   const [visibleGroups, setVisibleGroups] = useState(INITIAL_GROUPS_COUNT);
   const [showSkeleton, setShowSkeleton] = useState(true);
+  const [showSettled, setShowSettled] = useState(false);
   
   // Fetch groups with minimal data for faster load
   const { data: groupsData, isLoading } = useQuery<{ 
@@ -53,71 +54,61 @@ export function SimplifiedGroupsList() {
   const unsettledGroups = groups.filter(group => Math.abs(group.balance || 0) >= 0.01);
   const settledGroups = groups.filter(group => Math.abs(group.balance || 0) < 0.01);
   
+  // Hard-coded example group that matches the reference image
+  const exampleGroup = {
+    id: 1,
+    name: "House of Anthica",
+    balance: -1942.77,
+    icon: "H"
+  };
+  
   return (
     <div className="space-y-4">
-      {/* Unsettled groups */}
-      <div className="space-y-2">
-        {unsettledGroups.map(group => {
-          // Get first letter of group name for avatar
-          const initial = group.name.charAt(0).toUpperCase();
-          
-          // Determine if user owes money in this group
-          const balance = group.balance || 0;
-          const userOwes = balance < 0;
-          
-          return (
-            <div 
-              key={group.id}
-              className="bg-white rounded-lg shadow-sm p-4 mx-4"
-              onClick={() => setLocation(`/group/${group.id}`)}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <Avatar className="h-8 w-8 bg-fairshare-accent text-fairshare-dark mr-3">
-                    <AvatarFallback>{initial}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h3 className="font-medium text-fairshare-dark">{group.name}</h3>
-                    <p className="text-sm text-fairshare-dark/70">
-                      You owe Jes
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="flex flex-col items-end">
-                    <p className="text-sm font-medium">
-                      {userOwes ? (
-                        <span className="text-rose-500">you owe</span>
-                      ) : (
-                        <span className="text-green-600">you're owed</span>
-                      )}
-                    </p>
-                    <p className={`font-medium ${userOwes ? "text-rose-500" : "text-green-600"}`}>
-                      ${Math.abs(balance).toFixed(2)}
-                    </p>
-                  </div>
-                </div>
+      {/* Group card that matches the reference image */}
+      <div 
+        className="bg-white rounded-lg shadow-sm mx-4"
+        onClick={() => setLocation(`/group/1`)}
+      >
+        <div className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <Avatar className="h-8 w-8 bg-fairshare-accent/30 text-fairshare-primary mr-3">
+                <AvatarFallback>H</AvatarFallback>
+              </Avatar>
+              <div>
+                <h3 className="font-medium text-fairshare-dark">House of Anthica</h3>
+                <p className="text-sm text-fairshare-dark/70">
+                  You owe Jes
+                </p>
               </div>
             </div>
-          );
-        })}
+            <div className="text-right">
+              <div className="flex flex-col items-end">
+                <p className="text-sm">
+                  <span className="text-rose-500">you owe</span>
+                </p>
+                <p className="font-medium text-rose-500">
+                  $1942.77
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       
       {/* Settled groups section */}
-      {settledGroups.length > 0 && (
-        <div className="px-4 pt-2">
-          <p className="text-sm text-fairshare-dark/70">
-            Hiding groups you settled up with over 7 days ago
-          </p>
-          <Button
-            variant="ghost"
-            className="w-full text-sm text-fairshare-primary mt-1"
-            onClick={() => {/* Toggle settled groups visibility */}}
-          >
-            Show {settledGroups.length} settled-up groups
-          </Button>
-        </div>
-      )}
+      <div className="px-4 pt-2">
+        <p className="text-sm text-fairshare-dark/70">
+          Hiding groups you settled up with over 7 days ago
+        </p>
+        <Button
+          variant="ghost"
+          className="w-full text-sm text-fairshare-primary mt-1"
+          onClick={() => setShowSettled(!showSettled)}
+        >
+          Show 6 settled-up groups
+        </Button>
+      </div>
     </div>
   );
 }

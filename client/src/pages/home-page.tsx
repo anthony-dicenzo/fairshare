@@ -14,9 +14,12 @@ export default function HomePage() {
   if (!user) return null;
 
   return (
-    <SimplifiedLayout headerText="Dashboard">
-      {/* Dashboard content area with colored header */}
-      <div className="bg-fairshare-primary rounded-b-none rounded-lg p-4 mx-4 mb-4">
+    <SimplifiedLayout headerText="">
+      {/* Dashboard content area with colored header - using a softer orange to match reference image */}
+      <div 
+        className="p-4 mb-2" 
+        style={{ background: '#E8B195' }} // Soft orange color from the reference image
+      >
         <h1 className="text-white text-xl font-bold">Dashboard</h1>
       </div>
       
