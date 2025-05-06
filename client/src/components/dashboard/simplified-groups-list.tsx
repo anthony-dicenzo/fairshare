@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 const INITIAL_GROUPS_COUNT = 5;
 
 // Define filter types
-type FilterType = 'all' | 'you-owe' | 'owed-to-you' | 'settled';
+type FilterType = 'all' | 'outstanding' | 'you-owe' | 'owed-to-you';
 
 export function SimplifiedGroupsList({
   filterType = 'all',
@@ -73,38 +73,34 @@ export function SimplifiedGroupsList({
   
   // Filter groups based on selected filter type
   const filterGroups = () => {
+    // First apply the filter type
+    let filteredByType;
     switch (filterType) {
+      case 'outstanding':
+        filteredByType = unsettledGroups;
+        break;
       case 'you-owe':
-        return negativeBalanceGroups;
+        filteredByType = negativeBalanceGroups;
+        break;
       case 'owed-to-you':
-        return positiveBalanceGroups;
-      case 'settled':
-        return settledGroups;
+        filteredByType = positiveBalanceGroups;
+        break;
       case 'all':
       default:
-        return filterType === 'all' || !showSettled 
-          ? unsettledGroups 
-          : [...unsettledGroups, ...settledGroups];
+        filteredByType = unsettledGroups;
+        break;
     }
+    
+    // If showing settled and filter is 'all', add settled groups
+    if (showSettled && filterType === 'all') {
+      return [...filteredByType, ...settledGroups];
+    }
+    
+    return filteredByType;
   };
   
   // Get filtered groups
   const filteredGroups = filterGroups();
-  
-  // Get display name for current filter
-  const getFilterDisplayName = () => {
-    switch (filterType) {
-      case 'you-owe':
-        return 'You owe';
-      case 'owed-to-you':
-        return 'Owed to you';
-      case 'settled':
-        return 'Settled up';
-      case 'all':
-      default:
-        return 'All groups';
-    }
-  };
   
   return (
     <div className="space-y-2 px-4">
@@ -173,13 +169,17 @@ export function SimplifiedGroupsList({
       {filterType === 'all' && settledGroupCount > 0 && (
         <div className="mt-4 pt-2 text-center">
           <p className="text-sm text-fairshare-dark/70">
-            Hiding groups you settled up with over 7 days ago
+            {showSettled 
+              ? "Showing all groups including settled ones" 
+              : "Hiding groups you settled up with over 7 days ago"}
           </p>
           <button
             className="w-11/12 mx-auto text-sm text-[#32846b] bg-white border border-gray-100 mt-2 rounded-full py-2 px-4 block shadow-sm"
             onClick={() => setShowSettled(!showSettled)}
           >
-            Show {settledGroupCount} settled-up groups
+            {showSettled 
+              ? `Hide ${settledGroupCount} settled-up groups` 
+              : `Show ${settledGroupCount} settled-up groups`}
           </button>
         </div>
       )}

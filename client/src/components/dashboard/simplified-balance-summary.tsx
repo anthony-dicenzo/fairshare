@@ -11,7 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 
 // Define filter types
-type FilterType = 'all' | 'you-owe' | 'owed-to-you' | 'settled';
+type FilterType = 'all' | 'outstanding' | 'you-owe' | 'owed-to-you';
 
 interface Balance {
   totalOwed: number;
@@ -50,12 +50,12 @@ export function SimplifiedBalanceSummary({
   // Get display name for current filter
   const getFilterDisplayName = () => {
     switch (filterType) {
+      case 'outstanding':
+        return 'Groups with balances';
       case 'you-owe':
-        return 'You owe';
+        return 'Groups you owe';
       case 'owed-to-you':
-        return 'Owed to you';
-      case 'settled':
-        return 'Settled up';
+        return 'Groups that owe you';
       case 'all':
       default:
         return 'All groups';
@@ -90,16 +90,16 @@ export function SimplifiedBalanceSummary({
                   <Label htmlFor="filter-all">All groups</Label>
                 </div>
                 <div className="flex items-center space-x-2 py-1">
+                  <RadioGroupItem value="outstanding" id="filter-outstanding" />
+                  <Label htmlFor="filter-outstanding">Groups with balances</Label>
+                </div>
+                <div className="flex items-center space-x-2 py-1">
                   <RadioGroupItem value="you-owe" id="filter-you-owe" />
-                  <Label htmlFor="filter-you-owe">You owe</Label>
+                  <Label htmlFor="filter-you-owe">Groups you owe</Label>
                 </div>
                 <div className="flex items-center space-x-2 py-1">
                   <RadioGroupItem value="owed-to-you" id="filter-owed-to-you" />
-                  <Label htmlFor="filter-owed-to-you">Owed to you</Label>
-                </div>
-                <div className="flex items-center space-x-2 py-1">
-                  <RadioGroupItem value="settled" id="filter-settled" />
-                  <Label htmlFor="filter-settled">Settled up</Label>
+                  <Label htmlFor="filter-owed-to-you">Groups that owe you</Label>
                 </div>
               </RadioGroup>
             </div>
