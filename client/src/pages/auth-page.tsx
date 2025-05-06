@@ -110,11 +110,11 @@ export default function AuthPage() {
 
   // This handles the login step 1 submission (username only)
   const onLoginStep1Submit = (data: LoginStep1Values) => {
-    setLoginUsername("email_login");
+    setLoginUsername(data.username);
     setLoginStep(2); // Proceed to password screen
     
     // Set the username value in the step 2 form
-    loginForm.setValue("username", "email_login");
+    loginForm.setValue("username", data.username);
   };
 
   // This handles the final login submission (username + password)
@@ -157,18 +157,35 @@ export default function AuthPage() {
 
               <TabsContent value="login">
                 {loginStep === 1 ? (
-                  /* Step 1: Login with email button */
+                  /* Step 1: Enter username/email */
                   <Form {...loginStep1Form}>
                     <form onSubmit={loginStep1Form.handleSubmit(onLoginStep1Submit)} className="space-y-4">
-                      {/* Hidden username field with default value */}
-                      <input type="hidden" name="username" value="email_login" />
-                      
-                      {/* Login button */}
+                      {/* Email/Username field */}
+                      <FormField
+                        control={loginStep1Form.control}
+                        name="username"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input 
+                                placeholder="Enter your email" 
+                                className="h-12 rounded-xl border-fairshare-dark/20 bg-white" 
+                                autoComplete="email"
+                                type="email"
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* Continue button */}
                       <Button 
                         type="submit" 
                         className="w-full h-12 rounded-xl mt-4 bg-fairshare-primary text-white hover:bg-fairshare-primary/90"
                       >
-                        Login with email
+                        Continue with email
                       </Button>
                     </form>
 
@@ -210,7 +227,7 @@ export default function AuthPage() {
                     <div className="mb-6">
                       <h3 className="text-xl font-medium text-fairshare-dark">Enter your password</h3>
                       <p className="text-sm text-fairshare-dark/60 mt-1">
-                        to access your account
+                        for <span className="font-medium">{loginUsername}</span>
                       </p>
                     </div>
                     
@@ -468,8 +485,19 @@ export default function AuthPage() {
                 <TabsContent value="login">
                   <Form {...loginForm}>
                     <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
-                      {/* Hidden username field with default value */}
-                      <input type="hidden" name="username" value="email_login" />
+                      <FormField
+                        control={loginForm.control}
+                        name="username"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Email or Username</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Email or username" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                       <FormField
                         control={loginForm.control}
                         name="password"
