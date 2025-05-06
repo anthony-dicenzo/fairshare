@@ -18,32 +18,27 @@ async function createTablesViaAPI(): Promise<void> {
     // Check if tables exist
     console.log('Checking for existing tables...');
     
-    // Create tables one by one instead of using RPC function
-    // Users table
-    await supabase.from('users').select('count(*)').limit(1).then(({ error }) => {
-      if (error && error.code === '42P01') { // Table doesn't exist
-        console.log('Creating users table...');
-        return supabase.auth.admin.createUser({
-          email: 'admin@example.com',
-          password: 'password123',
-          user_metadata: { name: 'Admin User' }
-        });
-      }
-      console.log('Users table already exists.');
-      return { error: null };
-    });
+    // Test accessing users table
+    const { data, error: userError } = await supabase
+      .from('users')
+      .select('count(*)')
+      .limit(1);
+      
+    if (userError && userError.code === '42P01') {
+      console.log('Users table does not exist yet - will be created during migration');
+    } else {
+      console.log('Users table exists - will migrate data');
+    }
     
-    // We'll use the REST API to insert data instead of creating tables directly
-    // For now, let's indicate that this is a Supabase environment
-    
+    // We'll use the REST API to insert data
     console.log('Creating tables in Supabase...');
     console.log('ℹ️ Note: In Supabase, tables will be created automatically when we insert data');
     console.log('✅ Continuing with migration process');
     
-    console.log('✅ Tables created successfully in Supabase');
+    console.log('✅ Ready for migration to Supabase');
     
-  } catch (error) {
-    console.error('❌ Error creating tables in Supabase:', error);
+  } catch (error: any) {
+    console.error('❌ Error preparing Supabase for migration:', error.message);
     throw error;
   }
 }
