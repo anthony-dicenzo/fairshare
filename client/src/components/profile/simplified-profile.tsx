@@ -6,13 +6,14 @@ import { Separator } from "@/components/ui/separator";
 import { ChevronRight, LogOut, User } from "lucide-react";
 import { ProfileEditForm } from "@/components/profile/profile-edit-form";
 
-// Define the User type directly here since we don't have access to the shared types
+// Define a type that matches SafeUser from useAuth
+// This includes all User properties from schema.ts except password
 interface UserType {
   id: number;
   username: string;
   name: string;
   email: string;
-  createdAt?: string | Date;
+  createdAt: Date;
 }
 
 interface SimplifiedProfileProps {
@@ -55,7 +56,7 @@ export function SimplifiedProfile({ user, onLogout }: SimplifiedProfileProps) {
             {user.createdAt && (
               <div>
                 <h3 className="text-sm font-medium text-fairshare-dark/60">Member since</h3>
-                <p className="text-fairshare-dark">{format(new Date(user.createdAt), "MMMM d, yyyy")}</p>
+                <p className="text-fairshare-dark">{format(user.createdAt instanceof Date ? user.createdAt : new Date(user.createdAt), "MMMM d, yyyy")}</p>
               </div>
             )}
           </div>
