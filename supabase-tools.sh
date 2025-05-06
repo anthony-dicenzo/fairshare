@@ -11,14 +11,16 @@ function show_help {
   echo "Usage: ./supabase-tools.sh [command]"
   echo ""
   echo "Commands:"
-  echo "  verify      Verify Supabase API and database connections"
-  echo "  migrate     Migrate data from Replit database to Supabase"
-  echo "  revert      Revert application to use Replit database"
-  echo "  help        Show this help message"
+  echo "  verify         Verify Supabase API and database connections"
+  echo "  migrate        Migrate data to Supabase using direct connection"
+  echo "  migrate-api    Migrate data to Supabase using the API"
+  echo "  migrate-full   Complete migration (create tables, migrate data, update app)"
+  echo "  revert         Revert application to use Replit database"
+  echo "  help           Show this help message"
   echo ""
   echo "Examples:"
-  echo "  ./supabase-tools.sh verify   # Check if Supabase connections are working"
-  echo "  ./supabase-tools.sh migrate  # Migrate data to Supabase"
+  echo "  ./supabase-tools.sh verify        # Check Supabase connections"
+  echo "  ./supabase-tools.sh migrate-full  # Complete migration to Supabase (recommended)"
   echo ""
 }
 
@@ -28,10 +30,25 @@ function verify_supabase {
   npx tsx verify-supabase.ts
 }
 
-# Migrate to Supabase
+# Migrate to Supabase (direct connection)
 function migrate_to_supabase {
-  echo "🚀 Starting migration to Supabase..."
+  echo "🚀 Starting migration to Supabase (direct connection)..."
+  echo "⚠️ This method may not work in Replit due to network restrictions."
   npx tsx migrate-supabase.ts
+}
+
+# Migrate to Supabase (via API)
+function migrate_to_supabase_api {
+  echo "🚀 Starting migration to Supabase (via API)..."
+  echo "✅ This method is more reliable in Replit."
+  npx tsx api-migrate-to-supabase.ts
+}
+
+# Complete migration (all steps)
+function migrate_full {
+  echo "🚀 Starting complete migration to Supabase..."
+  echo "✅ This is the recommended approach for reliable migration."
+  npx tsx migrate-via-api.ts
 }
 
 # Revert to Replit database
@@ -51,6 +68,12 @@ function main {
       ;;
     migrate)
       migrate_to_supabase
+      ;;
+    migrate-api)
+      migrate_to_supabase_api
+      ;;
+    migrate-full)
+      migrate_full
       ;;
     revert)
       revert_to_replit
