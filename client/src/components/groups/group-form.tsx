@@ -145,7 +145,7 @@ export function GroupForm({ open, onOpenChange }: GroupFormProps) {
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
+            <Users className="h-5 w-5 text-[#32846b]" />
             Create a New Group
           </DialogTitle>
           <DialogDescription>
@@ -237,6 +237,7 @@ export function GroupForm({ open, onOpenChange }: GroupFormProps) {
               </Button>
               <Button 
                 type="submit"
+                className="bg-[#32846b] hover:bg-[#276b55]"
                 disabled={createGroupMutation.isPending}
               >
                 {createGroupMutation.isPending ? "Creating..." : "Create Group"}

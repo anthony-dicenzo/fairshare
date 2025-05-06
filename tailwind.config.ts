@@ -21,13 +21,13 @@ export default {
       colors: {
         // Fairshare brand color palette
         fairshare: {
-          primary: "#E3976E",   // Soft Mango Orange
+          primary: "#32846b",   // Green
           secondary: "#A3D5FF", // Sky Mist Blue
           dark: "#2B3A55",      // Deep Night Blue
           background: "#EDE9DE", // Cream color from the image
           cream: "#EDE9DE",     // Cream color explicitly named
           accent: "#E6F4D5",    // Lime Cream
-          "primary-dark": "#D07F5A", // Darker Mango for hover states
+          "primary-dark": "#276b55", // Darker Green for hover states
         },
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
