@@ -385,38 +385,34 @@ export default function GroupPage() {
 
   return (
     <SimplifiedLayout headerText={group ? group.name : "Group"}>
-      <div className="px-4 py-6 md:px-6 lg:px-8">
-        <div className="flex flex-col mb-6">
-          <div className="mb-4">
-            <h1 className="text-2xl font-bold">
-              {group ? group.name : 'Loading group...'}
-            </h1>
-          </div>
-          <div className="flex items-center gap-2 overflow-x-auto">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              asChild
-            >
-              <Link href="/groups">
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Back to Groups
-              </Link>
-            </Button>
+      <div className="px-4 py-3 md:px-6 lg:px-8">
+        <div className="flex justify-between items-center mb-3">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            asChild
+            className="p-0 h-8"
+          >
+            <Link href="/groups">
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Back to Groups
+            </Link>
+          </Button>
+          
+          <div className="flex items-center gap-2">
             <div className="relative">
               <Button 
                 variant="outline" 
                 size="sm"
                 onClick={() => setShowInviteModal(true)}
-                className="bg-[#32846b] hover:bg-[#276b55] text-white border-[#32846b] rounded-md"
+                className="bg-fairshare-primary hover:bg-fairshare-primary/90 text-white border-fairshare-primary rounded-md h-8 px-3"
               >
-                <Users className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Invite Members</span>
-                <span className="sm:hidden">Invite</span>
+                <Users className="h-4 w-4" />
+                <span className="hidden sm:inline ml-1">Invite</span>
               </Button>
               {params && params.from === 'newGroup' && (
-                <div className="absolute left-1/2 -translate-x-1/2 -bottom-8 whitespace-nowrap bg-[#32846b]/10 text-[#32846b] text-xs px-3 py-1 rounded-full animate-pulse">
-                  Click here to invite members
+                <div className="absolute left-1/2 -translate-x-1/2 -bottom-8 whitespace-nowrap bg-fairshare-primary/10 text-fairshare-primary text-xs px-3 py-1 rounded-full animate-pulse">
+                  Invite members
                 </div>
               )}
             </div>
@@ -425,9 +421,9 @@ export default function GroupPage() {
               variant="ghost" 
               size="sm"
               onClick={() => setShowSettingsModal(true)}
+              className="h-8 px-2"
             >
-              <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline ml-2">Settings</span>
+              <Settings className="h-4 w-4 text-fairshare-primary" />
             </Button>
             {/* Only show action buttons on non-mobile screens */}
             <div className="hidden sm:block">
