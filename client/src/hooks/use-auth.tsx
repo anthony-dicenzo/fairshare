@@ -8,6 +8,12 @@ import { insertUserSchema, InsertUser, User } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
+import { 
+  signInWithPopup, 
+  GoogleAuthProvider, 
+  UserCredential 
+} from "firebase/auth";
+import { auth, googleProvider } from "../lib/firebase";
 
 // Extend the InsertUser type for registration with confirmPassword
 const registerSchema = insertUserSchema.extend({
@@ -35,6 +41,7 @@ type AuthContextType = {
   loginMutation: UseMutationResult<SafeUser, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<SafeUser, Error, RegisterData>;
+  googleSignInMutation: UseMutationResult<SafeUser, Error, void>;
 };
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -297,6 +304,88 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  const googleSignInMutation = useMutation<SafeUser, Error, void>({
+    mutationFn: async () => {
+      try {
+        // Clear any existing auth data
+        localStorage.removeItem("fairshare_auth_state");
+        queryClient.clear();
+        
+        // Sign in with Google using Firebase
+        const result = await signInWithPopup(auth, googleProvider);
+        
+        // Get user info from Google
+        const user = result.user;
+        const idToken = await user.getIdToken();
+        
+        // Send the token to our backend to either log in or register the user
+        const res = await fetch("/api/google-auth", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            token: idToken,
+            name: user.displayName,
+            email: user.email
+          }),
+          credentials: "include"
+        });
+        
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => null);
+          const errorMessage = errorData?.error || res.statusText;
+          throw new Error(errorMessage);
+        }
+        
+        const userData = await res.json();
+        
+        // Save auth state to localStorage
+        localStorage.setItem("fairshare_auth_state", JSON.stringify({
+          userId: userData.id,
+          username: userData.username,
+          sessionId: userData.sessionId,
+          loggedInAt: new Date().toISOString()
+        }));
+        
+        // Create a cleaned version without additional properties
+        const { message, sessionId, ...cleanUserData } = userData;
+        return cleanUserData;
+      } catch (error) {
+        console.error("Google sign-in error:", error);
+        if (error instanceof Error) {
+          throw error;
+        }
+        throw new Error("An error occurred during Google sign-in");
+      }
+    },
+    onSuccess: (user) => {
+      // Set the user in cache
+      queryClient.setQueryData(["/api/user"], user);
+      
+      // Force a fresh fetch of all user-specific data
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/balances"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/activity"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/user/balance"] });
+      }, 500);
+      
+      toast({
+        title: "Google sign-in successful",
+        description: `Welcome${user.name ? `, ${user.name}` : ''}!`,
+      });
+    },
+    onError: (error) => {
+      console.error("Google sign-in mutation error:", error);
+      queryClient.setQueryData(["/api/user"], null);
+      
+      toast({
+        title: "Google sign-in failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return (
     <AuthContext.Provider
       value={{
@@ -306,6 +395,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginMutation,
         logoutMutation,
         registerMutation,
+        googleSignInMutation
       }}
     >
       {children}

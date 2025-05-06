@@ -7,6 +7,7 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser, insertUserSchema } from "@shared/schema";
 import { z } from "zod";
+import fetch from "node-fetch";
 
 declare global {
   namespace Express {
@@ -370,6 +371,121 @@ export function setupAuth(app: Express) {
     }
   });
   
+  // Google Authentication endpoint
+  app.post("/api/google-auth", async (req, res, next) => {
+    try {
+      console.log("Google auth attempt received");
+      
+      // Validate required fields
+      const googleAuthSchema = z.object({
+        token: z.string().min(1, "Token is required"),
+        name: z.string().nullable(),
+        email: z.string().email("Invalid email address").min(1, "Email is required"),
+      });
+      
+      const validatedData = googleAuthSchema.parse(req.body);
+      
+      // Verify the token with Google
+      const googleTokenVerificationUrl = `https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=${validatedData.token}`;
+      const verificationResponse = await fetch(googleTokenVerificationUrl);
+      
+      if (!verificationResponse.ok) {
+        console.error("Failed to verify Google token");
+        return res.status(401).json({ error: "Invalid Google authentication token" });
+      }
+      
+      const tokenData = await verificationResponse.json() as any;
+      
+      // Verify email matches
+      if (tokenData.email !== validatedData.email) {
+        console.error("Email mismatch in Google token");
+        return res.status(401).json({ error: "Email mismatch in authentication" });
+      }
+      
+      // Check if user with this email already exists
+      let user = await storage.getUserByEmail(validatedData.email);
+      
+      if (user) {
+        console.log(`Google sign-in: Existing user found with email ${validatedData.email}`);
+        
+        // Log in the existing user
+        req.login(user, (err) => {
+          if (err) {
+            console.error("Session login error:", err);
+            return next(err);
+          }
+          
+          // Remove password from response
+          const { password, ...userWithoutPassword } = user;
+          
+          // Return user data with session details
+          return res.status(200).json({
+            ...userWithoutPassword,
+            sessionId: req.sessionID,
+            message: "Google authentication successful"
+          });
+        });
+      } else {
+        // Create a new user with the Google info
+        console.log(`Google sign-in: Creating new user with email ${validatedData.email}`);
+        
+        // Generate a username from the email
+        const emailPrefix = validatedData.email.split('@')[0];
+        const baseUsername = emailPrefix.replace(/[^a-zA-Z0-9]/g, '');
+        
+        // Generate a random password for the user
+        const randomPassword = randomBytes(16).toString('hex');
+        const hashedPassword = await hashPassword(randomPassword);
+        
+        // Handle potential username collisions
+        let username = baseUsername;
+        let counter = 1;
+        let existingUserWithUsername = await storage.getUserByUsername(username);
+        
+        // If username exists, append numbers until we find a unique one
+        while (existingUserWithUsername) {
+          username = `${baseUsername}${counter}`;
+          counter++;
+          existingUserWithUsername = await storage.getUserByUsername(username);
+        }
+        
+        // Create the new user
+        const newUser = await storage.createUser({
+          username,
+          password: hashedPassword,
+          name: validatedData.name || username,
+          email: validatedData.email
+        });
+        
+        // Log in the new user
+        req.login(newUser, (err) => {
+          if (err) {
+            console.error("Session login error for new Google user:", err);
+            return next(err);
+          }
+          
+          // Remove password from response
+          const { password, ...userWithoutPassword } = newUser;
+          
+          // Return user data with session details
+          return res.status(201).json({
+            ...userWithoutPassword,
+            sessionId: req.sessionID,
+            message: "New account created with Google authentication"
+          });
+        });
+      }
+    } catch (error) {
+      console.error("Google authentication error:", error);
+      
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      
+      next(error);
+    }
+  });
+
   // Middleware to check for header-based authentication when cookies fail
   // This helps mobile devices where cookies often don't work as expected
   app.use(async (req, res, next) => {

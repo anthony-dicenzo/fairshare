@@ -25,6 +25,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 
 // Login schema for step 1 (username/email only)
 const loginStep1Schema = z.object({
@@ -55,7 +56,7 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
   const [location, navigate] = useLocation();
-  const { user, loginMutation, registerMutation } = useAuth();
+  const { user, loginMutation, registerMutation, googleSignInMutation } = useAuth();
   const isMobile = useIsMobile();
   const [loginStep, setLoginStep] = useState<1 | 2>(1);
   const [loginUsername, setLoginUsername] = useState("");
@@ -194,6 +195,9 @@ export default function AuthPage() {
                       <span className="flex-shrink mx-4 text-gray-500 text-sm uppercase">OR</span>
                       <div className="flex-grow border-t border-gray-300"></div>
                     </div>
+
+                    {/* Google Sign-in Button */}
+                    <GoogleSignInButton className="mb-6" />
 
                     {/* Register option */}
                     <div className="text-center">
@@ -370,6 +374,9 @@ export default function AuthPage() {
                   <div className="flex-grow border-t border-gray-300"></div>
                 </div>
 
+                {/* Google Sign-in Button */}
+                <GoogleSignInButton className="mb-6" />
+
                 {/* Login option */}
                 <div className="text-center">
                   <p className="text-fairshare-dark/80 mb-4">Already have an account?</p>
@@ -512,6 +519,16 @@ export default function AuthPage() {
                         {loginMutation.isPending ? "Logging in..." : "Log in"}
                       </Button>
                     </form>
+
+                    {/* OR Separator */}
+                    <div className="relative flex items-center my-6">
+                      <div className="flex-grow border-t border-gray-300"></div>
+                      <span className="flex-shrink mx-4 text-gray-500 text-sm uppercase">OR</span>
+                      <div className="flex-grow border-t border-gray-300"></div>
+                    </div>
+
+                    {/* Google Sign-in Button */}
+                    <GoogleSignInButton />
                   </Form>
                 </TabsContent>
 
@@ -591,6 +608,16 @@ export default function AuthPage() {
                         {registerMutation.isPending ? "Creating account..." : "Create account"}
                       </Button>
                     </form>
+
+                    {/* OR Separator */}
+                    <div className="relative flex items-center my-6">
+                      <div className="flex-grow border-t border-gray-300"></div>
+                      <span className="flex-shrink mx-4 text-gray-500 text-sm uppercase">OR</span>
+                      <div className="flex-grow border-t border-gray-300"></div>
+                    </div>
+
+                    {/* Google Sign-in Button */}
+                    <GoogleSignInButton />
                   </Form>
                 </TabsContent>
               </Tabs>
