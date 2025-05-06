@@ -24,6 +24,13 @@ const firebaseConfig = {
   appId,
 };
 
+// Log full configuration without sensitive values
+console.log("Firebase configuration:", {
+  ...firebaseConfig,
+  apiKey: apiKey ? "[API_KEY_SET]" : "[MISSING]",
+  appId: appId ? "[APP_ID_SET]" : "[MISSING]"
+});
+
 // Declare variables for export with proper types
 let auth: Auth | null = null;
 let googleProvider: GoogleAuthProvider | null = null;
@@ -33,14 +40,22 @@ try {
   console.log("Initializing Firebase...");
   const app = initializeApp(firebaseConfig);
   auth = getAuth(app);
+  
+  // Initialize Google Auth Provider
   googleProvider = new GoogleAuthProvider();
   
   // Add login hint and select account prompt
   googleProvider.setCustomParameters({
-    prompt: 'select_account'
+    prompt: 'select_account',
+    // Add additional parameters that might help with redirects
+    // Specify a redirect URI in case it helps with certain environments
+    redirect_uri: window.location.origin + '/auth'
   });
   
+  // Log success
   console.log("Firebase initialized successfully");
+  console.log("Firebase Auth available:", !!auth);
+  console.log("Google Auth Provider initialized:", !!googleProvider);
 } catch (error) {
   console.error("Error initializing Firebase:", error);
   console.error("Ensure you've provided the correct Firebase credentials in the environment variables.");

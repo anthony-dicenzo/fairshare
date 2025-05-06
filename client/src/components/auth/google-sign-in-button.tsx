@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { FC, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { auth, googleProvider } from "@/lib/firebase";
-import { signInWithRedirect, getRedirectResult } from "firebase/auth";
+import { signInWithRedirect, signInWithPopup, getRedirectResult } from "firebase/auth";
 
 interface GoogleSignInButtonProps {
   className?: string;
@@ -99,15 +99,98 @@ export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = ""
         throw new Error("Google sign-in service is not available. Please try again later.");
       }
       
+      console.log("Firebase auth and Google provider are available:", {
+        auth: !!auth,
+        googleProvider: !!googleProvider
+      });
+      
       toast({
         title: "Initiating Google Sign-In",
         description: "Redirecting to Google authentication..."
       });
       
-      // Redirect to Google sign-in - this will navigate away from our page
-      await signInWithRedirect(auth, googleProvider);
+      console.log("About to call signInWithRedirect...");
       
-      // Code below will never execute because we're redirecting
+      // Add a small timeout to make sure the toast message is displayed
+      setTimeout(async () => {
+        try {
+          // Redirect to Google sign-in - this will navigate away from our page
+          console.log("Calling signInWithRedirect now...");
+          
+          // Make sure auth and googleProvider are non-null
+          if (auth && googleProvider) {
+            try {
+              // Try redirect first
+              console.log("Attempting signInWithRedirect...");
+              await signInWithRedirect(auth as any, googleProvider as any);
+              console.log("If you see this message, the redirect did NOT happen");
+            } catch (redirectFailedError) {
+              // If redirect fails, try popup as fallback
+              console.log("Redirect failed, trying popup as fallback...", redirectFailedError);
+              toast({
+                title: "Switching to popup authentication",
+                description: "Redirect didn't work, opening a popup window instead..."
+              });
+              
+              // Try popup authentication instead
+              const result = await signInWithPopup(auth as any, googleProvider as any);
+              console.log("Popup sign-in successful!", result.user.email);
+              
+              // Process the successful popup result
+              const idToken = await result.user.getIdToken();
+              const response = await fetch("/api/google-auth", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  token: idToken,
+                  name: result.user.displayName,
+                  email: result.user.email
+                }),
+                credentials: "include"
+              });
+              
+              if (!response.ok) {
+                throw new Error("Failed to authenticate with the server after successful popup");
+              }
+              
+              const userData = await response.json();
+              console.log("Server authentication successful:", userData);
+              
+              // Save auth state to localStorage
+              localStorage.setItem("fairshare_auth_state", JSON.stringify({
+                userId: userData.id,
+                username: userData.username,
+                sessionId: userData.sessionId,
+                loggedInAt: new Date().toISOString()
+              }));
+              
+              // Reset UI state
+              setIsSigningIn(false);
+              
+              toast({
+                title: "Google Sign-In successful",
+                description: `Welcome, ${userData.name || userData.username}!`
+              });
+              
+              // Refresh the page to update the UI
+              window.location.reload();
+            }
+          } else {
+            throw new Error("Firebase auth or Google provider became unavailable");
+          }
+        } catch (redirectError) {
+          console.error("Error during redirect (from setTimeout):", redirectError);
+          setIsSigningIn(false);
+          toast({
+            title: "Google Sign-In Failed",
+            description: "Error during redirect: " + (redirectError instanceof Error ? redirectError.message : "Unknown error"),
+            variant: "destructive"
+          });
+        }
+      }, 500);
+      
+      // Code below will still execute because we're using setTimeout for the redirect
+      console.log("Sign-in process initiated with timeout");
     } catch (error) {
       setIsSigningIn(false);
       console.error("Google sign-in redirect error:", error);
