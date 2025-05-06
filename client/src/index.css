@@ -14,7 +14,7 @@
       --card-foreground: 222 34% 25%; /* Deep Night Blue #2B3A55 */
       --border: 42 21% 85%; /* Slightly darker cream for borders */
       --input: 42 21% 85%; /* Slightly darker cream for borders */
-      --primary: 23 64% 66%; /* Soft Mango Orange #E3976E */
+      --primary: 19 67% 66%; /* Mango Color #e4946c */
       --primary-foreground: 0 0% 100%; /* White text on primary */
       --secondary: 210 100% 82%; /* Sky Mist Blue #A3D5FF */
       --secondary-foreground: 222 34% 25%; /* Deep Night Blue #2B3A55 */
@@ -37,7 +37,7 @@
       --card-foreground: 0 0% 98%;
       --border: 222 30% 30%;
       --input: 222 30% 30%;
-      --primary: 23 64% 66%; /* Keeping Soft Mango Orange #E3976E */
+      --primary: 19 67% 66%; /* Mango Color #e4946c */
       --primary-foreground: 0 0% 100%;
       --secondary: 210 90% 70%; /* Slightly darker Sky Mist Blue */
       --secondary-foreground: 222 34% 25%;
