@@ -108,13 +108,17 @@ export default function AuthPage() {
     },
   });
 
-  // This handles the login step 1 submission (username only)
+  // This function is no longer needed since we removed the form in step 1,
+  // but we keep it for backward compatibility
   const onLoginStep1Submit = (data: LoginStep1Values) => {
-    setLoginUsername(data.username);
-    setLoginStep(2); // Proceed to password screen
+    setLoginUsername("");
+    setLoginStep(2); // Proceed to credentials screen
     
-    // Set the username value in the step 2 form
-    loginForm.setValue("username", data.username);
+    // Reset the form for step 2
+    loginForm.reset({
+      username: "",
+      password: ""
+    });
   };
 
   // This handles the final login submission (username + password)
@@ -157,37 +161,16 @@ export default function AuthPage() {
 
               <TabsContent value="login">
                 {loginStep === 1 ? (
-                  /* Step 1: Enter username/email */
-                  <Form {...loginStep1Form}>
-                    <form onSubmit={loginStep1Form.handleSubmit(onLoginStep1Submit)} className="space-y-4">
-                      {/* Email/Username field */}
-                      <FormField
-                        control={loginStep1Form.control}
-                        name="username"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Input 
-                                placeholder="Enter your email" 
-                                className="h-12 rounded-xl border-fairshare-dark/20 bg-white" 
-                                autoComplete="email"
-                                type="email"
-                                {...field} 
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Continue button */}
-                      <Button 
-                        type="submit" 
-                        className="w-full h-12 rounded-xl mt-4 bg-fairshare-primary text-white hover:bg-fairshare-primary/90"
-                      >
-                        Continue with email
-                      </Button>
-                    </form>
+                  /* Step 1: Initial login option selection */
+                  <div className="space-y-4">
+                    {/* Continue with email button - now just directly goes to step 2 */}
+                    <Button 
+                      type="button"
+                      onClick={() => setLoginStep(2)} 
+                      className="w-full h-12 rounded-xl mt-4 bg-fairshare-primary text-white hover:bg-fairshare-primary/90"
+                    >
+                      Continue with email
+                    </Button>
 
                     {/* OR Separator */}
                     <div className="relative flex items-center my-6">
@@ -210,9 +193,9 @@ export default function AuthPage() {
                         Create an account
                       </Button>
                     </div>
-                  </Form>
+                  </div>
                 ) : (
-                  /* Step 2: Enter password */
+                  /* Step 2: Enter email and password */
                   <div>
                     {/* Back button for password step */}
                     <Button 
@@ -225,16 +208,33 @@ export default function AuthPage() {
                     </Button>
                     
                     <div className="mb-6">
-                      <h3 className="text-xl font-medium text-fairshare-dark">Enter your password</h3>
+                      <h3 className="text-xl font-medium text-fairshare-dark">Sign in with email</h3>
                       <p className="text-sm text-fairshare-dark/60 mt-1">
-                        for <span className="font-medium">{loginUsername}</span>
+                        Enter your account details below
                       </p>
                     </div>
                     
                     <Form {...loginForm}>
                       <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
-                        {/* Hidden username field */}
-                        <input type="hidden" name="username" value={loginUsername} />
+                        {/* Email field */}
+                        <FormField
+                          control={loginForm.control}
+                          name="username"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Input 
+                                  type="email" 
+                                  placeholder="Email address" 
+                                  className="h-12 rounded-xl border-fairshare-dark/20 bg-white" 
+                                  autoComplete="email"
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                         
                         {/* Password field */}
                         <FormField
@@ -245,7 +245,7 @@ export default function AuthPage() {
                               <FormControl>
                                 <Input 
                                   type="password" 
-                                  placeholder="Enter your password" 
+                                  placeholder="Password" 
                                   className="h-12 rounded-xl border-fairshare-dark/20 bg-white" 
                                   autoComplete="current-password"
                                   {...field} 
