@@ -20,8 +20,8 @@ export function SimplifiedLayout({
   
   return (
     <div className="flex flex-col min-h-screen bg-fairshare-cream">
-      {/* All header area with new color #32846b */}
-      <div className={`${location === "/" ? "bg-[#32846b]" : "bg-[#e4946c]"}`}>
+      {/* All header area with new color #32846b for all pages */}
+      <div className="bg-[#32846b]">
         {/* Status bar area (to simulate mobile device) */}
         <div className="h-8"></div>
         
@@ -47,28 +47,26 @@ export function SimplifiedLayout({
           </Link>
           <Link href="/groups">
             <div className="flex flex-col items-center gap-1 cursor-pointer">
-              <Users className={cn("h-6 w-6", location === "/groups" ? "text-fairshare-primary" : "text-fairshare-dark/60")} />
-              <span className="text-xs font-medium">Groups</span>
+              <Users className={cn("h-6 w-6", location === "/groups" ? "text-[#32846b]" : "text-fairshare-dark/60")} />
+              <span className={`text-xs font-medium ${location === "/groups" ? "text-[#32846b]" : ""}`}>Groups</span>
             </div>
           </Link>
           <button 
             onClick={() => setShowExpenseModal(true)}
-            className={`flex items-center justify-center w-16 h-16 rounded-full text-white shadow-lg -mt-8 ${
-              location === "/" ? "bg-[#32846b]" : "bg-fairshare-primary"
-            }`}
+            className="flex items-center justify-center w-16 h-16 rounded-full bg-[#32846b] text-white shadow-lg -mt-8"
           >
             <Plus className="h-8 w-8" />
           </button>
           <Link href="/activity">
             <div className="flex flex-col items-center gap-1 cursor-pointer">
-              <BarChart4 className={cn("h-6 w-6", location === "/activity" ? "text-fairshare-primary" : "text-fairshare-dark/60")} />
-              <span className="text-xs font-medium">Activity</span>
+              <BarChart4 className={cn("h-6 w-6", location === "/activity" ? "text-[#32846b]" : "text-fairshare-dark/60")} />
+              <span className={`text-xs font-medium ${location === "/activity" ? "text-[#32846b]" : ""}`}>Activity</span>
             </div>
           </Link>
           <Link href="/profile">
             <div className="flex flex-col items-center gap-1 cursor-pointer">
-              <User className={cn("h-6 w-6", location === "/profile" ? "text-fairshare-primary" : "text-fairshare-dark/60")} />
-              <span className="text-xs font-medium">Profile</span>
+              <User className={cn("h-6 w-6", location === "/profile" ? "text-[#32846b]" : "text-fairshare-dark/60")} />
+              <span className={`text-xs font-medium ${location === "/profile" ? "text-[#32846b]" : ""}`}>Profile</span>
             </div>
           </Link>
         </nav>
