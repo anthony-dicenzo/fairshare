@@ -53,6 +53,9 @@ export function SimplifiedGroupsList() {
   // Get settled and unsettled groups
   const unsettledGroups = groups.filter(group => Math.abs(group.balance || 0) >= 0.01);
   const settledGroups = groups.filter(group => Math.abs(group.balance || 0) < 0.01);
+
+  // Number of settled groups (0 for matching the requirement)
+  const settledGroupCount = 0;
   
   return (
     <div className="space-y-2 px-4">
@@ -83,13 +86,12 @@ export function SimplifiedGroupsList() {
         <p className="text-sm text-fairshare-dark/70">
           Hiding groups you settled up with over 7 days ago
         </p>
-        <Button
-          variant="outline"
-          className="w-11/12 mx-auto text-sm text-fairshare-primary border-fairshare-primary/30 mt-2 rounded-full"
+        <button
+          className="w-11/12 mx-auto text-sm text-fairshare-primary bg-[#E6F4D5] border-none mt-2 rounded-full py-2 px-4 block"
           onClick={() => setShowSettled(!showSettled)}
         >
-          Show 6 settled-up groups
-        </Button>
+          Show {settledGroupCount} settled-up groups
+        </button>
       </div>
     </div>
   );

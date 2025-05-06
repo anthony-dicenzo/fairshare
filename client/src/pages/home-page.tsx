@@ -14,15 +14,7 @@ export default function HomePage() {
   if (!user) return null;
 
   return (
-    <SimplifiedLayout headerText="">
-      {/* Dashboard content area with full-width header */}
-      <div 
-        className="py-3 px-4 w-full" 
-        style={{ background: '#E8B195' }} // Soft orange color from reference image
-      >
-        <h1 className="text-white text-xl font-bold">Dashboard</h1>
-      </div>
-      
+    <SimplifiedLayout headerText="Dashboard">
       {/* Overall balance section */}
       <SimplifiedBalanceSummary />
       

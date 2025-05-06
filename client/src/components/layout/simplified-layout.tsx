@@ -20,20 +20,23 @@ export function SimplifiedLayout({
   
   return (
     <div className="flex flex-col min-h-screen bg-fairshare-cream">
-      {/* Status bar area (to simulate mobile device) */}
-      <div className="h-8 bg-[#E8B195]"></div>
-      
-      {/* Page header */}
-      <header className={cn("p-4 text-fairshare-dark", pageBackground)}>
-        <h1 className="text-xl font-bold">{headerText}</h1>
-      </header>
+      {/* All header area in mango color */}
+      <div className="bg-[#E8B195]">
+        {/* Status bar area (to simulate mobile device) */}
+        <div className="h-8"></div>
+        
+        {/* Page header - kept for structure but no text shown */}
+        <header className="p-4 text-white">
+          <h1 className="text-xl font-bold">{headerText}</h1>
+        </header>
+      </div>
       
       {/* Main content */}
       <main className="flex-1 pb-24">
         {children}
       </main>
       
-      {/* Bottom navigation - larger buttons similar to second image */}
+      {/* Bottom navigation - larger buttons similar to reference image */}
       <div className="fixed bottom-0 left-0 right-0 w-full bg-fairshare-cream border-t z-50">
         <nav className="flex justify-around items-center px-2 py-4">
           <Link href="/">
