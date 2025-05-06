@@ -1,9 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/hooks/use-auth";
-import React, { FC, useEffect } from "react";
+import { FC, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { auth, googleProvider } from "@/lib/firebase";
-import { signInWithRedirect, getRedirectResult, GoogleAuthProvider } from "firebase/auth";
+import { signInWithRedirect, getRedirectResult } from "firebase/auth";
 
 interface GoogleSignInButtonProps {
   className?: string;
@@ -11,16 +10,17 @@ interface GoogleSignInButtonProps {
 
 export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = "" }) => {
   const { toast } = useToast();
-  const [isSigningIn, setIsSigningIn] = React.useState(false);
+  const [isSigningIn, setIsSigningIn] = useState(false);
 
-  // Check for redirect result on page load
+  // Check for redirect result on component mount
   useEffect(() => {
     const checkRedirectResult = async () => {
       if (!auth) return;
       
       try {
-        // Check if we're coming back from a redirect
+        console.log("Checking for Google auth redirect result...");
         const result = await getRedirectResult(auth);
+        
         if (result) {
           console.log("Google redirect result received:", result.user.email);
           
@@ -52,6 +52,11 @@ export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = ""
             loggedInAt: new Date().toISOString()
           }));
           
+          toast({
+            title: "Google Sign-In successful",
+            description: `Welcome, ${userData.name || userData.username}!`
+          });
+          
           // Refresh the page to update the UI
           window.location.reload();
         }
@@ -68,25 +73,26 @@ export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = ""
     checkRedirectResult();
   }, [toast]);
 
-  // Function to handle Google Sign-In
+  // Function to handle Google Sign-In button click
   const handleGoogleSignIn = async () => {
     try {
       setIsSigningIn(true);
       console.log("Google Sign-In button clicked");
-      toast({
-        title: "Initiating Google Sign-In",
-        description: "Redirecting to Google authentication..."
-      });
       
       // Check if Firebase is properly initialized
       if (!auth || !googleProvider) {
         throw new Error("Google sign-in service is not available. Please try again later.");
       }
       
+      toast({
+        title: "Initiating Google Sign-In",
+        description: "Redirecting to Google authentication..."
+      });
+      
       // Redirect to Google sign-in - this will navigate away from our page
       await signInWithRedirect(auth, googleProvider);
       
-      // The code below will never execute because the redirect happens immediately
+      // Code below will never execute because we're redirecting
     } catch (error) {
       setIsSigningIn(false);
       console.error("Google sign-in redirect error:", error);
