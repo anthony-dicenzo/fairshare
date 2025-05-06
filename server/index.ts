@@ -3,14 +3,6 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initializeBalanceCache } from "./init-balance-cache";
 
-// Ensure we're using Supabase exclusively
-if (process.env.SUPABASE_CONNECTION_STRING) {
-  process.env.DATABASE_URL = process.env.SUPABASE_CONNECTION_STRING;
-  console.log('✅ Using Supabase exclusively for database connection');
-} else {
-  console.error('⚠️ SUPABASE_CONNECTION_STRING not found. Please set up Supabase credentials.');
-}
-
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

@@ -15,22 +15,22 @@ if (!supabaseUrl || !supabaseKey) {
 // Create Supabase client
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Exclusively use Supabase connection string
-const connectionString = process.env.SUPABASE_CONNECTION_STRING || '';
+// Prioritize Replit's DATABASE_URL for reliability
+const connectionString = process.env.DATABASE_URL || process.env.SUPABASE_CONNECTION_STRING || '';
 
 if (!connectionString) {
-  console.error('Supabase connection string missing! Application will not function correctly without SUPABASE_CONNECTION_STRING.');
+  console.error('No database connection string available! Application will not function correctly.');
 }
 
-console.log('Using Supabase database connection...');
+console.log('Using database connection...');
 
-// Initialize postgres client for Drizzle ORM with Supabase-specific settings
+// Initialize postgres client for Drizzle ORM with more robust settings
 const client = postgres(connectionString, { 
   max: 10,
   idle_timeout: 20,
-  connect_timeout: 30, // Increased timeout for more reliability
-  prepare: false, // Disable prepared statements as recommended for Supabase
-  ssl: true, // Enable SSL for secure Supabase connections
+  connect_timeout: 10,
+  prepare: false, // Disable prepared statements for better compatibility
+  ssl: true, // Enable SSL for secure connections
 });
 
 // Create database instance with schema
@@ -39,8 +39,8 @@ export const db = drizzle(client, { schema });
 // Create a regular PostgreSQL pool for session store compatibility
 export const pool = new Pool({ 
   connectionString,
-  ssl: { rejectUnauthorized: false }, // Required for Supabase connections
+  ssl: { rejectUnauthorized: false }, // Required for secure connections
   max: 10, // Match the postgres client's max connections
   idleTimeoutMillis: 30000, // 30 seconds
-  connectionTimeoutMillis: 30000, // 30 seconds
+  connectionTimeoutMillis: 10000, // 10 seconds
 });
