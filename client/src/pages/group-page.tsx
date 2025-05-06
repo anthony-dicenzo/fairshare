@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useParams, useLocation, useRoute } from "wouter";
 import { useQuery, useMutation, useInfiniteQuery } from "@tanstack/react-query";
-import { MainLayout } from "@/components/layout/main-layout";
+import { SimplifiedLayout } from "@/components/layout/simplified-layout";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -330,8 +330,8 @@ export default function GroupPage() {
 
   if (isLoadingGroup) {
     return (
-      <MainLayout>
-        <div className="px-4 py-6 md:px-6 lg:px-8">
+      <SimplifiedLayout headerText="Loading Group">
+        <div className="px-4 py-4">
           <div className="flex items-center mb-6">
             <Button variant="ghost" size="sm" asChild className="mr-2">
               <Link href="/">
@@ -344,14 +344,14 @@ export default function GroupPage() {
           <Skeleton className="h-64 w-full mb-8" />
           <Skeleton className="h-96 w-full" />
         </div>
-      </MainLayout>
+      </SimplifiedLayout>
     );
   }
 
   // Show a friendly error message if there was an error or no group found
   if (hasError || !group) {
     return (
-      <MainLayout>
+      <SimplifiedLayout headerText={group ? group.name : "Group"}>
         <div className="px-4 py-6 md:px-6 lg:px-8">
           <div className="flex items-center mb-6">
             <Button variant="ghost" size="sm" asChild className="mr-2">
@@ -379,12 +379,12 @@ export default function GroupPage() {
             </div>
           </div>
         </div>
-      </MainLayout>
+      </SimplifiedLayout>
     );
   }
 
   return (
-    <MainLayout>
+    <SimplifiedLayout headerText={group ? group.name : "Group"}>
       <div className="px-4 py-6 md:px-6 lg:px-8">
         <div className="flex flex-col mb-6">
           <div className="mb-4">
@@ -700,6 +700,6 @@ export default function GroupPage() {
           groupId={groupId}
         />
       )}
-    </MainLayout>
+    </SimplifiedLayout>
   );
 }
