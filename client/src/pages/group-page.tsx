@@ -421,10 +421,23 @@ export default function GroupPage() {
                 <Users className="h-4 w-4" />
                 <span className="hidden sm:inline ml-1">Invite</span>
               </Button>
-              {params && params.from === 'newGroup' && (
-                <div className="absolute left-1/2 -translate-x-1/2 -bottom-8 whitespace-nowrap bg-fairshare-primary/10 text-fairshare-primary text-xs px-3 py-1 rounded-full animate-pulse">
-                  Invite members
-                </div>
+              {showInviteNotification && (
+                <PersistentNotification
+                  message="Invite members to this group"
+                  position="tooltip"
+                  variant="default"
+                  size="sm"
+                  animate={true}
+                  icon={<AlertCircle className="h-3 w-3" />}
+                  onDismiss={() => setShowInviteNotification(false)}
+                  style={{
+                    top: "calc(100% + 8px)",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    whiteSpace: "nowrap",
+                    zIndex: 50,
+                  }}
+                />
               )}
             </div>
 
