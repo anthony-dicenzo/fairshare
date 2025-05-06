@@ -9,7 +9,9 @@ import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { 
-  signInWithPopup, 
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider, 
   UserCredential,
   Auth
@@ -319,52 +321,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw new Error("Google sign-in is not available. Please try again later or use email login.");
         }
         
-        // Sign in with Google using Firebase
-        console.log("Initiating Firebase Google auth popup");
+        // Sign in with Google using Firebase - use redirect instead of popup for better reliability
+        console.log("Initiating Firebase Google auth redirect");
         // Cast is safe because we checked for null above
-        const result = await signInWithPopup(auth as Auth, googleProvider as GoogleAuthProvider);
-        console.log("Google sign-in successful, user:", result.user.email);
-        
-        // Get user info from Google
-        const user = result.user;
-        const idToken = await user.getIdToken();
-        console.log("Retrieved Google ID token");
-        
-        // Send the token to our backend to either log in or register the user
-        console.log("Sending Google auth data to backend");
-        const res = await fetch("/api/google-auth", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            token: idToken,
-            name: user.displayName,
-            email: user.email
-          }),
-          credentials: "include"
-        });
-        
-        console.log("Backend response status:", res.status);
-        if (!res.ok) {
-          const errorData = await res.json().catch(() => null);
-          const errorMessage = errorData?.error || res.statusText;
-          console.error("Backend error response:", errorData);
-          throw new Error(errorMessage);
+        try {
+          // Store the fact that we're attempting auth so we can check on page load
+          localStorage.setItem("fairshare_google_auth_pending", "true");
+          
+          // Use redirect instead of popup - this will navigate away from the page
+          await signInWithRedirect(auth as Auth, googleProvider as GoogleAuthProvider);
+          
+          // Code below will never execute due to the redirect
+          return {} as SafeUser; // This will never be reached
+        } catch (redirectError) {
+          console.error("Error during Google redirect:", redirectError);
+          throw new Error("Failed to redirect to Google authentication. Please try again or use email login.");
         }
-        
-        const userData = await res.json();
-        console.log("Backend auth successful, user data:", userData);
-        
-        // Save auth state to localStorage
-        localStorage.setItem("fairshare_auth_state", JSON.stringify({
-          userId: userData.id,
-          username: userData.username,
-          sessionId: userData.sessionId,
-          loggedInAt: new Date().toISOString()
-        }));
-        
-        // Create a cleaned version without additional properties
-        const { message, sessionId, ...cleanUserData } = userData;
-        return cleanUserData;
       } catch (error) {
         console.error("Google sign-in error:", error);
         // Check for Firebase auth errors

@@ -1,26 +1,95 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { FC } from "react";
+import React, { FC, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { auth, googleProvider } from "@/lib/firebase";
+import { signInWithRedirect, getRedirectResult, GoogleAuthProvider } from "firebase/auth";
 
 interface GoogleSignInButtonProps {
   className?: string;
 }
 
 export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = "" }) => {
-  const { googleSignInMutation } = useAuth();
   const { toast } = useToast();
+  const [isSigningIn, setIsSigningIn] = React.useState(false);
 
+  // Check for redirect result on page load
+  useEffect(() => {
+    const checkRedirectResult = async () => {
+      if (!auth) return;
+      
+      try {
+        // Check if we're coming back from a redirect
+        const result = await getRedirectResult(auth);
+        if (result) {
+          console.log("Google redirect result received:", result.user.email);
+          
+          // Process the result by getting the ID token and sending to our backend
+          const idToken = await result.user.getIdToken();
+          const response = await fetch("/api/google-auth", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              token: idToken,
+              name: result.user.displayName,
+              email: result.user.email
+            }),
+            credentials: "include"
+          });
+          
+          if (!response.ok) {
+            throw new Error("Failed to authenticate with the server");
+          }
+          
+          const userData = await response.json();
+          console.log("Server authentication successful:", userData);
+          
+          // Save auth state to localStorage
+          localStorage.setItem("fairshare_auth_state", JSON.stringify({
+            userId: userData.id,
+            username: userData.username,
+            sessionId: userData.sessionId,
+            loggedInAt: new Date().toISOString()
+          }));
+          
+          // Refresh the page to update the UI
+          window.location.reload();
+        }
+      } catch (error) {
+        console.error("Error processing Google redirect result:", error);
+        toast({
+          title: "Google Sign-In Failed",
+          description: error instanceof Error ? error.message : "An unknown error occurred",
+          variant: "destructive"
+        });
+      }
+    };
+    
+    checkRedirectResult();
+  }, [toast]);
+
+  // Function to handle Google Sign-In
   const handleGoogleSignIn = async () => {
     try {
+      setIsSigningIn(true);
       console.log("Google Sign-In button clicked");
       toast({
         title: "Initiating Google Sign-In",
-        description: "Connecting to Google authentication..."
+        description: "Redirecting to Google authentication..."
       });
-      googleSignInMutation.mutate();
+      
+      // Check if Firebase is properly initialized
+      if (!auth || !googleProvider) {
+        throw new Error("Google sign-in service is not available. Please try again later.");
+      }
+      
+      // Redirect to Google sign-in - this will navigate away from our page
+      await signInWithRedirect(auth, googleProvider);
+      
+      // The code below will never execute because the redirect happens immediately
     } catch (error) {
-      console.error("Google sign-in error:", error);
+      setIsSigningIn(false);
+      console.error("Google sign-in redirect error:", error);
       toast({
         title: "Google Sign-In Failed",
         description: error instanceof Error ? error.message : "An unknown error occurred",
@@ -34,7 +103,7 @@ export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = ""
       type="button"
       variant="outline"
       onClick={handleGoogleSignIn}
-      disabled={googleSignInMutation.isPending}
+      disabled={isSigningIn}
       className={`w-full h-12 rounded-xl border-gray-300 flex items-center justify-center gap-2 ${className}`}
     >
       {/* Google Logo */}
@@ -61,7 +130,7 @@ export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = ""
           d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"
         />
       </svg>
-      <span>{googleSignInMutation.isPending ? "Signing in..." : "Continue with Google"}</span>
+      <span>{isSigningIn ? "Signing in..." : "Continue with Google"}</span>
     </Button>
   );
 };
