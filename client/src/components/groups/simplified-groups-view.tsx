@@ -72,10 +72,10 @@ export function SimplifiedGroupsView() {
           </h2>
           <Button 
             onClick={() => setShowGroupModal(true)}
-            className="bg-white text-green-600 hover:bg-gray-50 border border-green-200 rounded-full py-1 px-4 text-sm font-medium shadow-sm transition-colors"
-            variant="outline"
+            className="bg-[#32846b] text-white hover:bg-[#276b55] rounded-lg py-1 px-4 text-sm font-medium shadow-sm transition-colors"
             size="sm"
           >
+            <Plus className="h-3 w-3 mr-1 text-white" />
             Create group
           </Button>
         </div>
