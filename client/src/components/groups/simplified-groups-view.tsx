@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { GroupForm } from "@/components/groups/group-form";
-import { Search, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 
 // Define the number of groups to show initially
 const INITIAL_GROUPS_COUNT = 10;
@@ -16,7 +16,7 @@ export function SimplifiedGroupsView() {
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [visibleGroups, setVisibleGroups] = useState(INITIAL_GROUPS_COUNT);
   const [showSkeleton, setShowSkeleton] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
+  // Search functionality removed as requested
   
   // Get user's overall balance
   const { data: balances, isLoading: isBalancesLoading } = useQuery({
@@ -60,10 +60,8 @@ export function SimplifiedGroupsView() {
   // Calculate total balance
   const totalOwed = balances?.totalOwes || 0;
   
-  // Apply search filter to groups
-  const filteredGroups = groups.filter(group => 
-    searchTerm === "" || group.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // All groups are now shown directly since search was removed
+  const filteredGroups = groups;
   
   if (!groups || groups.length === 0) {
     return (
@@ -115,17 +113,7 @@ export function SimplifiedGroupsView() {
         </Button>
       </div>
       
-      {/* Search box */}
-      <div className="relative mb-4">
-        <Search className="absolute top-3 left-3 h-4 w-4 text-fairshare-dark/60" />
-        <input
-          type="text"
-          placeholder="Search groups..."
-          className="w-full rounded-lg bg-white pl-10 py-2 pr-4 border border-gray-200 focus:outline-none focus:ring-1 focus:ring-fairshare-primary"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
+
       
       {/* Groups list */}
       <div className="space-y-3">
@@ -206,7 +194,7 @@ function GroupsViewSkeleton() {
         <Skeleton className="h-8 w-24 rounded-full" />
       </div>
       
-      <Skeleton className="h-10 w-full rounded-lg mb-4" />
+      {/* Search bar skeleton removed */}
       
       <div className="space-y-3">
         {[1, 2, 3].map((i) => (
