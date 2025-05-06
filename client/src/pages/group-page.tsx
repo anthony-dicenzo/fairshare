@@ -414,7 +414,7 @@ export default function GroupPage() {
                 <span className="hidden sm:inline">Invite Members</span>
                 <span className="sm:hidden">Invite</span>
               </Button>
-              {new URLSearchParams(window.location.search).get('from') === 'newGroup' && (
+              {params && params.from === 'newGroup' && (
                 <div className="absolute left-1/2 -translate-x-1/2 -bottom-8 whitespace-nowrap bg-[#32846b]/10 text-[#32846b] text-xs px-3 py-1 rounded-full animate-pulse">
                   Click here to invite members
                 </div>
@@ -461,25 +461,10 @@ export default function GroupPage() {
 
         <div className="mt-8">
           <Tabs defaultValue="expenses" className="w-full">
-            <TabsList className="w-full max-w-md mx-auto grid grid-cols-3 mb-8 bg-[#32846b]/10 hover:bg-[#32846b]/15">
-              <TabsTrigger 
-                value="expenses" 
-                className="data-[state=active]:bg-[#32846b] data-[state=active]:text-white"
-              >
-                Expenses
-              </TabsTrigger>
-              <TabsTrigger 
-                value="balances" 
-                className="data-[state=active]:bg-[#32846b] data-[state=active]:text-white"
-              >
-                Balances
-              </TabsTrigger>
-              <TabsTrigger 
-                value="activity" 
-                className="data-[state=active]:bg-[#32846b] data-[state=active]:text-white"
-              >
-                Activity
-              </TabsTrigger>
+            <TabsList className="w-full max-w-md mx-auto grid grid-cols-3 mb-8">
+              <TabsTrigger value="expenses">Expenses</TabsTrigger>
+              <TabsTrigger value="balances">Balances</TabsTrigger>
+              <TabsTrigger value="activity">Activity</TabsTrigger>
             </TabsList>
 
             <TabsContent value="expenses" className="mt-0">
@@ -491,7 +476,7 @@ export default function GroupPage() {
                   </p>
                   <Button 
                     onClick={() => setShowExpenseModal(true)}
-                    className="bg-[#32846b] hover:bg-[#276b55] text-white border-[#32846b]"
+                    className="bg-[#E3976E] hover:bg-[#D38761] text-white border-[#E3976E]"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Expense
@@ -543,7 +528,7 @@ export default function GroupPage() {
                         onClick={loadMoreExpenses}
                         variant="outline"
                         disabled={isLoadingMoreExpenses || isFetchingNextPage}
-                        className="w-full border-[#32846b] text-[#32846b] hover:bg-[#32846b]/10"
+                        className="w-full"
                       >
                         {isLoadingMoreExpenses || isFetchingNextPage ? (
                           <span className="flex items-center">
@@ -572,7 +557,7 @@ export default function GroupPage() {
                   size="sm" 
                   onClick={() => refreshBalancesMutation.mutate()}
                   disabled={refreshBalancesMutation.isPending}
-                  className="gap-2 bg-[#32846b] hover:bg-[#276b55] text-white border-[#32846b]"
+                  className="gap-2 bg-[#E3976E] hover:bg-[#D38761] text-white border-[#E3976E]"
                 >
                   <RefreshCw className={`h-4 w-4 ${refreshBalancesMutation.isPending ? 'animate-spin' : ''}`} />
                   {refreshBalancesMutation.isPending ? 'Refreshing...' : 'Refresh Balances'}
@@ -653,7 +638,7 @@ export default function GroupPage() {
                           onClick={loadMoreActivity}
                           variant="outline"
                           disabled={isLoadingMoreActivity || isFetchingNextActivityPage}
-                          className="w-full border-[#32846b] text-[#32846b] hover:bg-[#32846b]/10"
+                          className="w-full"
                         >
                           {isLoadingMoreActivity || isFetchingNextActivityPage ? (
                             <span className="flex items-center">
@@ -679,23 +664,15 @@ export default function GroupPage() {
         </div>
       </div>
 
-      {/* Mobile action buttons */}
-      <div className="fixed bottom-20 right-4 sm:hidden flex flex-col gap-3">
+      {/* Mobile action button */}
+      <div className="fixed bottom-20 right-4 sm:hidden">
         <Button 
           size="icon" 
           variant="outline" 
-          className="h-14 w-14 rounded-full shadow-lg bg-[#32846b] hover:bg-[#276b55] text-white border-[#32846b]"
-          onClick={() => setShowExpenseModal(true)}
-        >
-          <Plus className="h-6 w-6" />
-        </Button>
-        <Button 
-          size="icon" 
-          variant="outline" 
-          className="h-14 w-14 rounded-full shadow-lg bg-[#32846b] hover:bg-[#276b55] text-white border-[#32846b]"
+          className="h-14 w-14 rounded-full shadow-lg border-fairshare-secondary"
           onClick={() => setShowPaymentModal(true)}
         >
-          <CreditCard className="h-6 w-6" />
+          <CreditCard className="h-6 w-6 text-fairshare-dark" />
         </Button>
       </div>
 

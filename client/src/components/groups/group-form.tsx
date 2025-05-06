@@ -71,8 +71,8 @@ export function GroupForm({ open, onOpenChange }: GroupFormProps) {
         console.error("Failed to create default invite link", error);
       }
       
-      // Navigate to the newly created group with a query parameter to show invite prompt
-      navigate(`/group/${newGroup.id}?from=newGroup`);
+      // Navigate to the newly created group
+      navigate(`/group/${newGroup.id}`);
       
       onOpenChange(false);
       form.reset();
