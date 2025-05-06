@@ -5,17 +5,6 @@ import { Group } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { 
-  Filter,
-  X
-} from "lucide-react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
 
 // Define the number of groups to show initially
 const INITIAL_GROUPS_COUNT = 5;
@@ -23,13 +12,18 @@ const INITIAL_GROUPS_COUNT = 5;
 // Define filter types
 type FilterType = 'all' | 'you-owe' | 'owed-to-you' | 'settled';
 
-export function SimplifiedGroupsList() {
+export function SimplifiedGroupsList({
+  filterType = 'all',
+  showSettled = false,
+  setShowSettled
+}: {
+  filterType?: FilterType;
+  showSettled?: boolean;
+  setShowSettled: (show: boolean) => void;
+}) {
   const [, setLocation] = useLocation();
   const [visibleGroups, setVisibleGroups] = useState(INITIAL_GROUPS_COUNT);
   const [showSkeleton, setShowSkeleton] = useState(true);
-  const [showSettled, setShowSettled] = useState(false);
-  const [filterType, setFilterType] = useState<FilterType>('all');
-  const [filterOpen, setFilterOpen] = useState(false);
   
   // Fetch groups with minimal data for faster load
   const { data: groupsData, isLoading } = useQuery<{ 
@@ -114,63 +108,11 @@ export function SimplifiedGroupsList() {
   
   return (
     <div className="space-y-2 px-4">
-      {/* Filter Row */}
+      {/* Section title */}
       <div className="flex items-center justify-between mb-2">
         <div className="text-sm font-medium text-fairshare-dark">
-          {filterType !== 'all' ? (
-            <div className="flex items-center">
-              <span>Filtered: {getFilterDisplayName()}</span>
-              <button
-                onClick={() => setFilterType('all')}
-                className="ml-2 bg-gray-100 rounded-full p-1"
-              >
-                <X className="h-3 w-3 text-fairshare-dark" />
-              </button>
-            </div>
-          ) : (
-            <span>Your groups</span>
-          )}
+          <span>Your groups</span>
         </div>
-        
-        <Popover open={filterOpen} onOpenChange={setFilterOpen}>
-          <PopoverTrigger asChild>
-            <button 
-              className="text-[#32846b] bg-white rounded-full p-2 shadow-sm flex items-center"
-              aria-label="Filter groups"
-            >
-              <Filter className="h-4 w-4" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-56 p-3" align="end">
-            <div className="space-y-2">
-              <h4 className="font-medium text-sm text-fairshare-dark">Filter groups by</h4>
-              <RadioGroup value={filterType} onValueChange={(value) => {
-                setFilterType(value as FilterType);
-                setFilterOpen(false);
-                if (value === 'settled') {
-                  setShowSettled(true);
-                }
-              }}>
-                <div className="flex items-center space-x-2 py-1">
-                  <RadioGroupItem value="all" id="filter-all" />
-                  <Label htmlFor="filter-all">All groups</Label>
-                </div>
-                <div className="flex items-center space-x-2 py-1">
-                  <RadioGroupItem value="you-owe" id="filter-you-owe" />
-                  <Label htmlFor="filter-you-owe">You owe</Label>
-                </div>
-                <div className="flex items-center space-x-2 py-1">
-                  <RadioGroupItem value="owed-to-you" id="filter-owed-to-you" />
-                  <Label htmlFor="filter-owed-to-you">Owed to you</Label>
-                </div>
-                <div className="flex items-center space-x-2 py-1">
-                  <RadioGroupItem value="settled" id="filter-settled" />
-                  <Label htmlFor="filter-settled">Settled up</Label>
-                </div>
-              </RadioGroup>
-            </div>
-          </PopoverContent>
-        </Popover>
       </div>
       
       {/* Render filtered groups */}
@@ -248,10 +190,9 @@ export function SimplifiedGroupsList() {
 function GroupsListSkeleton() {
   return (
     <div className="space-y-3 px-4">
-      {/* Filter skeleton */}
+      {/* Section title skeleton */}
       <div className="flex items-center justify-between mb-2">
         <Skeleton className="h-5 w-24" />
-        <Skeleton className="h-8 w-8 rounded-full" />
       </div>
       
       {/* Group items skeleton */}
