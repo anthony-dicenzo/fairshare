@@ -33,27 +33,31 @@ export default function GroupPage() {
   // Handle notifications and actions for newly created groups
   useEffect(() => {
     if (isNewGroup) {
-      // Show toast notification immediately
+      // First, show the toast notification for group creation success
       toast({
         title: "Group created successfully!",
         description: "Invite friends to start sharing expenses together.",
-        variant: "default",
+        duration: 3000, // Short duration for the toast (3 seconds)
       });
       
-      // Show the invite arrow notification after a short delay
+      // Then show the invite arrow notification with a clearer delay
+      // so it doesn't compete with the toast
       const arrowTimer = setTimeout(() => {
         setShowInviteNotification(true);
-      }, 1500);
+        console.log("Showing invite arrow notification");
+      }, 3500); // Show after 3.5 seconds when toast is likely gone
       
-      // Auto-dismiss notification after 5 seconds
+      // Keep the arrow visible for 6 seconds
       const dismissTimer = setTimeout(() => {
         setShowInviteNotification(false);
-      }, 6500);
+        console.log("Hiding invite arrow notification");
+      }, 9500); // 3.5s delay + 6s display time
       
-      // Auto-focus on opening the invite modal after a delay
+      // Auto-open the invite modal slightly after the arrow appears
       const inviteTimer = setTimeout(() => {
         setShowInviteModal(true);
-      }, 3000);
+        console.log("Auto-opening invite modal");
+      }, 5000); // 5 seconds total delay
       
       return () => {
         clearTimeout(arrowTimer);
@@ -448,12 +452,13 @@ export default function GroupPage() {
                 <span className="hidden sm:inline ml-1">Invite</span>
               </Button>
               {showInviteNotification && (
-                <div className="relative z-10">
-                  <div className="absolute -right-6 -top-12 animate-bounce flex flex-col items-center">
-                    <div className="bg-fairshare-primary/20 text-fairshare-primary font-medium text-xs px-4 py-2 rounded-full mb-2 whitespace-nowrap shadow-sm">
-                      Tap to invite friends
+                <div className="fixed top-0 left-0 right-0 bottom-0 z-50 pointer-events-none">
+                  <div className="absolute top-24 right-20 animate-pulse flex flex-col items-center">
+                    <div className="bg-fairshare-primary text-white font-medium text-sm px-4 py-2 rounded-full mb-4 whitespace-nowrap shadow-md inline-block relative">
+                      <span>Tap to invite friends</span>
+                      <div className="absolute w-2 h-2 bg-fairshare-primary rotate-45 -bottom-1 right-6"></div>
                     </div>
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="rotate-90 text-fairshare-primary">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="rotate-90 text-fairshare-primary drop-shadow-md">
                       <path d="M5 12L19 12M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </div>
