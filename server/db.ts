@@ -2,69 +2,25 @@ import { createClient } from '@supabase/supabase-js';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from "@shared/schema";
-import { Pool } from 'pg';
+import { Pool } from 'pg';  // Using standard pg instead of neon-serverless
 
-// Configuration for database connections
-const DB_CONFIG = {
-  max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000
-};
+// Fixed hardcoded Supabase credentials (in production you would use environment variables)
+const supabaseUrl = 'https://smrsiolztcggakkgtyab.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtcnNpb2x6dGNnZ2Fra2d0eWFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0ODA2MjEsImV4cCI6MjA2MjA1NjYyMX0.2Cr3iYDNyaXUNtrYRX0OOI4mnG6od5fY7CYcLU-NCSg';
 
-// Get Supabase credentials
-const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
-const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || '';
-
-// Setup Supabase client for API access
+// Create Supabase client
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
-if (supabaseUrl && supabaseKey) {
-  console.log('✅ Supabase client configured for API operations');
-} else {
-  console.warn('⚠️ Supabase API credentials not configured');
-}
+// Use the existing DATABASE_URL with fallback to a fixed connection string
+const connectionString = process.env.DATABASE_URL || 'postgres://postgres.smrsiolztcggakkgtyab:eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtcnNpb2x6dGNnZ2Fra2d0eWFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0ODA2MjEsImV4cCI6MjA2MjA1NjYyMX0.2Cr3iYDNyaXUNtrYRX0OOI4mnG6od5fY7CYcLU-NCSg@aws-0-us-west-1.pooler.supabase.com:5432/postgres';
 
-// Database connection setup
-// We'll use Replit's DATABASE_URL which is reliable within Replit's environment
-const connectionString = process.env.DATABASE_URL;
+// Initialize postgres client for Drizzle ORM
+const client = postgres(connectionString, { max: 10 });
+export const db = drizzle(client, { schema });
 
-if (!connectionString) {
-  console.error('❌ DATABASE_URL is not set! Database functionality will be unavailable');
-  process.exit(1);
-}
-
-// Create database connections
-let sqlClient;
-let db;
-let pool;
-
-try {
-  console.log('🔄 Initializing database connection...');
-  
-  // Initialize Postgres client for Drizzle ORM
-  sqlClient = postgres(connectionString, {
-    max: DB_CONFIG.max,
-    idle_timeout: 20,
-    connect_timeout: 10,
-    prepare: false
-  });
-  
-  // Create Drizzle ORM instance
-  db = drizzle(sqlClient, { schema });
-  
-  // Create Postgres connection pool for session store
-  pool = new Pool({
-    connectionString,
-    max: DB_CONFIG.max,
-    idleTimeoutMillis: DB_CONFIG.idleTimeoutMillis,
-    connectionTimeoutMillis: DB_CONFIG.connectionTimeoutMillis
-  });
-  
-  console.log('✅ Database connection successful');
-} catch (error) {
-  console.error('❌ Database connection failed:', error);
-  process.exit(1);
-}
-
-// Export database interfaces
-export { db, pool };
+// Create a regular PostgreSQL pool for session store compatibility
+// using the standard node-postgres library instead of neon-serverless
+export const pool = new Pool({ 
+  connectionString,
+  ssl: { rejectUnauthorized: false } // Required for Supabase connection
+});

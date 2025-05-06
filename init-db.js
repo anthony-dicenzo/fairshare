@@ -11,22 +11,14 @@ const { neonConfig } = await import('@neondatabase/serverless');
 // Enable WebSocket for Neon
 neonConfig.webSocketConstructor = ws;
 
-// Ensure SUPABASE_CONNECTION_STRING is available (exclusively use Supabase)
-if (!process.env.SUPABASE_CONNECTION_STRING) {
-  console.error('SUPABASE_CONNECTION_STRING environment variable is not set');
-  console.error('Please set the SUPABASE_CONNECTION_STRING environment variable');
+// Ensure DATABASE_URL is available
+if (!process.env.DATABASE_URL) {
+  console.error('DATABASE_URL environment variable is not set');
   process.exit(1);
 }
 
-// For compatibility with existing code, temporarily set DATABASE_URL to SUPABASE_CONNECTION_STRING
-process.env.DATABASE_URL = process.env.SUPABASE_CONNECTION_STRING;
-console.log('Using Supabase connection for database operations...');
-
-// Create pool and drizzle instance with Supabase connection
-const pool = new Pool({ 
-  connectionString: process.env.SUPABASE_CONNECTION_STRING,
-  ssl: { rejectUnauthorized: false } // Required for Supabase connection
-});
+// Create pool and drizzle instance
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 async function initDatabase() {
   try {
