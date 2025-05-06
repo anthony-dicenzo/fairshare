@@ -2,14 +2,22 @@ const { Pool } = require('@neondatabase/serverless');
 const { drizzle } = require('drizzle-orm/neon-serverless');
 const schema = require('./shared/schema');
 
-// Ensure DATABASE_URL is available
-if (!process.env.DATABASE_URL) {
-  console.error('DATABASE_URL environment variable is not set');
+// Ensure SUPABASE_CONNECTION_STRING is available (exclusively use Supabase)
+if (!process.env.SUPABASE_CONNECTION_STRING) {
+  console.error('SUPABASE_CONNECTION_STRING environment variable is not set');
+  console.error('Please set the SUPABASE_CONNECTION_STRING environment variable');
   process.exit(1);
 }
 
-// Create pool and drizzle instance
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+// For compatibility with drizzle.config.ts, set DATABASE_URL to SUPABASE_CONNECTION_STRING
+process.env.DATABASE_URL = process.env.SUPABASE_CONNECTION_STRING;
+console.log('Using Supabase connection for database operations...');
+
+// Create pool and drizzle instance with Supabase connection
+const pool = new Pool({ 
+  connectionString: process.env.SUPABASE_CONNECTION_STRING,
+  ssl: { rejectUnauthorized: false } // Required for Supabase connection
+});
 const db = drizzle(pool, { schema });
 
 // Directly create the schema from our schema definitions
