@@ -4,23 +4,43 @@ import postgres from 'postgres';
 import * as schema from "@shared/schema";
 import { Pool } from 'pg';  // Using standard pg instead of neon-serverless
 
-// Fixed hardcoded Supabase credentials (in production you would use environment variables)
-const supabaseUrl = 'https://smrsiolztcggakkgtyab.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtcnNpb2x6dGNnZ2Fra2d0eWFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0ODA2MjEsImV4cCI6MjA2MjA1NjYyMX0.2Cr3iYDNyaXUNtrYRX0OOI4mnG6od5fY7CYcLU-NCSg';
+// Get Supabase credentials from environment variables
+const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
+const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || '';
+
+if (!supabaseUrl || !supabaseKey) {
+  console.warn('Supabase credentials missing! Please check your environment variables.');
+}
 
 // Create Supabase client
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Use the existing DATABASE_URL with fallback to a fixed connection string
-const connectionString = process.env.DATABASE_URL || 'postgres://postgres.smrsiolztcggakkgtyab:eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtcnNpb2x6dGNnZ2Fra2d0eWFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0ODA2MjEsImV4cCI6MjA2MjA1NjYyMX0.2Cr3iYDNyaXUNtrYRX0OOI4mnG6od5fY7CYcLU-NCSg@aws-0-us-west-1.pooler.supabase.com:5432/postgres';
+// Prioritize Replit's DATABASE_URL for reliability
+const connectionString = process.env.DATABASE_URL || process.env.SUPABASE_CONNECTION_STRING || '';
 
-// Initialize postgres client for Drizzle ORM
-const client = postgres(connectionString, { max: 10 });
+if (!connectionString) {
+  console.error('No database connection string available! Application will not function correctly.');
+}
+
+console.log('Using database connection...');
+
+// Initialize postgres client for Drizzle ORM with more robust settings
+const client = postgres(connectionString, { 
+  max: 10,
+  idle_timeout: 20,
+  connect_timeout: 10,
+  prepare: false, // Disable prepared statements for better compatibility
+  ssl: true, // Enable SSL for secure connections
+});
+
+// Create database instance with schema
 export const db = drizzle(client, { schema });
 
 // Create a regular PostgreSQL pool for session store compatibility
-// using the standard node-postgres library instead of neon-serverless
 export const pool = new Pool({ 
   connectionString,
-  ssl: { rejectUnauthorized: false } // Required for Supabase connection
+  ssl: { rejectUnauthorized: false }, // Required for secure connections
+  max: 10, // Match the postgres client's max connections
+  idleTimeoutMillis: 30000, // 30 seconds
+  connectionTimeoutMillis: 10000, // 10 seconds
 });
