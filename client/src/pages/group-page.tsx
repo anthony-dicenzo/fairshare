@@ -21,10 +21,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function GroupPage() {
-  // Get the group ID and optional 'from' parameter from the URL
-  const params = useParams<{ id: string; from?: string }>();
-  const [, navigate] = useLocation();
+  // Get the group ID from the URL parameters
+  const params = useParams<{ id: string }>();
+  const [location, navigate] = useLocation();
   const { toast } = useToast();
+  
+  // Check if this is a newly created group by checking URL query parameters
+  const isNewGroup = location.includes('?from=newGroup');
   
   // Safely extract the group ID from params
   const groupId = params && params.id ? parseInt(params.id) : 0;
@@ -410,7 +413,7 @@ export default function GroupPage() {
                 <Users className="h-4 w-4" />
                 <span className="hidden sm:inline ml-1">Invite</span>
               </Button>
-              {params && params.from === 'newGroup' && (
+              {isNewGroup && (
                 <div className="absolute left-1/2 -translate-x-1/2 -bottom-8 whitespace-nowrap bg-fairshare-primary/10 text-fairshare-primary text-xs px-3 py-1 rounded-full animate-pulse">
                   Invite members
                 </div>
