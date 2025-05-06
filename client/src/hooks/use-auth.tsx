@@ -307,18 +307,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const googleSignInMutation = useMutation<SafeUser, Error, void>({
     mutationFn: async () => {
       try {
+        console.log("Starting Google sign-in process");
         // Clear any existing auth data
         localStorage.removeItem("fairshare_auth_state");
         queryClient.clear();
         
         // Sign in with Google using Firebase
+        console.log("Initiating Firebase Google auth popup");
         const result = await signInWithPopup(auth, googleProvider);
+        console.log("Google sign-in successful, user:", result.user.email);
         
         // Get user info from Google
         const user = result.user;
         const idToken = await user.getIdToken();
+        console.log("Retrieved Google ID token");
         
         // Send the token to our backend to either log in or register the user
+        console.log("Sending Google auth data to backend");
         const res = await fetch("/api/google-auth", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -330,13 +335,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           credentials: "include"
         });
         
+        console.log("Backend response status:", res.status);
         if (!res.ok) {
           const errorData = await res.json().catch(() => null);
           const errorMessage = errorData?.error || res.statusText;
+          console.error("Backend error response:", errorData);
           throw new Error(errorMessage);
         }
         
         const userData = await res.json();
+        console.log("Backend auth successful, user data:", userData);
         
         // Save auth state to localStorage
         localStorage.setItem("fairshare_auth_state", JSON.stringify({
@@ -351,6 +359,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return cleanUserData;
       } catch (error) {
         console.error("Google sign-in error:", error);
+        // Check for Firebase auth errors
+        if (error && typeof error === 'object' && 'code' in error) {
+          const firebaseError = error as { code: string; message?: string };
+          switch(firebaseError.code) {
+            case 'auth/popup-blocked':
+              throw new Error('The Google sign-in popup was blocked by your browser. Please allow popups for this site.');
+            case 'auth/popup-closed-by-user':
+              throw new Error('The Google sign-in was cancelled. Please try again.');
+            case 'auth/cancelled-popup-request':
+              throw new Error('Another authentication request is in progress.');
+            case 'auth/network-request-failed':
+              throw new Error('Network error. Please check your internet connection and try again.');
+            default:
+              throw new Error(`Google authentication error: ${firebaseError.message || 'Unknown error'}`);
+          }
+        }
+        
         if (error instanceof Error) {
           throw error;
         }

@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { FC } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 interface GoogleSignInButtonProps {
   className?: string;
@@ -8,12 +9,23 @@ interface GoogleSignInButtonProps {
 
 export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = "" }) => {
   const { googleSignInMutation } = useAuth();
+  const { toast } = useToast();
 
   const handleGoogleSignIn = async () => {
     try {
+      console.log("Google Sign-In button clicked");
+      toast({
+        title: "Initiating Google Sign-In",
+        description: "Connecting to Google authentication..."
+      });
       googleSignInMutation.mutate();
     } catch (error) {
       console.error("Google sign-in error:", error);
+      toast({
+        title: "Google Sign-In Failed",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive"
+      });
     }
   };
 
