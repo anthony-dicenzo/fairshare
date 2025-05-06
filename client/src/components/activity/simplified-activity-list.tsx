@@ -14,7 +14,7 @@ import {
   Edit
 } from "lucide-react";
 import { ActivityItemAction } from "@/components/activity/activity-item-action";
-import { apiRequest } from "@/lib/queryClient";
+
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type Activity = {
@@ -55,9 +55,15 @@ export function SimplifiedActivityList() {
   const { data: rawExpenseActivityData, isLoading: isLoadingExpense } = useQuery<{ activities: Activity[] }>({
     queryKey: ["/api/activity", "expenses"],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/activity?type=expenses");
-      const data = await response.json();
-      return data;
+      // Use normal fetch instead of apiRequest to avoid type issues
+      const response = await fetch("/api/activity?type=expenses", {
+        method: "GET",
+        credentials: "include"
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch expense activity data");
+      }
+      return response.json();
     },
     enabled: activeTab === "expenses",
   });
@@ -68,9 +74,15 @@ export function SimplifiedActivityList() {
   const { data: rawPaymentActivityData, isLoading: isLoadingPayment } = useQuery<{ activities: Activity[] }>({
     queryKey: ["/api/activity", "payments"],
     queryFn: async () => {
-      const response = await apiRequest("/api/activity?type=payments", { method: "GET" });
-      const data = await response.json();
-      return data;
+      // Use normal fetch instead of apiRequest to avoid type issues
+      const response = await fetch("/api/activity?type=payments", {
+        method: "GET",
+        credentials: "include"
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch payment activity data");
+      }
+      return response.json();
     },
     enabled: activeTab === "payments",
   });
