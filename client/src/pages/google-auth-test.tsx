@@ -9,6 +9,7 @@ import {
   GoogleAuthProvider 
 } from "firebase/auth";
 import FirebaseDomainErrorGuide from "@/components/auth/firebase-domain-error-guide";
+import FirebaseOperationErrorGuide from "@/components/auth/firebase-operation-error-guide";
 
 // A standalone test page for Google Authentication
 export function GoogleAuthTestPage() {
@@ -125,8 +126,9 @@ export function GoogleAuthTestPage() {
     }
   };
 
-  // Check if the error is related to unauthorized domain
+  // Check for specific Firebase errors
   const isUnauthorizedDomainError = error?.includes('auth/unauthorized-domain');
+  const isOperationNotAllowedError = error?.includes('auth/operation-not-allowed');
   
   return (
     <div className="p-8 max-w-md mx-auto bg-white rounded-xl shadow-md">
@@ -154,6 +156,11 @@ export function GoogleAuthTestPage() {
       {/* Show domain error guide if we have an unauthorized domain error */}
       {isUnauthorizedDomainError && (
         <FirebaseDomainErrorGuide />
+      )}
+      
+      {/* Show operation not allowed guide */}
+      {isOperationNotAllowedError && (
+        <FirebaseOperationErrorGuide />
       )}
       
       {/* Show general error message for all errors */}

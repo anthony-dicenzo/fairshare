@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { auth, googleProvider } from "@/lib/firebase";
 import { signInWithRedirect, signInWithPopup, getRedirectResult } from "firebase/auth";
 import FirebaseDomainErrorGuide from "@/components/auth/firebase-domain-error-guide";
+import FirebaseOperationErrorGuide from "@/components/auth/firebase-operation-error-guide";
 
 interface GoogleSignInButtonProps {
   className?: string;
@@ -226,19 +227,29 @@ export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = ""
       if (error && typeof error === 'object' && 'code' in error) {
         const firebaseError = error as { code: string; message?: string };
         
+        // Dispatch custom event to notify other components
+        const errorEvent = new CustomEvent('firebase-auth-error', { 
+          detail: { error: firebaseError } 
+        });
+        window.dispatchEvent(errorEvent);
+        
         if (firebaseError.code === 'auth/configuration-not-found' || firebaseError.code === 'auth/unauthorized-domain') {
           setShowDomainError(true);
           localStorage.setItem('firebase_auth_error', firebaseError.code);
           
-          // Dispatch custom event to notify other components
-          const errorEvent = new CustomEvent('firebase-auth-error', { 
-            detail: { error: firebaseError } 
-          });
-          window.dispatchEvent(errorEvent);
-          
           toast({
             title: "Google Sign-In Failed",
             description: "Your domain needs to be registered in Firebase. See instructions below.",
+            variant: "destructive"
+          });
+          return;
+        } else if (firebaseError.code === 'auth/operation-not-allowed') {
+          setShowOperationError(true);
+          localStorage.setItem('firebase_auth_error', firebaseError.code);
+          
+          toast({
+            title: "Google Sign-In Not Enabled",
+            description: "Google authentication needs to be enabled in your Firebase project settings.",
             variant: "destructive"
           });
           return;
@@ -253,29 +264,43 @@ export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = ""
     }
   };
 
-  // State to track if we've seen the unauthorized domain error
+  // State to track if we've seen specific Firebase errors
   const [showDomainError, setShowDomainError] = useState<boolean>(false);
+  const [showOperationError, setShowOperationError] = useState<boolean>(false);
   
-  // Check for unauthorized domain error in caught errors
+  // Check for Firebase errors in localStorage on mount
   useEffect(() => {
-    const checkForUnauthorizedDomainError = () => {
-      // Check localStorage for previously stored error
+    const checkForStoredErrors = () => {
+      // Check localStorage for previously stored errors
       const storedError = localStorage.getItem('firebase_auth_error');
-      if (storedError && storedError.includes('auth/unauthorized-domain')) {
-        setShowDomainError(true);
+      
+      if (storedError) {
+        if (storedError.includes('auth/unauthorized-domain')) {
+          setShowDomainError(true);
+        } else if (storedError.includes('auth/operation-not-allowed')) {
+          setShowOperationError(true);
+        }
       }
     };
     
-    checkForUnauthorizedDomainError();
+    checkForStoredErrors();
   }, []);
   
   // Listen for errors in the current session
   useEffect(() => {
     const handleAuthError = (event: CustomEvent) => {
-      if (event.detail?.error?.code === 'auth/unauthorized-domain') {
-        setShowDomainError(true);
+      if (event.detail?.error?.code) {
+        const errorCode = event.detail.error.code;
+        
         // Store error in localStorage so we can persist across page loads
-        localStorage.setItem('firebase_auth_error', event.detail.error.code);
+        localStorage.setItem('firebase_auth_error', errorCode);
+        
+        // Set specific error state based on the error type
+        if (errorCode === 'auth/unauthorized-domain') {
+          setShowDomainError(true);
+        } else if (errorCode === 'auth/operation-not-allowed') {
+          setShowOperationError(true);
+        }
       }
     };
     
@@ -327,6 +352,13 @@ export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = ""
       {showDomainError && (
         <div className="mt-4">
           <FirebaseDomainErrorGuide />
+        </div>
+      )}
+      
+      {/* Show operation not allowed error guide */}
+      {showOperationError && (
+        <div className="mt-4">
+          <FirebaseOperationErrorGuide />
         </div>
       )}
     </div>
