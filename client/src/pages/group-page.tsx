@@ -403,16 +403,23 @@ export default function GroupPage() {
                 Back to Groups
               </Link>
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setShowInviteModal(true)}
-              className="bg-[#E3976E] hover:bg-[#D38761] text-white border-[#E3976E] rounded-md"
-            >
-              <Users className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Invite Members</span>
-              <span className="sm:hidden">Invite</span>
-            </Button>
+            <div className="relative">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowInviteModal(true)}
+                className="bg-[#32846b] hover:bg-[#276b55] text-white border-[#32846b] rounded-md"
+              >
+                <Users className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Invite Members</span>
+                <span className="sm:hidden">Invite</span>
+              </Button>
+              {params && params.from === 'newGroup' && (
+                <div className="absolute left-1/2 -translate-x-1/2 -bottom-8 whitespace-nowrap bg-[#32846b]/10 text-[#32846b] text-xs px-3 py-1 rounded-full animate-pulse">
+                  Click here to invite members
+                </div>
+              )}
+            </div>
 
             <Button 
               variant="ghost" 
