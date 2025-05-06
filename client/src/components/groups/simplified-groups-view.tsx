@@ -72,7 +72,7 @@ export function SimplifiedGroupsView() {
           </h2>
           <Button 
             onClick={() => setShowGroupModal(true)}
-            className="bg-[#32846b] text-white hover:bg-[#276b55] rounded-lg py-1 px-4 text-sm font-medium shadow-sm transition-colors"
+            className="bg-[#32846b] text-white hover:bg-[#276b55] rounded-md py-1 px-4 text-sm font-medium shadow-sm transition-colors"
             size="sm"
           >
             <Plus className="h-3 w-3 mr-1 text-white" />
@@ -84,7 +84,7 @@ export function SimplifiedGroupsView() {
           <p className="text-fairshare-dark/70 mb-4">You don't have any groups yet</p>
           <Button 
             onClick={() => setShowGroupModal(true)}
-            className="bg-[#32846b] text-white hover:bg-[#276b55] rounded-lg px-6 py-2 font-medium shadow-sm transition-colors"
+            className="bg-[#32846b] text-white hover:bg-[#276b55] rounded-md px-6 py-2 font-medium shadow-sm transition-colors"
           >
             <Plus className="h-4 w-4 mr-2 text-white" />
             Create Group
@@ -105,7 +105,7 @@ export function SimplifiedGroupsView() {
         </h2>
         <Button 
           onClick={() => setShowGroupModal(true)}
-          className="bg-[#32846b] text-white hover:bg-[#276b55] rounded-lg py-1 px-4 text-sm font-medium shadow-sm transition-colors"
+          className="bg-[#32846b] text-white hover:bg-[#276b55] rounded-md py-1 px-4 text-sm font-medium shadow-sm transition-colors"
           size="sm"
         >
           <Plus className="h-3 w-3 mr-1 text-white" />

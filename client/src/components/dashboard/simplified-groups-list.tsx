@@ -174,12 +174,12 @@ export function SimplifiedGroupsList({
               : "Hiding groups you settled up with over 7 days ago"}
           </p>
           <button
-            className="w-11/12 mx-auto text-sm text-[#32846b] bg-[#f5f5f5] hover:bg-white mt-2 rounded-full py-2 px-4 block shadow-sm transition-colors"
+            className="w-11/12 mx-auto text-sm text-[#32846b] bg-white hover:bg-[#32846b]/5 mt-2 rounded-full py-2 px-4 block shadow-sm transition-colors"
             onClick={() => setShowSettled(!showSettled)}
           >
             {showSettled 
-              ? `Hide ${settledGroupCount} settled-up groups` 
-              : `Show ${settledGroupCount} settled-up groups`}
+              ? `Hide ${settledGroupCount} settled-up ${settledGroupCount === 1 ? 'group' : 'groups'}` 
+              : `Show ${settledGroupCount} settled-up ${settledGroupCount === 1 ? 'group' : 'groups'}`}
           </button>
         </div>
       )}
