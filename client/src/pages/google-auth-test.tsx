@@ -8,6 +8,7 @@ import {
   getRedirectResult, 
   GoogleAuthProvider 
 } from "firebase/auth";
+import FirebaseDomainErrorGuide from "@/components/auth/firebase-domain-error-guide";
 
 // A standalone test page for Google Authentication
 export function GoogleAuthTestPage() {
@@ -124,6 +125,9 @@ export function GoogleAuthTestPage() {
     }
   };
 
+  // Check if the error is related to unauthorized domain
+  const isUnauthorizedDomainError = error?.includes('auth/unauthorized-domain');
+  
   return (
     <div className="p-8 max-w-md mx-auto bg-white rounded-xl shadow-md">
       <h1 className="text-2xl font-bold mb-4">Google Authentication Test</h1>
@@ -147,6 +151,12 @@ export function GoogleAuthTestPage() {
         </Button>
       </div>
       
+      {/* Show domain error guide if we have an unauthorized domain error */}
+      {isUnauthorizedDomainError && (
+        <FirebaseDomainErrorGuide />
+      )}
+      
+      {/* Show general error message for all errors */}
       {error && (
         <div className="p-4 bg-red-50 text-red-700 rounded-md mb-4">
           <h3 className="font-bold">Error:</h3>
