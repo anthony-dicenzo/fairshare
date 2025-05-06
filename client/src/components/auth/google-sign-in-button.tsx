@@ -62,6 +62,21 @@ export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = ""
         }
       } catch (error) {
         console.error("Error processing Google redirect result:", error);
+        
+        // Check for specific Firebase errors
+        if (error && typeof error === 'object' && 'code' in error) {
+          const firebaseError = error as { code: string; message?: string };
+          
+          if (firebaseError.code === 'auth/configuration-not-found') {
+            toast({
+              title: "Google Sign-In Failed",
+              description: "Firebase configuration issue detected. Make sure your app domain is registered in the Firebase console's authorized domains list.",
+              variant: "destructive"
+            });
+            return;
+          }
+        }
+        
         toast({
           title: "Google Sign-In Failed",
           description: error instanceof Error ? error.message : "An unknown error occurred",
@@ -96,6 +111,21 @@ export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = ""
     } catch (error) {
       setIsSigningIn(false);
       console.error("Google sign-in redirect error:", error);
+      
+      // Check for specific Firebase errors
+      if (error && typeof error === 'object' && 'code' in error) {
+        const firebaseError = error as { code: string; message?: string };
+        
+        if (firebaseError.code === 'auth/configuration-not-found') {
+          toast({
+            title: "Google Sign-In Failed",
+            description: "Firebase configuration issue detected. Make sure your app domain is registered in the Firebase console's authorized domains list.",
+            variant: "destructive"
+          });
+          return;
+        }
+      }
+      
       toast({
         title: "Google Sign-In Failed",
         description: error instanceof Error ? error.message : "An unknown error occurred",
