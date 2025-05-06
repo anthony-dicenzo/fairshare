@@ -74,7 +74,7 @@ export function SimplifiedGroupsList() {
             onClick={() => setLocation(`/group/${group.id}`)}
           >
             <div className="flex items-center">
-              <Avatar className="h-10 w-10 bg-[#E7EDE4] text-fairshare-primary mr-3">
+              <Avatar className="h-10 w-10 bg-[#E7EDE4] text-[#32846b] mr-3">
                 <AvatarFallback>{initial}</AvatarFallback>
               </Avatar>
               <div>
@@ -105,7 +105,7 @@ export function SimplifiedGroupsList() {
             onClick={() => setLocation(`/group/${group.id}`)}
           >
             <div className="flex items-center">
-              <Avatar className="h-10 w-10 bg-[#E7EDE4] text-fairshare-primary mr-3">
+              <Avatar className="h-10 w-10 bg-[#E7EDE4] text-[#32846b] mr-3">
                 <AvatarFallback>{initial}</AvatarFallback>
               </Avatar>
               <div>

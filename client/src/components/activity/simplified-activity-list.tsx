@@ -162,7 +162,7 @@ export function SimplifiedActivityList() {
                     {activity.group && (
                       <Link 
                         href={`/group/${activity.group.id}`} 
-                        className="text-fairshare-primary hover:underline"
+                        className="text-[#32846b] hover:underline"
                         onClick={(e) => e.stopPropagation()} // Prevent clicking the wrapper
                       >
                         {activity.group.name}
@@ -190,8 +190,8 @@ function ActivityIcon({ type }: { type: string }) {
   switch (type) {
     case "add_expense":
       return (
-        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-          <ShoppingBag className={`${iconClassName} text-primary`} />
+        <div className="w-8 h-8 rounded-full bg-[#32846b]/10 flex items-center justify-center">
+          <ShoppingBag className={`${iconClassName} text-[#32846b]`} />
         </div>
       );
     case "record_payment":
