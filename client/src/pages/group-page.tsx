@@ -476,7 +476,7 @@ export default function GroupPage() {
                   </p>
                   <Button 
                     onClick={() => setShowExpenseModal(true)}
-                    className="bg-[#32846b] hover:bg-[#276b55] text-white border-[#32846b]"
+                    className="bg-[#32846b] hover:bg-[#276b55] text-white border-[#32846b] rounded-md"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Expense
@@ -528,7 +528,7 @@ export default function GroupPage() {
                         onClick={loadMoreExpenses}
                         variant="outline"
                         disabled={isLoadingMoreExpenses || isFetchingNextPage}
-                        className="w-full"
+                        className="w-full text-[#32846b] border-[#32846b]/30 hover:bg-[#32846b]/5 rounded-md"
                       >
                         {isLoadingMoreExpenses || isFetchingNextPage ? (
                           <span className="flex items-center">
@@ -557,7 +557,7 @@ export default function GroupPage() {
                   size="sm" 
                   onClick={() => refreshBalancesMutation.mutate()}
                   disabled={refreshBalancesMutation.isPending}
-                  className="gap-2 bg-[#32846b] hover:bg-[#276b55] text-white border-[#32846b]"
+                  className="gap-2 bg-[#32846b] hover:bg-[#276b55] text-white border-[#32846b] rounded-md"
                 >
                   <RefreshCw className={`h-4 w-4 ${refreshBalancesMutation.isPending ? 'animate-spin' : ''}`} />
                   {refreshBalancesMutation.isPending ? 'Refreshing...' : 'Refresh Balances'}
@@ -638,7 +638,7 @@ export default function GroupPage() {
                           onClick={loadMoreActivity}
                           variant="outline"
                           disabled={isLoadingMoreActivity || isFetchingNextActivityPage}
-                          className="w-full"
+                          className="w-full text-[#32846b] border-[#32846b]/30 hover:bg-[#32846b]/5 rounded-md"
                         >
                           {isLoadingMoreActivity || isFetchingNextActivityPage ? (
                             <span className="flex items-center">
