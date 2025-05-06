@@ -421,7 +421,11 @@ export default function GroupPage() {
                 variant="outline" 
                 size="sm"
                 onClick={() => setShowInviteModal(true)}
-                className="bg-fairshare-primary hover:bg-fairshare-primary/90 text-white border-fairshare-primary rounded-md h-8 px-3"
+                className={`text-white border-fairshare-primary rounded-md h-8 px-3 ${
+                  showInviteNotification 
+                  ? 'animate-flash-mango' 
+                  : 'bg-fairshare-primary hover:bg-fairshare-primary/90'
+                }`}
               >
                 <Users className="h-4 w-4" />
                 <span className="hidden sm:inline ml-1">Invite</span>
@@ -441,7 +445,7 @@ export default function GroupPage() {
                   style={{
                     bottom: "calc(100% + 8px)",
                     right: "auto",
-                    left: "-130px",
+                    left: "-75px",
                     whiteSpace: "nowrap",
                     zIndex: 50,
                     maxWidth: "180px"
