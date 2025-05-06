@@ -54,32 +54,71 @@ export function SimplifiedGroupsList() {
   const unsettledGroups = groups.filter(group => Math.abs(group.balance || 0) >= 0.01);
   const settledGroups = groups.filter(group => Math.abs(group.balance || 0) < 0.01);
 
-  // Number of settled groups (0 for matching the requirement)
-  const settledGroupCount = 0;
+  // Get the settled groups count
+  const settledGroupCount = settledGroups.length;
   
   return (
     <div className="space-y-2 px-4">
-      {/* Group card that matches the reference image */}
-      <div 
-        className="bg-white rounded-lg p-3 flex items-center justify-between"
-        onClick={() => setLocation(`/group/1`)}
-      >
-        <div className="flex items-center">
-          <Avatar className="h-10 w-10 bg-[#E7EDE4] text-fairshare-primary mr-3">
-            <AvatarFallback>H</AvatarFallback>
-          </Avatar>
-          <div>
-            <h3 className="font-medium text-fairshare-dark">House of Anthica</h3>
-            <p className="text-sm text-fairshare-dark/70">
-              You owe Jes
-            </p>
+      {/* Render actual unsettled groups */}
+      {unsettledGroups.map(group => {
+        // Get first letter of group name for avatar
+        const initial = group.name.charAt(0).toUpperCase();
+        const balance = group.balance || 0;
+        const isNegativeBalance = balance < 0;
+        const balanceAbs = Math.abs(balance);
+          
+        return (
+          <div 
+            key={group.id}
+            className="bg-white rounded-lg p-3 flex items-center justify-between"
+            onClick={() => setLocation(`/group/${group.id}`)}
+          >
+            <div className="flex items-center">
+              <Avatar className="h-10 w-10 bg-[#E7EDE4] text-fairshare-primary mr-3">
+                <AvatarFallback>{initial}</AvatarFallback>
+              </Avatar>
+              <div>
+                <h3 className="font-medium text-fairshare-dark">{group.name}</h3>
+                <p className="text-sm text-fairshare-dark/70">
+                  {isNegativeBalance ? 'You owe others' : 'Others owe you'}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-rose-500 mb-1">{isNegativeBalance ? 'you owe' : 'you are owed'}</p>
+              <p className={`font-medium ${isNegativeBalance ? 'text-rose-500' : 'text-green-600'}`}>
+                ${balanceAbs.toFixed(2)}
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="text-right">
-          <p className="text-xs text-rose-500 mb-1">you owe</p>
-          <p className="font-medium text-rose-500">$1942.77</p>
-        </div>
-      </div>
+        );
+      })}
+      
+      {/* Show settled groups if available */}
+      {showSettled && settledGroups.map(group => {
+        const initial = group.name.charAt(0).toUpperCase();
+        
+        return (
+          <div 
+            key={group.id}
+            className="bg-white rounded-lg p-3 flex items-center justify-between"
+            onClick={() => setLocation(`/group/${group.id}`)}
+          >
+            <div className="flex items-center">
+              <Avatar className="h-10 w-10 bg-[#E7EDE4] text-fairshare-primary mr-3">
+                <AvatarFallback>{initial}</AvatarFallback>
+              </Avatar>
+              <div>
+                <h3 className="font-medium text-fairshare-dark">{group.name}</h3>
+                <p className="text-sm text-green-600">Settled up</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="font-medium text-green-600">$0.00</p>
+            </div>
+          </div>
+        );
+      })}
       
       {/* Settled groups section */}
       <div className="mt-4 pt-2 text-center">

@@ -23,14 +23,14 @@ export function SimplifiedBalanceSummary() {
     return null;
   }
 
-  // Using a specific amount to match the reference image
-  const amountOwed = 1942.77; // Matching the first reference image
+  // Use the real balance data from the API
+  const { totalOwes } = balances;
 
   return (
     <div className="py-4 px-4 border-b border-gray-200/50">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-medium text-fairshare-dark">
-          Overall, you owe <span className="text-rose-500">${amountOwed.toFixed(2)}</span>
+          Overall, you owe <span className="text-rose-500">${totalOwes.toFixed(2)}</span>
         </h2>
         <button className="text-fairshare-dark p-1">
           <AlignJustify className="h-5 w-5" />
