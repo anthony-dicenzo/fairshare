@@ -72,7 +72,7 @@ export function SimplifiedGroupsView() {
           </h2>
           <Button 
             onClick={() => setShowGroupModal(true)}
-            className="text-fairshare-primary bg-green-50 border border-fairshare-primary/30 rounded-full"
+            className="text-green-600 bg-green-50 hover:bg-green-100 border border-green-200 rounded-full py-1 px-4 text-sm font-medium transition-colors"
             variant="outline"
             size="sm"
           >
@@ -84,7 +84,8 @@ export function SimplifiedGroupsView() {
           <p className="text-fairshare-dark/70 mb-4">You don't have any groups yet</p>
           <Button 
             onClick={() => setShowGroupModal(true)}
-            className="bg-fairshare-primary text-white rounded-full px-6 py-2"
+            className="bg-green-50 text-green-600 hover:bg-green-100 border border-green-200 rounded-full px-6 py-2 font-medium transition-colors"
+            variant="outline"
           >
             <Plus className="h-4 w-4 mr-2" />
             Create Group
@@ -105,7 +106,7 @@ export function SimplifiedGroupsView() {
         </h2>
         <Button 
           onClick={() => setShowGroupModal(true)}
-          className="text-green-600 bg-green-50 border border-green-600/30 rounded-full"
+          className="text-green-600 bg-green-50 hover:bg-green-100 border border-green-200 rounded-full py-1 px-4 text-sm font-medium transition-colors"
           variant="outline"
           size="sm"
         >
