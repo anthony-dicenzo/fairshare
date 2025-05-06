@@ -11,7 +11,8 @@ import { z } from "zod";
 import { 
   signInWithPopup, 
   GoogleAuthProvider, 
-  UserCredential 
+  UserCredential,
+  Auth
 } from "firebase/auth";
 import { auth, googleProvider } from "../lib/firebase";
 
@@ -312,9 +313,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem("fairshare_auth_state");
         queryClient.clear();
         
+        // Check if Firebase auth is initialized
+        if (!auth || !googleProvider) {
+          console.error("Firebase auth is not initialized correctly");
+          throw new Error("Google sign-in is not available. Please try again later or use email login.");
+        }
+        
         // Sign in with Google using Firebase
         console.log("Initiating Firebase Google auth popup");
-        const result = await signInWithPopup(auth, googleProvider);
+        // Cast is safe because we checked for null above
+        const result = await signInWithPopup(auth as Auth, googleProvider as GoogleAuthProvider);
         console.log("Google sign-in successful, user:", result.user.email);
         
         // Get user info from Google

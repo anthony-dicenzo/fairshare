@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, Auth } from "firebase/auth";
 
 // Log Firebase configuration details (without exposing the full API key)
 const apiKey = import.meta.env.VITE_FIREBASE_API_KEY || '';
@@ -24,9 +24,9 @@ const firebaseConfig = {
   appId,
 };
 
-// Declare variables for export
-let auth;
-let googleProvider;
+// Declare variables for export with proper types
+let auth: Auth | null = null;
+let googleProvider: GoogleAuthProvider | null = null;
 
 // Initialize Firebase
 try {
@@ -37,17 +37,13 @@ try {
   
   // Add login hint and select account prompt
   googleProvider.setCustomParameters({
-    prompt: 'select_account',
-    login_hint: 'user@example.com'
+    prompt: 'select_account'
   });
   
   console.log("Firebase initialized successfully");
 } catch (error) {
   console.error("Error initializing Firebase:", error);
-  
-  // Set fallback values to prevent app crashes
-  auth = null;
-  googleProvider = null;
+  console.error("Ensure you've provided the correct Firebase credentials in the environment variables.");
 }
 
 export { auth, googleProvider };

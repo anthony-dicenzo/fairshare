@@ -374,7 +374,7 @@ export function setupAuth(app: Express) {
   // Google Authentication endpoint
   app.post("/api/google-auth", async (req, res, next) => {
     try {
-      console.log("Google auth attempt received");
+      console.log("Google auth attempt received", req.body);
       
       // Validate required fields
       const googleAuthSchema = z.object({
@@ -383,22 +383,42 @@ export function setupAuth(app: Express) {
         email: z.string().email("Invalid email address").min(1, "Email is required"),
       });
       
-      const validatedData = googleAuthSchema.parse(req.body);
+      try {
+        var validatedData = googleAuthSchema.parse(req.body);
+      } catch (validationError) {
+        console.error("Google auth validation error:", validationError);
+        return res.status(400).json({ error: "Invalid request data", details: validationError });
+      }
+      
+      console.log("Google auth data validated. Verifying token with Google...");
       
       // Verify the token with Google
       const googleTokenVerificationUrl = `https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=${validatedData.token}`;
-      const verificationResponse = await fetch(googleTokenVerificationUrl);
-      
-      if (!verificationResponse.ok) {
-        console.error("Failed to verify Google token");
-        return res.status(401).json({ error: "Invalid Google authentication token" });
+      try {
+        var verificationResponse = await fetch(googleTokenVerificationUrl);
+        
+        if (!verificationResponse.ok) {
+          console.error("Failed to verify Google token:", verificationResponse.status, verificationResponse.statusText);
+          return res.status(401).json({ error: "Invalid Google authentication token" });
+        }
+      } catch (fetchError) {
+        console.error("Error contacting Google token verification service:", fetchError);
+        return res.status(500).json({ error: "Could not verify Google token. Please try again later." });
       }
       
       const tokenData = await verificationResponse.json() as any;
+      console.log("Google token verified successfully. Token data:", {
+        email: tokenData.email,
+        name: tokenData.name,
+        sub: tokenData.sub
+      });
       
       // Verify email matches
       if (tokenData.email !== validatedData.email) {
-        console.error("Email mismatch in Google token");
+        console.error("Email mismatch in Google token", { 
+          tokenEmail: tokenData.email, 
+          providedEmail: validatedData.email 
+        });
         return res.status(401).json({ error: "Email mismatch in authentication" });
       }
       
