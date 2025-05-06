@@ -230,10 +230,15 @@ export default function GroupPage() {
   
   // Set persistent notification when group is newly created
   useEffect(() => {
-    if (params && params.from === 'newGroup') {
+    // Check URL parameter or localStorage flag
+    if ((params && params.from === 'newGroup') || 
+        localStorage.getItem(`fairshare_invite_notification_${groupId}`) === 'true') {
       setShowInviteNotification(true);
+      
+      // Store the notification state in localStorage to persist across page refreshes
+      localStorage.setItem(`fairshare_invite_notification_${groupId}`, 'true');
     }
-  }, [params]);
+  }, [params, groupId]);
 
   // Force refresh balances and group data when component mounts
   useEffect(() => {
@@ -429,7 +434,10 @@ export default function GroupPage() {
                   size="sm"
                   animate={true}
                   icon={<AlertCircle className="h-3 w-3" />}
-                  onDismiss={() => setShowInviteNotification(false)}
+                  onDismiss={() => {
+                    setShowInviteNotification(false);
+                    localStorage.removeItem(`fairshare_invite_notification_${groupId}`);
+                  }}
                   style={{
                     top: "calc(100% + 8px)",
                     left: "50%",

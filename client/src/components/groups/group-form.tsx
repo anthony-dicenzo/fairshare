@@ -71,8 +71,12 @@ export function GroupForm({ open, onOpenChange }: GroupFormProps) {
         console.error("Failed to create default invite link", error);
       }
       
-      // Navigate to the newly created group
-      navigate(`/group/${newGroup.id}`);
+      // Navigate to the newly created group with the from=newGroup parameter
+      // to trigger the persistent notification
+      navigate(`/group/${newGroup.id}?from=newGroup`);
+      
+      // Also set the localStorage flag directly to ensure notification shows
+      localStorage.setItem(`fairshare_invite_notification_${newGroup.id}`, 'true');
       
       onOpenChange(false);
       form.reset();
