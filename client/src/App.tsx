@@ -14,6 +14,7 @@ import ActivityPage from "@/pages/activity-page";
 import ProfilePage from "@/pages/profile-page";
 import AuthPage from "@/pages/auth-page";
 import InvitePage from "@/pages/invite-page";
+import FirebaseDebugPage from "@/pages/firebase-debug";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -26,6 +27,7 @@ function Router() {
       <ProtectedRoute path="/profile" component={ProfilePage} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/invite/:inviteCode" component={InvitePage} />
+      <Route path="/firebase-debug" component={FirebaseDebugPage} />
       <Route component={NotFound} />
     </Switch>
   );
