@@ -1,5 +1,4 @@
 import { queryClient } from '@/lib/queryClient';
-import { apiRequest } from '@/lib/apiRequest';
 
 /**
  * Utility functions for handling balance cache synchronization
@@ -14,7 +13,17 @@ export async function refreshGroupBalancesAndInvalidateCaches(groupId: number | 
   
   try {
     // 1. Explicitly refresh the group balances via the API
-    await apiRequest('POST', `/api/groups/${groupIdStr}/refresh-balances`);
+    const response = await fetch(`/api/groups/${groupIdStr}/refresh-balances`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to refresh balances: ${response.status}`);
+    }
+    
     console.log(`Successfully refreshed balances for group ${groupIdStr}`);
     
     // 2. Invalidate all balance-related caches to ensure immediate UI updates
