@@ -206,21 +206,54 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
   // Helper to invalidate queries after updates
   const invalidateQueries = async () => {
     try {
+      // First, explicitly refresh the balances
       await apiRequest('POST', `/api/groups/${groupId}/refresh-balances`);
       
-      // Invalidate all related queries
+      // Invalidate the specific expense queries
       queryClient.invalidateQueries({ queryKey: [`/api/expenses/${expenseId}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/expenses/${expenseId}/participants`] });
+      
+      // Invalidate general queries
       queryClient.invalidateQueries({ queryKey: ["/api/balances"] });
       queryClient.invalidateQueries({ queryKey: ["/api/activity"] });
       queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
       
+      // For group-specific queries, ensure proper invalidation
       const groupIdStr = groupId.toString();
       queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}`] });
+      
+      // For expense deletion specifically, we need to update the group expenses cache
+      // This is important for immediate UI updates
+      if (deleteExpenseMutation.isPending || deleteExpenseMutation.isSuccess) {
+        // When deleting an expense, we need to update the cache directly
+        // Get the current expenses data from the cache
+        const expensesQueryKey = [`/api/groups/${groupIdStr}/expenses`];
+        const previousData = queryClient.getQueryData(expensesQueryKey);
+        
+        if (previousData) {
+          // For infinite queries, we need to update the pages
+          queryClient.setQueryData(expensesQueryKey, (oldData: any) => {
+            if (!oldData || !oldData.pages) return oldData;
+            
+            // Filter out the deleted expense from each page
+            const updatedPages = oldData.pages.map((page: any) => ({
+              ...page,
+              expenses: page.expenses.filter((expense: any) => expense.id !== expenseId)
+            }));
+            
+            return {
+              ...oldData,
+              pages: updatedPages
+            };
+          });
+        }
+      }
+      
+      // Always invalidate the expenses query to ensure data consistency
       queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/expenses`] });
       queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/balances`] });
       
-      // Force a complete cache reset
+      // Force a refetch of all queries for data consistency
       queryClient.invalidateQueries();
     } catch (error) {
       console.error('Failed to refresh data:', error);
