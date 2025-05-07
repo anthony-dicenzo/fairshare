@@ -1337,34 +1337,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "You are not a member of this group" });
       }
       
-      // Get all users in this group for later invalidation
-      const userIds = members.map(member => member.userId);
-      
       // Force recalculation of all balances
       const success = await storage.updateAllBalancesInGroup(groupId);
       
       if (success) {
-        // Explicitly invalidate the user balances cache for each user in the group
-        // This ensures that the dashboard displays correct totals
-        console.log(`Balances in group ${groupId} refreshed successfully. Updating total balance cache for ${userIds.length} users.`);
-        
-        // Get the latest updated individual balances for each user in this group
-        const updatedGroupBalances = await storage.getCachedGroupBalances(groupId);
-        
-        // Log the current balances for debugging
-        updatedGroupBalances.forEach(balance => {
-          console.log(`Current balance for user ${balance.userId} in group ${groupId}: ${balance.balance}`);
-        });
-        
-        res.status(200).json({ 
-          message: "Balances refreshed successfully",
-          updatedUsers: userIds
-        });
+        res.status(200).json({ message: "Balances refreshed successfully" });
       } else {
         res.status(500).json({ error: "Failed to refresh balances" });
       }
     } catch (error) {
-      console.error("Error refreshing balances:", error);
       res.status(500).json({ error: "Failed to refresh balances" });
     }
   });

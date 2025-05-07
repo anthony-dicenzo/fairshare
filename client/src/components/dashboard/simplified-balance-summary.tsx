@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Filter, X } from "lucide-react";
@@ -32,18 +32,9 @@ export function SimplifiedBalanceSummary({
   filterOpen?: boolean;
   setFilterOpen: (open: boolean) => void;
 }) {
-  const { data: balances, isLoading, refetch } = useQuery<Balance>({
+  const { data: balances, isLoading } = useQuery<Balance>({
     queryKey: ["/api/balances"],
-    staleTime: 10000, // Set a short stale time to ensure frequent refreshes
-    refetchOnMount: 'always', // Always refetch when the component mounts
-    refetchOnWindowFocus: true // Refetch when window gets focus
   });
-
-  // Use an effect to refetch data when component mounts
-  // This ensures we get the latest balances when returning from group pages
-  useEffect(() => {
-    refetch();
-  }, [refetch]);
 
   if (isLoading) {
     return <BalanceSummarySkeleton />;

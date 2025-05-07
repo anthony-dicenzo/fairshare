@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useQuery } from "@tanstack/react-query";
@@ -14,17 +13,9 @@ interface Balance {
 }
 
 export function BalanceSummary() {
-  const { data: balances, isLoading, refetch } = useQuery<Balance>({
+  const { data: balances, isLoading } = useQuery<Balance>({
     queryKey: ["/api/balances"],
-    staleTime: 10000, // Short stale time 
-    refetchOnMount: 'always', // Always refetch when component mounts
-    refetchOnWindowFocus: true // Refetch when window gets focus
   });
-  
-  // Force refetch when component mounts to ensure fresh data
-  useEffect(() => {
-    refetch();
-  }, [refetch]);
 
   if (isLoading) {
     return <BalanceSummarySkeleton />;
