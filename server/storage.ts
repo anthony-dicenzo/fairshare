@@ -369,49 +369,89 @@ export class DatabaseStorage implements IStorage {
         // Calculate how much userA owes userB directly
         const balanceAtoB = await this.calculateDirectBalance(groupId, userA, userB);
         
-        // Update or create the balance record for A to B
-        await db
-          .insert(userBalancesBetweenUsers)
-          .values({
-            groupId,
-            fromUserId: userA,
-            toUserId: userB,
-            balanceAmount: balanceAtoB.toString(),
-            lastUpdated: new Date()
-          })
-          .onConflictDoUpdate({
-            target: [
-              userBalancesBetweenUsers.groupId,
-              userBalancesBetweenUsers.fromUserId,
-              userBalancesBetweenUsers.toUserId
-            ],
-            set: {
-              balanceAmount: balanceAtoB.toString(),
-              lastUpdated: new Date()
-            }
-          });
-        
-        // The inverse balance (B to A) is just the negative of A to B
-        await db
-          .insert(userBalancesBetweenUsers)
-          .values({
-            groupId,
-            fromUserId: userB,
-            toUserId: userA,
-            balanceAmount: (-balanceAtoB).toString(),
-            lastUpdated: new Date()
-          })
-          .onConflictDoUpdate({
-            target: [
-              userBalancesBetweenUsers.groupId,
-              userBalancesBetweenUsers.fromUserId,
-              userBalancesBetweenUsers.toUserId
-            ],
-            set: {
-              balanceAmount: (-balanceAtoB).toString(),
-              lastUpdated: new Date()
-            }
-          });
+        try {
+          // First check if the balance record already exists for A to B
+          const existingAtoB = await db
+            .select()
+            .from(userBalancesBetweenUsers)
+            .where(
+              and(
+                eq(userBalancesBetweenUsers.groupId, groupId),
+                eq(userBalancesBetweenUsers.fromUserId, userA),
+                eq(userBalancesBetweenUsers.toUserId, userB)
+              )
+            );
+          
+          if (existingAtoB.length > 0) {
+            // Update existing record
+            await db
+              .update(userBalancesBetweenUsers)
+              .set({
+                balanceAmount: balanceAtoB.toString(),
+                lastUpdated: new Date()
+              })
+              .where(
+                and(
+                  eq(userBalancesBetweenUsers.groupId, groupId),
+                  eq(userBalancesBetweenUsers.fromUserId, userA),
+                  eq(userBalancesBetweenUsers.toUserId, userB)
+                )
+              );
+          } else {
+            // Insert new record
+            await db
+              .insert(userBalancesBetweenUsers)
+              .values({
+                groupId,
+                fromUserId: userA,
+                toUserId: userB,
+                balanceAmount: balanceAtoB.toString(),
+                lastUpdated: new Date()
+              });
+          }
+          
+          // Check if the inverse balance record exists for B to A
+          const existingBtoA = await db
+            .select()
+            .from(userBalancesBetweenUsers)
+            .where(
+              and(
+                eq(userBalancesBetweenUsers.groupId, groupId),
+                eq(userBalancesBetweenUsers.fromUserId, userB),
+                eq(userBalancesBetweenUsers.toUserId, userA)
+              )
+            );
+          
+          if (existingBtoA.length > 0) {
+            // Update existing record
+            await db
+              .update(userBalancesBetweenUsers)
+              .set({
+                balanceAmount: (-balanceAtoB).toString(),
+                lastUpdated: new Date()
+              })
+              .where(
+                and(
+                  eq(userBalancesBetweenUsers.groupId, groupId),
+                  eq(userBalancesBetweenUsers.fromUserId, userB),
+                  eq(userBalancesBetweenUsers.toUserId, userA)
+                )
+              );
+          } else {
+            // Insert new record
+            await db
+              .insert(userBalancesBetweenUsers)
+              .values({
+                groupId,
+                fromUserId: userB,
+                toUserId: userA,
+                balanceAmount: (-balanceAtoB).toString(),
+                lastUpdated: new Date()
+              });
+          }
+        } catch (error) {
+          console.error(`Error updating balance between users ${userA} and ${userB} in group ${groupId}:`, error);
+        }
       }
     }
   }
