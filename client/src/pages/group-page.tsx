@@ -18,7 +18,6 @@ import { Link } from "wouter";
 import { GroupInvite } from "@/components/groups/group-invite";
 import { ActionButtons } from "@/components/dashboard/action-buttons";
 import { apiRequest } from "@/lib/queryClient";
-import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -277,33 +276,11 @@ export default function GroupPage() {
   const refreshBalancesMutation = useMutation({
     mutationFn: async () => {
       const url = `/api/groups/${groupIdStr}/refresh-balances`;
-      const response = await apiRequest('POST', url);
-      const data = await response.json();
-      return data;
+      return await apiRequest('POST', url);
     },
-    onSuccess: (data) => {
-      // Refetch group balances
+    onSuccess: () => {
+      // Refetch balances after successful refresh
       refetchBalances();
-      
-      // If the server returned updated total balances, update the cache
-      if (data && data.totalBalances) {
-        // Update the total balances cache in React Query
-        queryClient.setQueryData(["/api/balances"], (oldData: any) => {
-          if (!oldData) return oldData;
-          
-          return {
-            ...oldData,
-            // Update the top-level balance totals with the fresh data from the server
-            totalOwed: data.totalBalances.totalOwed,
-            totalOwes: data.totalBalances.totalOwes,
-            netBalance: data.totalBalances.netBalance
-          };
-        });
-      }
-      
-      // Always invalidate the balances query to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ["/api/balances"] });
-      
       toast({
         title: "Balances refreshed",
         description: "The group balances have been recalculated."

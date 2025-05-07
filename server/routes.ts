@@ -1341,30 +1341,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const success = await storage.updateAllBalancesInGroup(groupId);
       
       if (success) {
-        // After updating group balances, ensure dashboard data is updated
-        // This is important to keep the dashboard balances in sync
-        try {
-          // Get the user's updated total balance data
-          const totalBalances = await storage.getUserCachedTotalBalance(req.user.id);
-          
-          // Return the updated balance data for immediate UI refresh
-          res.status(200).json({ 
-            message: "Balances refreshed successfully",
-            totalBalances: {
-              totalOwed: totalBalances.totalOwed,
-              totalOwes: totalBalances.totalOwes,
-              netBalance: totalBalances.netBalance
-            }
-          });
-        } catch (cacheError) {
-          console.error("Error retrieving updated total balances:", cacheError);
-          res.status(200).json({ message: "Balances refreshed successfully" });
-        }
+        res.status(200).json({ message: "Balances refreshed successfully" });
       } else {
         res.status(500).json({ error: "Failed to refresh balances" });
       }
     } catch (error) {
-      console.error("Error refreshing balances:", error);
       res.status(500).json({ error: "Failed to refresh balances" });
     }
   });
