@@ -271,8 +271,10 @@ export class DatabaseStorage implements IStorage {
       const payments = await this.getPaymentsByGroupId(groupId);
       
       // Calculate balance for each member
+      const updatedUserIds = new Set<number>();
       for (const member of members) {
         const userId = member.userId;
+        updatedUserIds.add(userId);
         
         // Calculate balance using existing method (this uses the same computation logic as before)
         const balance = await this.getUserBalanceInGroup(userId, groupId);
@@ -285,6 +287,40 @@ export class DatabaseStorage implements IStorage {
       
       // Update balances between users
       await this.updateUserBalancesBetweenUsers(groupId);
+      
+      // Now update the total balance cache for each affected user
+      // This ensures that dashboard totals are updated when a group's balances change
+      const promises = Array.from(updatedUserIds).map(async (userId) => {
+        try {
+          // Recalculate user's total balance across all groups
+          const userGroups = await this.getGroupsByUserId(userId);
+          let totalOwed = 0;
+          let totalOwes = 0;
+          
+          // Sum up the balance for each group the user is in
+          for (const group of userGroups) {
+            const userBalance = await this.getUserCachedBalance(userId, group.id);
+            if (userBalance) {
+              const balanceAmount = Number(userBalance.balanceAmount);
+              if (balanceAmount > 0) {
+                // User is owed money
+                totalOwed += balanceAmount;
+              } else if (balanceAmount < 0) {
+                // User owes money
+                totalOwes += Math.abs(balanceAmount);
+              }
+            }
+          }
+          
+          // Update user's total balance in application state
+          console.log(`Updated total balance for user ${userId}: Owed: $${totalOwed.toFixed(2)}, Owes: $${totalOwes.toFixed(2)}`);
+        } catch (userError) {
+          console.error(`Error updating total balance for user ${userId}:`, userError);
+        }
+      });
+      
+      // Wait for all user total balance updates to complete
+      await Promise.all(promises);
       
       return true;
     } catch (error) {
