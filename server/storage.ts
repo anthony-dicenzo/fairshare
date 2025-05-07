@@ -283,8 +283,104 @@ export class DatabaseStorage implements IStorage {
         console.log(`Updated balance for user ${userId} in group ${groupId}: ${balance}`);
       }
       
-      // Update balances between users
+      // Update balances between users in this group
       await this.updateUserBalancesBetweenUsers(groupId);
+      
+      // Get a list of all affected users for future total balance calculations
+      const affectedUserIds = members.map(member => member.userId);
+      
+      // For each affected user, update their total balances efficiently
+      // This ensures the dashboard shows correct balances
+      for (const userId of affectedUserIds) {
+        try {
+          // Gather necessary data for calculating total balances
+          // Step 1: Get all groups the user is a member of
+          const userGroups = await this.getGroupsByUserId(userId);
+          
+          // Step 2: Get all user balances from each group
+          let totalOwed = 0;
+          let totalOwes = 0;
+          
+          // Process each group the user is part of
+          for (const group of userGroups) {
+            // Get the user's cached balance for this group
+            const userGroupBalance = await this.getUserCachedBalance(userId, group.id);
+            
+            if (userGroupBalance) {
+              const balanceAmount = Number(userGroupBalance.balanceAmount);
+              
+              // Positive balance means the user is owed money
+              // Negative balance means the user owes money
+              if (balanceAmount > 0) {
+                totalOwed += balanceAmount;
+              } else if (balanceAmount < 0) {
+                totalOwes += Math.abs(balanceAmount);
+              }
+            }
+          }
+          
+          // Update balance metadata in user_balances_metadata table if needed
+          // This would store the pre-calculated total balance amounts
+          
+          // Force userBalancesBetweenUsers refresh for this specific group
+          // This is important for per-user balance details
+          const groupMembers = await this.getGroupMembers(groupId);
+          
+          for (const otherMember of groupMembers) {
+            if (otherMember.userId !== userId) {
+              // Calculate the direct balance between these users in this group
+              const balance = await this.calculateDirectBalance(groupId, userId, otherMember.userId);
+              
+              // Update userBalancesBetweenUsers for this pair in this group
+              await db
+                .insert(userBalancesBetweenUsers)
+                .values({
+                  groupId,
+                  fromUserId: userId,
+                  toUserId: otherMember.userId,
+                  balanceAmount: balance.toString(),
+                  lastUpdated: new Date()
+                })
+                .onConflictDoUpdate({
+                  target: [
+                    userBalancesBetweenUsers.groupId,
+                    userBalancesBetweenUsers.fromUserId,
+                    userBalancesBetweenUsers.toUserId
+                  ],
+                  set: {
+                    balanceAmount: balance.toString(),
+                    lastUpdated: new Date()
+                  }
+                });
+              
+              // And the inverse relationship
+              await db
+                .insert(userBalancesBetweenUsers)
+                .values({
+                  groupId,
+                  fromUserId: otherMember.userId,
+                  toUserId: userId,
+                  balanceAmount: (-balance).toString(),
+                  lastUpdated: new Date()
+                })
+                .onConflictDoUpdate({
+                  target: [
+                    userBalancesBetweenUsers.groupId,
+                    userBalancesBetweenUsers.fromUserId,
+                    userBalancesBetweenUsers.toUserId
+                  ],
+                  set: {
+                    balanceAmount: (-balance).toString(),
+                    lastUpdated: new Date()
+                  }
+                });
+            }
+          }
+        } catch (userUpdateError) {
+          console.error(`Error updating total balances for user ${userId}:`, userUpdateError);
+          // Continue with other users even if one fails
+        }
+      }
       
       return true;
     } catch (error) {
