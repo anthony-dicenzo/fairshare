@@ -2,35 +2,45 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 
 export function WelcomeDialog() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   
   // Check if this is a first-time user
   useEffect(() => {
-    // Use a simple localStorage flag to track if the welcome message has been shown
-    const hasSeenWelcome = localStorage.getItem('fairshare_welcome_seen');
+    if (!user) return; // Only proceed if user is logged in
     
-    console.log('Checking if user has seen welcome:', hasSeenWelcome);
+    // Create a user-specific key for localStorage
+    const welcomeKey = `fairshare_welcome_seen_${user.id}`;
+    const hasSeenWelcome = localStorage.getItem(welcomeKey);
+    
+    console.log('Checking if user has seen welcome:', user.id, hasSeenWelcome);
     
     if (!hasSeenWelcome) {
-      console.log('First time user detected, showing welcome dialog');
+      console.log('First time user detected, showing welcome dialog for user:', user.id);
       // Show welcome dialog after a short delay
       const timer = setTimeout(() => {
         setOpen(true);
-      }, 1000);
+      }, 1500);
       
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [user]);
   
   // Handle getting started
   const handleGetStarted = () => {
+    if (!user) return; // Only proceed if user is logged in
+    
     setOpen(false);
     
-    // Mark the welcome as seen
-    localStorage.setItem('fairshare_welcome_seen', 'true');
+    // Create a user-specific key for localStorage
+    const welcomeKey = `fairshare_welcome_seen_${user.id}`;
+    
+    // Mark the welcome as seen for this specific user
+    localStorage.setItem(welcomeKey, 'true');
     
     // Show a toast with a quick tip
     toast({
