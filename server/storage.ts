@@ -128,13 +128,35 @@ export class DatabaseStorage implements IStorage {
   sessionStore: any; // Using any to avoid SessionStore type issues
   
   constructor() {
-    // Use the pool directly with PostgresSessionStore
-    this.sessionStore = new PostgresSessionStore({ 
-      pool,
-      createTableIfMissing: true,
-      tableName: 'session', // Explicitly set the table name for sessions
-      schemaName: 'public' // Explicitly set the schema name
-    });
+    // Use connection details directly from the DATABASE_URL
+    const connectionString = process.env.DATABASE_URL || '';
+    console.log(`Using connection string starting with: ${connectionString.substring(0, 15)}...`);
+    
+    try {
+      // Create a dedicated pool for the session store to ensure proper configuration
+      const sessionPool = new Pool({
+        connectionString: connectionString,
+        ssl: { rejectUnauthorized: false }
+      });
+      
+      // Use the dedicated pool for the session store
+      this.sessionStore = new PostgresSessionStore({ 
+        pool: sessionPool,
+        createTableIfMissing: true,
+        tableName: 'session', 
+        schemaName: 'public'
+      });
+      
+      console.log('Session store initialized successfully');
+    } catch (error) {
+      console.error('Error initializing session store:', error);
+      // Create a fallback in-memory session store for development
+      const MemoryStore = require('memorystore')(session);
+      this.sessionStore = new MemoryStore({
+        checkPeriod: 86400000 // prune expired entries every 24h
+      });
+      console.log('Using fallback memory session store');
+    }
   }
   
   // Method to clear all balances for a group - for admin use only
