@@ -3,6 +3,36 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from "@shared/schema";
 import { Pool } from 'pg';  // Using standard pg instead of neon-serverless
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+// Load environment from .env.local file if not already present
+if (!process.env.DATABASE_URL || !process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+  try {
+    const envPath = join(process.cwd(), '.env.local');
+    const envContent = readFileSync(envPath, 'utf8');
+    
+    // Parse environment variables
+    envContent.split('\n').forEach((line: string) => {
+      const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
+      if (match) {
+        const key = match[1];
+        let value = match[2] || '';
+        
+        // Remove quotes if present
+        if (value.length > 0 && value.charAt(0) === '"' && value.charAt(value.length - 1) === '"') {
+          value = value.replace(/^"|"$/g, '');
+        }
+        
+        process.env[key] = value;
+      }
+    });
+    
+    console.log('Successfully loaded environment from .env.local');
+  } catch (error: any) {
+    console.warn('Could not load .env.local file:', error?.message || 'Unknown error');
+  }
+}
 
 // Validate Supabase credentials
 if (!process.env.SUPABASE_URL) {
