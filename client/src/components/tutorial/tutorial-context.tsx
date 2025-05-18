@@ -83,10 +83,18 @@ export const TutorialProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Load tutorial state from localStorage on mount
   useEffect(() => {
+    // Get tutorial step from localStorage if exists
     const savedStep = localStorage.getItem('tutorialStep') as TutorialStep | null;
     if (savedStep) {
       setCurrentStep(savedStep);
+    } else {
+      // Default to inactive if no saved step
+      setCurrentStep('inactive');
     }
+    
+    // Reset tutorial when component mounts for testing
+    // Uncomment this line to force the tutorial to show again for testing
+    // localStorage.removeItem('hasCompletedTutorial');
   }, []);
 
   const value = {
