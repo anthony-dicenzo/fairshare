@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { ExpenseForm } from "@/components/expenses/expense-form";
-import { PaymentForm } from "@/components/expenses/payment-form";
+import { useState, lazy, Suspense } from "react";
+const ExpenseForm = lazy(() => import("@/components/expenses/expense-form"));
+const PaymentForm = lazy(() => import("@/components/expenses/payment-form"));
 import { useAuth } from "@/hooks/use-auth";
 import { SimplifiedLayout } from "@/components/layout/simplified-layout";
 import { SimplifiedBalanceSummary } from "@/components/dashboard/simplified-balance-summary";
@@ -37,14 +37,22 @@ export default function HomePage() {
       />
       
       {/* Modals */}
-      <ExpenseForm 
-        open={showExpenseModal} 
-        onOpenChange={setShowExpenseModal} 
-      />
-      <PaymentForm 
-        open={showPaymentModal} 
-        onOpenChange={setShowPaymentModal} 
-      />
+      {showExpenseModal && (
+        <Suspense fallback={null}>
+          <ExpenseForm
+            open={showExpenseModal}
+            onOpenChange={setShowExpenseModal}
+          />
+        </Suspense>
+      )}
+      {showPaymentModal && (
+        <Suspense fallback={null}>
+          <PaymentForm
+            open={showPaymentModal}
+            onOpenChange={setShowPaymentModal}
+          />
+        </Suspense>
+      )}
     </SimplifiedLayout>
   );
 }
