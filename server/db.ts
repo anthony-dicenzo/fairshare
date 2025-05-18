@@ -4,19 +4,41 @@ import postgres from 'postgres';
 import * as schema from "@shared/schema";
 import { Pool } from 'pg';  // Using standard pg instead of neon-serverless
 
-// Get Supabase credentials from environment variables
-const supabaseUrl = process.env.SUPABASE_URL || 'https://smrsiolztcggakkgtyab.supabase.co';
-const supabaseKey = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtcnNpb2x6dGNnZ2Fra2d0eWFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0ODA2MjEsImV4cCI6MjA2MjA1NjYyMX0.2Cr3iYDNyaXUNtrYRX0OOI4mnG6od5fY7CYcLU-NCSg';
+// Get Supabase credentials - MUST be provided in environment variables
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_ANON_KEY;
 
-// Create Supabase client
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Validate required environment variables
+if (!supabaseUrl || !supabaseKey) {
+  console.error('ERROR: Missing Supabase credentials in environment variables.');
+  console.error('Please set SUPABASE_URL and SUPABASE_ANON_KEY in your .env file.');
+}
 
-// Log the connection being used (without exposing full credentials)
-console.log(`Connecting to Supabase at ${supabaseUrl}`);
-console.log(`Using database URL starting with: ${process.env.DATABASE_URL?.substring(0, 15)}...`);
+// Create Supabase client only if credentials are available
+export const supabase = supabaseUrl && supabaseKey 
+  ? createClient(supabaseUrl, supabaseKey)
+  : null;
 
-// Use the DATABASE_URL from environment variables
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.smrsiolztcggakkgtyab:WCRjkMkrg7vDYahc@aws-0-ca-central-1.pooler.supabase.com:6543/postgres';
+// Log connection information (without exposing sensitive details)
+if (supabaseUrl) {
+  console.log(`Connecting to Supabase at ${supabaseUrl}`);
+}
+
+if (process.env.DATABASE_URL) {
+  const urlParts = process.env.DATABASE_URL.split('@');
+  if (urlParts.length > 1) {
+    console.log(`Database host: ${urlParts[1].split('/')[0]}`);
+  }
+}
+
+// Use the DATABASE_URL from environment variables (REQUIRED)
+const connectionString = process.env.DATABASE_URL;
+
+// Validate database connection string
+if (!connectionString) {
+  console.error('ERROR: Missing DATABASE_URL in environment variables.');
+  console.error('Please set DATABASE_URL in your .env file.');
+}
 
 // Initialize postgres client for Drizzle ORM
 const client = postgres(connectionString, { max: 10 });

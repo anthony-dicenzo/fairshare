@@ -2,9 +2,13 @@
 import pg from 'pg';
 const { Pool } = pg;
 
+// Get connection strings from environment variables
+import dotenv from 'dotenv';
+dotenv.config();
+
 // Database connection strings
-const sourceConnectionString = 'postgresql://neondb_owner:npg_leBjyQx9G5tb@ep-black-sunset-a4pj1sbl.us-east-1.aws.neon.tech/neondb?sslmode=require';
-const targetConnectionString = 'postgresql://postgres.smrsiolztcggakkgtyab:WCRjkMkrg7vDYahc@aws-0-ca-central-1.pooler.supabase.com:6543/postgres';
+const sourceConnectionString = process.env.NEON_DATABASE_URL || '';
+const targetConnectionString = process.env.DATABASE_URL;
 
 async function fixGroupInvites() {
   console.log('Fixing group_invites table...');
