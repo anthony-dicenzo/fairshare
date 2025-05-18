@@ -241,7 +241,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Only allow updating specific fields like name for now
-      const allowedUpdates = { name: req.body.name };
+      const allowedUpdates: Partial<Group> = {};
+      if (typeof req.body.name === 'string') {
+        allowedUpdates.name = req.body.name;
+      }
+
+      if (Object.keys(allowedUpdates).length === 0) {
+        return res.status(400).json({ error: "No valid fields to update" });
+      }
+
       const updatedGroup = await storage.updateGroup(groupId, allowedUpdates);
       
       // Log activity
