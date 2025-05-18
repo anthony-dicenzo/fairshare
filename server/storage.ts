@@ -714,16 +714,33 @@ export class DatabaseStorage implements IStorage {
   }
   
   async updateGroup(groupId: number, updates: Partial<Group>): Promise<Group> {
+    // Filter out undefined values so we don't overwrite columns with NULL
+    const validUpdates: Partial<Group> = {};
+    for (const [key, value] of Object.entries(updates)) {
+      if (value !== undefined) {
+        (validUpdates as any)[key] = value;
+      }
+    }
+
+    if (Object.keys(validUpdates).length === 0) {
+      // Nothing to update, just return the existing group
+      const existing = await this.getGroup(groupId);
+      if (!existing) {
+        throw new Error("Group not found");
+      }
+      return existing;
+    }
+
     const result = await db
       .update(groups)
-      .set(updates)
+      .set(validUpdates)
       .where(eq(groups.id, groupId))
       .returning();
-      
+
     if (result.length === 0) {
       throw new Error("Group not found");
     }
-    
+
     return result[0];
   }
   
