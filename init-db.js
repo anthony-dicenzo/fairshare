@@ -1,15 +1,10 @@
-import { Pool } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from 'ws';
+import { Pool } from 'pg';
+import { drizzle } from 'drizzle-orm/postgres-js';
 import { dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 // Get directory name for ESM
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const { neonConfig } = await import('@neondatabase/serverless');
-
-// Enable WebSocket for Neon
-neonConfig.webSocketConstructor = ws;
 
 // Ensure DATABASE_URL is available
 if (!process.env.DATABASE_URL) {
@@ -17,8 +12,11 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
-// Create pool and drizzle instance
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+// Create pool with SSL configuration for Supabase
+const pool = new Pool({ 
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
 
 async function initDatabase() {
   try {

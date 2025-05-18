@@ -1,5 +1,5 @@
-const { Pool } = require('@neondatabase/serverless');
-const { drizzle } = require('drizzle-orm/neon-serverless');
+const { Pool } = require('pg');
+const { drizzle } = require('drizzle-orm/postgres-js');
 const schema = require('./shared/schema');
 
 // Ensure DATABASE_URL is available
@@ -8,8 +8,11 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
-// Create pool and drizzle instance
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+// Create pool and drizzle instance with SSL for Supabase
+const pool = new Pool({ 
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
 const db = drizzle(pool, { schema });
 
 // Directly create the schema from our schema definitions
