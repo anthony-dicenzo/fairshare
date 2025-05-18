@@ -151,14 +151,21 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    // Use PostgresSessionStore with SSL enabled for Supabase
+    // Configure PostgresSessionStore with the correct Supabase pooler URL
+    // This ensures we're using the aws-0-ca-central-1.pooler.supabase.com hostname
+    // instead of db.smrsiolztcggakkgtyab.supabase.co
+    const connectionString = process.env.DATABASE_URL || '';
+    
     this.sessionStore = new PostgresSessionStore({
-      pool,
+      conObject: {
+        connectionString,
+        ssl: { rejectUnauthorized: false }
+      },
       createTableIfMissing: true,
       tableName: 'session'
     });
     
-    console.log('Session store initialized with connection pool');
+    console.log('Session store initialized with Supabase connection pool');
   }
   
   // Method to clear all balances for a group - for admin use only
