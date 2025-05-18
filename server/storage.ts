@@ -13,11 +13,8 @@ import {
   users, groups, groupMembers, expenses, expenseParticipants, payments, 
   activityLog, groupInvites, userBalances, userBalancesBetweenUsers
 } from "@shared/schema";
-// Using memory store for sessions during migration
 import { db, pool } from "./db";
 import { eq, and, desc, asc, inArray, or, sql } from "drizzle-orm";
-
-const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   // User operations
@@ -128,12 +125,9 @@ export class DatabaseStorage implements IStorage {
   sessionStore: any; // Using any to avoid SessionStore type issues
   
   constructor() {
-    // Use in-memory store for now to avoid connection issues during migration
-    console.log('Using in-memory store for session');
-    
-    // Create a basic in-memory store
-    const MemoryStore = session.MemoryStore;
-    this.sessionStore = new MemoryStore();
+    // Use in-memory store for sessions during migration
+    console.log('Using in-memory store for session during Supabase migration');
+    this.sessionStore = new session.MemoryStore();
     console.log('Memory session store initialized successfully');
   }
   
