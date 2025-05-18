@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from "react";
 import { useParams, useLocation, useRoute } from "wouter";
 import { useQuery, useMutation, useInfiniteQuery } from "@tanstack/react-query";
 import { SimplifiedLayout } from "@/components/layout/simplified-layout";
@@ -7,9 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, Users, Plus, PlusCircle, CreditCard, RefreshCw, Settings, AlertCircle } from "lucide-react";
 import { PersistentNotification } from "@/components/ui/persistent-notification";
-import { ExpenseForm } from "@/components/expenses/expense-form";
+const ExpenseForm = lazy(() => import("@/components/expenses/expense-form"));
 import { MinimalExpenseEdit } from "@/components/expenses/minimal-expense-edit";
-import { PaymentForm } from "@/components/expenses/payment-form";
+const PaymentForm = lazy(() => import("@/components/expenses/payment-form"));
 import { GroupDetail } from "@/components/groups/group-detail";
 import { GroupSettings } from "@/components/groups/group-settings";
 import { BalancesMatrix } from "@/components/groups/balances-matrix";
@@ -700,16 +700,24 @@ export default function GroupPage() {
       {/* Mobile action button removed as requested */}
 
       {/* Modals */}
-      <ExpenseForm 
-        open={showExpenseModal} 
-        onOpenChange={setShowExpenseModal}
-        groupId={groupId} 
-      />
-      <PaymentForm 
-        open={showPaymentModal} 
-        onOpenChange={setShowPaymentModal} 
-        groupId={groupId}
-      />
+      {showExpenseModal && (
+        <Suspense fallback={null}>
+          <ExpenseForm
+            open={showExpenseModal}
+            onOpenChange={setShowExpenseModal}
+            groupId={groupId}
+          />
+        </Suspense>
+      )}
+      {showPaymentModal && (
+        <Suspense fallback={null}>
+          <PaymentForm
+            open={showPaymentModal}
+            onOpenChange={setShowPaymentModal}
+            groupId={groupId}
+          />
+        </Suspense>
+      )}
       <GroupInvite
         open={showInviteModal}
         onOpenChange={setShowInviteModal}

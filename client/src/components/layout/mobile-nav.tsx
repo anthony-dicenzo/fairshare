@@ -1,8 +1,8 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { Home, BarChart4, Users, Plus, User } from "lucide-react";
-import { useState } from "react";
-import { ExpenseForm } from "../expenses/expense-form";
+import { useState, lazy, Suspense } from "react";
+const ExpenseForm = lazy(() => import("../expenses/expense-form"));
 
 export function MobileNav() {
   const [location] = useLocation();
@@ -45,7 +45,11 @@ export function MobileNav() {
         </nav>
       </div>
       
-      <ExpenseForm open={showExpenseModal} onOpenChange={setShowExpenseModal} />
+      {showExpenseModal && (
+        <Suspense fallback={null}>
+          <ExpenseForm open={showExpenseModal} onOpenChange={setShowExpenseModal} />
+        </Suspense>
+      )}
     </>
   );
 }
