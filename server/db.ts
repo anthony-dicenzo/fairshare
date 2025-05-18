@@ -4,26 +4,40 @@ import postgres from 'postgres';
 import * as schema from "@shared/schema";
 import { Pool } from 'pg';  // Using standard pg instead of neon-serverless
 
-// Supabase credentials are read from the environment so the app can connect to
-// any Supabase project.
-const supabaseUrl = process.env.SUPABASE_URL || 'https://smrsiolztcggakkgtyab.supabase.co';
-const supabaseKey = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
+// Validate Supabase credentials
+if (!process.env.SUPABASE_URL) {
+  throw new Error('SUPABASE_URL environment variable is not set');
+}
+if (!process.env.SUPABASE_ANON_KEY) {
+  throw new Error('SUPABASE_ANON_KEY environment variable is not set');
+}
+
+// Validate URL format (should be https://yourproject.supabase.co)
+const supabaseUrl = process.env.SUPABASE_URL;
+if (!supabaseUrl.startsWith('https://') || !supabaseUrl.includes('.supabase.co')) {
+  console.error('SUPABASE_URL format appears to be incorrect:', supabaseUrl);
+  console.error('Expected format: https://yourproject.supabase.co');
+  throw new Error('Invalid SUPABASE_URL format');
+}
+
+const supabaseKey = process.env.SUPABASE_ANON_KEY;
+
+// Log connection (without exposing keys)
+console.log('Connecting to Supabase at:', supabaseUrl);
 
 // Create Supabase client
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Use the DATABASE_URL environment variable, falling back to a sample Supabase
-// connection string if not provided.
-let connectionString = process.env.DATABASE_URL || 
-  'postgres://postgres:password@aws-0-us-west-1.pooler.supabase.com:5432/postgres';
-
-// Clean up the URL if it contains quotes or other unexpected characters
-if (connectionString.startsWith('"') && connectionString.includes('"', 1)) {
-  connectionString = connectionString.replace(/^"|".*$/g, '');
+// Use the DATABASE_URL environment variable from secrets
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL environment variable is not set. Please set it in your secrets.');
 }
 
-console.log('Using connection string (masked):', 
-  connectionString.replace(/:[^:@]*@/, ':****@')); // Log without password
+// Get connection string from environment variable (which is securely stored in secrets)
+const connectionString = process.env.DATABASE_URL;
+
+// Log connection info without exposing the password
+console.log('Using database connection (credentials hidden)');
 
 // Initialize postgres client for Drizzle ORM
 const client = postgres(connectionString, { max: 10 });
