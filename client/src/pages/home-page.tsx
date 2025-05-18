@@ -3,24 +3,22 @@ import { useAuth } from "@/hooks/use-auth";
 import { SimplifiedLayout } from "@/components/layout/simplified-layout";
 import { SimplifiedBalanceSummary } from "@/components/dashboard/simplified-balance-summary";
 import { SimplifiedGroupsList } from "@/components/dashboard/simplified-groups-list";
-import { useTutorial } from "@/components/tutorial/tutorial-context";
+import { useToast } from "@/hooks/use-toast";
 
 // Lazy load components
 const ExpenseForm = lazy(() => import("@/components/expenses/expense-form").then(module => ({
   default: module.ExpenseForm
 })));
-const PaymentForm = lazy(() => import("@/components/expenses/payment-form").then(module => module.default));
-const FirstTimeDialog = lazy(() => import("@/components/tutorial/first-time-dialog").then(module => module.default));
+const PaymentForm = lazy(() => import("@/components/expenses/payment-form"));
 
 // Define filter types
 type FilterType = 'all' | 'you-owe' | 'owed-to-you' | 'settled';
 
 export default function HomePage() {
   const { user } = useAuth();
-  const { isTutorialActive } = useTutorial();
+  const { toast } = useToast();
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [showFirstTimeDialog, setShowFirstTimeDialog] = useState(false);
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [filterOpen, setFilterOpen] = useState(false);
   const [showSettled, setShowSettled] = useState(false);
@@ -28,26 +26,24 @@ export default function HomePage() {
   // Check if this is the first time the user is visiting the app
   useEffect(() => {
     if (user) {
-      // Create a user-specific key for localStorage
-      const tutorialKey = `hasSeenTutorial_${user.id}`;
-      const hasSeenTutorial = localStorage.getItem(tutorialKey);
+      // Create a user-specific key for localStorage to track tips shown
+      const tipsKey = `tips_shown_${user.id}`;
+      const tipsShown = localStorage.getItem(tipsKey);
       
-      console.log('Checking tutorial status for user:', user.id);
-      console.log('Has seen tutorial?', hasSeenTutorial);
-      
-      if (!hasSeenTutorial) {
-        console.log('Showing tutorial for first-time user:', user.id);
-        // Show first-time dialog after a short delay
+      if (!tipsShown) {
+        // Show a helpful tip after a delay for new users
         const timer = setTimeout(() => {
-          setShowFirstTimeDialog(true);
-          // Only mark as seen after showing
-          localStorage.setItem(tutorialKey, 'true');
-        }, 1500);
+          toast({
+            title: "Tip: Getting Started",
+            description: "Use the + button to create a group and start tracking expenses",
+          });
+          localStorage.setItem(tipsKey, 'true');
+        }, 3000);
         
         return () => clearTimeout(timer);
       }
     }
-  }, [user]);
+  }, [user, toast]);
 
   if (!user) return null;
 
