@@ -7,7 +7,12 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./lib/protected-route";
 import { OfflineBanner } from "@/components/offline-banner";
 import { PWANotification } from "@/components/pwa-notification";
-import React, { Suspense, lazy } from "react";
+import React, { Suspense, lazy, useEffect } from "react";
+// Import tutorial components
+import { TutorialProvider } from "@/components/tutorial/tutorial-context";
+import TutorialOverlay from "@/components/tutorial/tutorial-overlay";
+// Import tutorial CSS
+import "@/components/tutorial/tutorial.css";
 
 const HomePage = lazy(() => import("@/pages/home-page"));
 const GroupPage = lazy(() => import("@/pages/group-page"));
@@ -39,15 +44,37 @@ function Router() {
   );
 }
 
+// Component that adds tutorial data attributes to DOM elements
+const TutorialTargets = () => {
+  useEffect(() => {
+    // Add data attributes for tutorial targeting
+    const addButton = document.querySelector('.mobile-nav button[aria-label="Add"]');
+    if (addButton) {
+      addButton.setAttribute('data-tutorial', 'create-group-button');
+    }
+    
+    // We'll add more data attributes when specific pages load
+    return () => {
+      // Cleanup if needed
+    };
+  }, []);
+  
+  return null;
+};
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
-          <OfflineBanner />
-          <PWANotification />
-          <Toaster />
-          <Router />
+          <TutorialProvider>
+            <OfflineBanner />
+            <PWANotification />
+            <TutorialTargets />
+            <TutorialOverlay />
+            <Toaster />
+            <Router />
+          </TutorialProvider>
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>
