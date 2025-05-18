@@ -2,128 +2,106 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 // Define the tutorial steps
 export type TutorialStep = 
-  | 'welcome'
-  | 'create-group'
-  | 'invite-friends'
-  | 'add-expense'
-  | 'complete';
+  | 'inactive'  // Not in tutorial mode
+  | 'welcome'   // Initial welcome
+  | 'create-group'  // Creating a group
+  | 'invite-members'  // Inviting members to group
+  | 'add-expense'  // Adding an expense
+  | 'view-balances'  // Viewing balances
+  | 'complete';  // Tutorial complete
 
-// Define the tutorial context type
-type TutorialContextType = {
+interface TutorialContextType {
   currentStep: TutorialStep;
-  setCurrentStep: (step: TutorialStep) => void;
   isTutorialActive: boolean;
   startTutorial: () => void;
-  endTutorial: () => void;
+  skipTutorial: () => void;
   nextStep: () => void;
   prevStep: () => void;
-  resetTutorial: () => void;
-  skipTutorial: () => void;
-  showTutorial: boolean;
-  setShowTutorial: (show: boolean) => void;
-};
+  goToStep: (step: TutorialStep) => void;
+  completeTutorial: () => void;
+}
 
-// Create the tutorial context
-export const TutorialContext = createContext<TutorialContextType | undefined>(undefined);
+const TutorialContext = createContext<TutorialContextType | undefined>(undefined);
 
-// Define the step order
-const stepOrder: TutorialStep[] = [
+export const TUTORIAL_STEPS: TutorialStep[] = [
   'welcome',
   'create-group',
-  'invite-friends',
+  'invite-members',
   'add-expense',
+  'view-balances',
   'complete'
 ];
 
-// Save tutorial state to localStorage
-const saveTutorialState = (active: boolean, step: TutorialStep, show: boolean) => {
-  localStorage.setItem('tutorialState', JSON.stringify({
-    active,
-    step,
-    show,
-    completed: !active && step === 'complete'
-  }));
-};
-
-// Tutorial provider component
 export const TutorialProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentStep, setCurrentStep] = useState<TutorialStep>('welcome');
-  const [isTutorialActive, setIsTutorialActive] = useState(false);
-  const [showTutorial, setShowTutorial] = useState(true);
+  const [currentStep, setCurrentStep] = useState<TutorialStep>('inactive');
+  const isTutorialActive = currentStep !== 'inactive' && currentStep !== 'complete';
 
-  // Load tutorial state from localStorage on component mount
+  // Start the tutorial
+  const startTutorial = () => {
+    setCurrentStep('welcome');
+    localStorage.setItem('tutorialStep', 'welcome');
+  };
+
+  // Skip the tutorial
+  const skipTutorial = () => {
+    setCurrentStep('inactive');
+    localStorage.setItem('tutorialStep', 'inactive');
+  };
+
+  // Move to the next step
+  const nextStep = () => {
+    const currentIndex = TUTORIAL_STEPS.indexOf(currentStep);
+    if (currentIndex < TUTORIAL_STEPS.length - 1) {
+      const nextStep = TUTORIAL_STEPS[currentIndex + 1];
+      setCurrentStep(nextStep);
+      localStorage.setItem('tutorialStep', nextStep);
+    }
+  };
+
+  // Move to the previous step
+  const prevStep = () => {
+    const currentIndex = TUTORIAL_STEPS.indexOf(currentStep);
+    if (currentIndex > 0) {
+      const prevStep = TUTORIAL_STEPS[currentIndex - 1];
+      setCurrentStep(prevStep);
+      localStorage.setItem('tutorialStep', prevStep);
+    }
+  };
+
+  // Go to a specific step
+  const goToStep = (step: TutorialStep) => {
+    setCurrentStep(step);
+    localStorage.setItem('tutorialStep', step);
+  };
+
+  // Complete the tutorial
+  const completeTutorial = () => {
+    setCurrentStep('complete');
+    localStorage.setItem('tutorialStep', 'complete');
+    localStorage.setItem('hasCompletedTutorial', 'true');
+  };
+
+  // Load tutorial state from localStorage on mount
   useEffect(() => {
-    const savedState = localStorage.getItem('tutorialState');
-    if (savedState) {
-      const { active, step, show } = JSON.parse(savedState);
-      setIsTutorialActive(active);
-      setCurrentStep(step);
-      setShowTutorial(show);
+    const savedStep = localStorage.getItem('tutorialStep') as TutorialStep | null;
+    if (savedStep) {
+      setCurrentStep(savedStep);
     }
   }, []);
 
-  // Save tutorial state when it changes
-  useEffect(() => {
-    saveTutorialState(isTutorialActive, currentStep, showTutorial);
-  }, [isTutorialActive, currentStep, showTutorial]);
-
-  const startTutorial = () => {
-    setCurrentStep('welcome');
-    setIsTutorialActive(true);
-    setShowTutorial(true);
-  };
-
-  const endTutorial = () => {
-    setIsTutorialActive(false);
-    setShowTutorial(false);
-  };
-
-  const resetTutorial = () => {
-    setCurrentStep('welcome');
-    setIsTutorialActive(true);
-    setShowTutorial(true);
-  };
-
-  const skipTutorial = () => {
-    setIsTutorialActive(false);
-    setShowTutorial(false);
-    saveTutorialState(false, 'complete', false);
-  };
-
-  const nextStep = () => {
-    const currentIndex = stepOrder.indexOf(currentStep);
-    if (currentIndex < stepOrder.length - 1) {
-      setCurrentStep(stepOrder[currentIndex + 1]);
-    } else {
-      // If we're at the last step, complete the tutorial
-      setCurrentStep('complete');
-      setIsTutorialActive(false);
-    }
-  };
-
-  const prevStep = () => {
-    const currentIndex = stepOrder.indexOf(currentStep);
-    if (currentIndex > 0) {
-      setCurrentStep(stepOrder[currentIndex - 1]);
-    }
+  const value = {
+    currentStep,
+    isTutorialActive,
+    startTutorial,
+    skipTutorial,
+    nextStep,
+    prevStep,
+    goToStep,
+    completeTutorial
   };
 
   return (
-    <TutorialContext.Provider
-      value={{
-        currentStep,
-        setCurrentStep,
-        isTutorialActive,
-        startTutorial,
-        endTutorial,
-        nextStep,
-        prevStep,
-        resetTutorial,
-        skipTutorial,
-        showTutorial,
-        setShowTutorial
-      }}
-    >
+    <TutorialContext.Provider value={value}>
       {children}
     </TutorialContext.Provider>
   );

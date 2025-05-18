@@ -1,363 +1,309 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { Group } from "@shared/schema";
-import { CreditCard } from "lucide-react";
-import { useAuth } from "@/hooks/use-auth";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { formatISO } from "date-fns";
-import { useState, useEffect } from "react";
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { queryClient } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-type PaymentFormProps = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  groupId?: number;
-};
-
-// Schema for the payment form
-const paymentFormSchema = z.object({
+// Payment schema
+const paymentSchema = z.object({
+  amount: z.string().refine(val => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+    message: "Amount must be a positive number"
+  }),
   groupId: z.string().min(1, "Group is required"),
   paidBy: z.string().min(1, "Payer is required"),
   paidTo: z.string().min(1, "Recipient is required"),
-  amount: z.string().min(1, "Amount is required").refine(
-    (val) => {
-      const amount = parseFloat(val);
-      return !isNaN(amount) && amount > 0;
-    },
-    { message: "Amount must be a positive number" }
-  ),
-  date: z.string().optional(),
-  note: z.string().optional(),
 });
 
-type PaymentFormValues = z.infer<typeof paymentFormSchema>;
+type PaymentFormValues = z.infer<typeof paymentSchema>;
 
-export function PaymentForm({ open, onOpenChange, groupId }: PaymentFormProps) {
+interface PaymentFormProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  preselectedGroupId?: string;
+}
+
+export default function PaymentForm({ 
+  open, 
+  onOpenChange, 
+  preselectedGroupId 
+}: PaymentFormProps) {
   const { toast } = useToast();
-  const { user } = useAuth();
-
-  // Get groups data
-  const { data: groups = [] } = useQuery<Group[]>({
-    queryKey: ["/api/groups"],
-  });
-
-  // Get members for the selected group
-  const [selectedGroupId, setSelectedGroupId] = useState<string>(groupId?.toString() || "");
   
-  const { data: groupMembers = [] } = useQuery({
-    queryKey: [`/api/groups/${selectedGroupId}/members`],
-    enabled: !!selectedGroupId && selectedGroupId !== "",
-    staleTime: 0, // Always fetch fresh data
-  });
-
-  const form = useForm<PaymentFormValues>({
-    resolver: zodResolver(paymentFormSchema),
-    defaultValues: {
-      groupId: groupId?.toString() || "",
-      paidBy: user?.id.toString() || "",
-      paidTo: "",
-      amount: "",
-      date: formatISO(new Date(), { representation: "date" }),
-      note: "",
-    },
-  });
-
-  // Update selectedGroupId when form groupId changes
-  useEffect(() => {
-    const subscription = form.watch((value, { name }) => {
-      if (name === "groupId" && value.groupId) {
-        setSelectedGroupId(value.groupId);
+  // Query for groups
+  const { data: groups } = useQuery({
+    queryKey: ['/api/groups'],
+    queryFn: async () => {
+      const response = await fetch('/api/groups');
+      if (!response.ok) {
+        throw new Error('Failed to fetch groups');
       }
-    });
-    return () => subscription.unsubscribe();
-  }, [form]);
-
-  // Create payment mutation
-  const createPaymentMutation = useMutation({
-    mutationFn: async (data: {
-      groupId: number;
-      paidBy: number;
-      paidTo: number;
-      amount: number;
-      date: string;
-      note?: string;
-    }) => {
-      const res = await apiRequest("POST", "/api/payments", data);
-      return res.json();
+      return response.json();
+    },
+    staleTime: 10000,
+  });
+  
+  // State for selected group and members
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(preselectedGroupId || null);
+  
+  // Query for group members when a group is selected
+  const { data: groupMembers } = useQuery({
+    queryKey: ['/api/groups', selectedGroupId, 'members'],
+    queryFn: async () => {
+      if (!selectedGroupId) return [];
+      
+      const response = await fetch(`/api/groups/${selectedGroupId}/members`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch group members');
+      }
+      return response.json();
+    },
+    enabled: !!selectedGroupId,
+    staleTime: 10000,
+  });
+  
+  // Form setup
+  const form = useForm<PaymentFormValues>({
+    resolver: zodResolver(paymentSchema),
+    defaultValues: {
+      amount: '',
+      groupId: preselectedGroupId || '',
+      paidBy: '',
+      paidTo: '',
+    }
+  });
+  
+  // Handle group selection change
+  const handleGroupChange = (value: string) => {
+    setSelectedGroupId(value);
+    form.setValue('groupId', value);
+    form.setValue('paidBy', '');
+    form.setValue('paidTo', '');
+  };
+  
+  // Add payment mutation
+  const addPaymentMutation = useMutation({
+    mutationFn: async (values: PaymentFormValues) => {
+      const paymentData = {
+        ...values,
+        amount: parseFloat(values.amount),
+        description: "Payment",
+        type: "payment"
+      };
+      
+      const response = await fetch('/api/payments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(paymentData),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to record payment');
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
+      // Show success toast
       toast({
         title: "Payment recorded",
-        description: "Your payment has been recorded successfully.",
+        description: "The payment was recorded successfully.",
+        variant: "default",
       });
-      onOpenChange(false);
+      
+      // Reset form
       form.reset();
       
-      // Invalidate queries
-      queryClient.invalidateQueries({ queryKey: ["/api/balances"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/activity"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/groups"] }); // Invalidate the groups list to update balances
+      // Close the dialog
+      onOpenChange(false);
       
-      // Make sure to properly invalidate all group-related queries
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/groups'] });
       if (selectedGroupId) {
-        const groupIdStr = selectedGroupId;
-        // Invalidate the specific group queries
-        queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/payments`] });
-        queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/balances`] });
-        queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/activity`] });
-        queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}`] }); // Invalidate the specific group details
-        
-        // Also invalidate the more general query patterns used in group-page.tsx
-        queryClient.invalidateQueries({ queryKey: ["/api/groups", groupIdStr, "payments"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/groups", groupIdStr, "balances"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/groups", groupIdStr, "activity"] });
+        queryClient.invalidateQueries({ 
+          queryKey: ['/api/groups', selectedGroupId] 
+        });
+        queryClient.invalidateQueries({ 
+          queryKey: ['/api/balances'] 
+        });
       }
     },
     onError: (error) => {
+      // Show error toast
       toast({
         title: "Failed to record payment",
         description: error.message,
         variant: "destructive",
       });
-    },
+    }
   });
-
-  const handleSubmit = form.handleSubmit((values) => {
-    createPaymentMutation.mutate({
-      groupId: parseInt(values.groupId),
-      paidBy: parseInt(values.paidBy),
-      paidTo: parseInt(values.paidTo),
-      amount: parseFloat(values.amount),
-      date: values.date || formatISO(new Date(), { representation: "date" }),
-      note: values.note,
-    });
-  });
-
+  
+  // Form submission handler
+  const onSubmit = (values: PaymentFormValues) => {
+    addPaymentMutation.mutate(values);
+  };
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
-            <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500" />
-            Record a Payment
-          </DialogTitle>
-          <DialogDescription className="text-xs sm:text-sm">
-            Enter the details of the payment to settle debts in your group.
+          <DialogTitle>Record a Payment</DialogTitle>
+          <DialogDescription>
+            Record a payment made between group members.
           </DialogDescription>
         </DialogHeader>
-
+        
         <Form {...form}>
-          <form onSubmit={handleSubmit} className="space-y-3">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Group selection */}
             <FormField
               control={form.control}
               name="groupId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs sm:text-sm">Group</FormLabel>
+                  <FormLabel>Group</FormLabel>
                   <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
                     value={field.value}
+                    onValueChange={(value) => handleGroupChange(value)}
+                    disabled={!!preselectedGroupId || addPaymentMutation.isPending}
                   >
                     <FormControl>
-                      <SelectTrigger className="h-8 sm:h-10 text-sm">
+                      <SelectTrigger>
                         <SelectValue placeholder="Select a group" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {groups.map((group) => (
-                        <SelectItem key={group.id} value={group.id.toString()}>
+                      {groups?.map(group => (
+                        <SelectItem key={group.id} value={String(group.id)}>
                           {group.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <FormMessage className="text-xs" />
+                  <FormMessage />
                 </FormItem>
               )}
             />
-
-            <div className="grid grid-cols-2 gap-3">
-              <FormField
-                control={form.control}
-                name="paidBy"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs sm:text-sm">From</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      value={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="h-8 sm:h-10 text-sm">
-                          <SelectValue placeholder="Select payer" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={user?.id.toString() || ""}>
-                          You
-                        </SelectItem>
-                        {Array.isArray(groupMembers) && groupMembers
-                          .filter((member) => member?.userId !== user?.id)
-                          .map((member) => (
-                            <SelectItem 
-                              key={member?.userId} 
-                              value={(member?.userId || 0).toString()}
-                            >
-                              {member?.user?.name || "Unknown User"}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="paidTo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs sm:text-sm">To</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      value={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="h-8 sm:h-10 text-sm">
-                          <SelectValue placeholder="Select recipient" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {field.value !== user?.id.toString() && (
-                          <SelectItem value={user?.id.toString() || ""}>
-                            You
-                          </SelectItem>
-                        )}
-                        {Array.isArray(groupMembers) && groupMembers
-                          .filter((member) => 
-                            member?.userId !== user?.id && 
-                            member?.userId?.toString() !== form.getValues("paidBy")
-                          )
-                          .map((member) => (
-                            <SelectItem 
-                              key={member?.userId} 
-                              value={(member?.userId || 0).toString()}
-                            >
-                              {member?.user?.name || "Unknown User"}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
-            </div>
-
+            
+            {/* Payment amount */}
             <FormField
               control={form.control}
               name="amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs sm:text-sm">Amount</FormLabel>
+                  <FormLabel>Amount</FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <span className="absolute left-3 top-1.5 sm:top-2.5 text-sm">$</span>
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2">$</span>
                       <Input 
-                        type="text"
+                        type="number" 
+                        step="0.01" 
+                        min="0.01" 
                         placeholder="0.00" 
-                        className="pl-8 h-8 sm:h-10 text-sm" 
+                        className="pl-8" 
                         {...field} 
+                        disabled={addPaymentMutation.isPending}
                       />
                     </div>
                   </FormControl>
-                  <FormMessage className="text-xs" />
+                  <FormMessage />
                 </FormItem>
               )}
             />
-
-            <div className="grid grid-cols-2 gap-3">
-              <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs sm:text-sm">Date</FormLabel>
+            
+            {/* Paid by selection */}
+            <FormField
+              control={form.control}
+              name="paidBy"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Paid by</FormLabel>
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    disabled={!selectedGroupId || addPaymentMutation.isPending}
+                  >
                     <FormControl>
-                      <Input type="date" {...field} className="h-8 sm:h-10 text-sm" />
+                      <SelectTrigger>
+                        <SelectValue placeholder="Who paid?" />
+                      </SelectTrigger>
                     </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="note"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs sm:text-sm">Note (optional)</FormLabel>
+                    <SelectContent>
+                      {groupMembers?.map(member => (
+                        <SelectItem key={member.userId} value={String(member.userId)}>
+                          {member.name || member.username}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            {/* Paid to selection */}
+            <FormField
+              control={form.control}
+              name="paidTo"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Paid to</FormLabel>
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    disabled={!selectedGroupId || !form.getValues().paidBy || addPaymentMutation.isPending}
+                  >
                     <FormControl>
-                      <Input
-                        placeholder="e.g. Venmo, Cash"
-                        className="h-8 sm:h-10 text-sm"
-                        {...field}
-                      />
+                      <SelectTrigger>
+                        <SelectValue placeholder="Who received the payment?" />
+                      </SelectTrigger>
                     </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <DialogFooter className="sm:space-x-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-8 sm:h-9 text-xs sm:text-sm"
+                    <SelectContent>
+                      {groupMembers?.filter(member => String(member.userId) !== form.getValues().paidBy).map(member => (
+                        <SelectItem key={member.userId} value={String(member.userId)}>
+                          {member.name || member.username}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <DialogFooter className="flex justify-between mt-6">
+              <Button 
+                type="button" 
+                variant="outline" 
                 onClick={() => onOpenChange(false)}
+                disabled={addPaymentMutation.isPending}
               >
                 Cancel
               </Button>
               <Button 
                 type="submit"
-                size="sm"
-                className="h-8 sm:h-9 text-xs sm:text-sm bg-emerald-600 hover:bg-emerald-700 text-white"
-                disabled={createPaymentMutation.isPending}
+                disabled={addPaymentMutation.isPending}
+                className="relative"
               >
-                {createPaymentMutation.isPending ? "Recording..." : "Record Payment"}
+                {addPaymentMutation.isPending && (
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  </span>
+                )}
+                <span className={addPaymentMutation.isPending ? "invisible" : ""}>
+                  Record Payment
+                </span>
               </Button>
             </DialogFooter>
           </form>
