@@ -16,8 +16,6 @@ import {
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
 import { eq, and, desc, asc, inArray, or, sql } from "drizzle-orm";
-import { readFileSync } from 'fs';
-import { join } from 'path';
 
 const PostgresSessionStore = connectPg(session);
 
@@ -130,42 +128,11 @@ export class DatabaseStorage implements IStorage {
   sessionStore: any; // Using any to avoid SessionStore type issues
   
   constructor() {
-    // Load pool from .env.local if needed
-    if (!process.env.DATABASE_URL) {
-      try {
-        const envPath = join(process.cwd(), '.env.local');
-        const envContent = readFileSync(envPath, 'utf8');
-        envContent.split('\n').forEach((line: string) => {
-          const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
-          if (match) {
-            const key = match[1];
-            let value = match[2] || '';
-            if (value.length > 0 && value.charAt(0) === '"' && value.charAt(value.length - 1) === '"') {
-              value = value.replace(/^"|"$/g, '');
-            }
-            process.env[key] = value;
-          }
-        });
-      } catch (error: any) {
-        console.warn('Could not load database URL from .env.local:', error?.message || 'Unknown error');
-      }
-    }
-
-    // Configure PostgresSessionStore with the correct Supabase pooler URL
-    // This ensures we're using the aws-0-ca-central-1.pooler.supabase.com hostname
-    // instead of db.smrsiolztcggakkgtyab.supabase.co
-    const connectionString = process.env.DATABASE_URL || '';
-    
-    this.sessionStore = new PostgresSessionStore({
-      conObject: {
-        connectionString,
-        ssl: { rejectUnauthorized: false }
-      },
-      createTableIfMissing: true,
-      tableName: 'session'
+    // Use the pool directly with PostgresSessionStore
+    this.sessionStore = new PostgresSessionStore({ 
+      pool,
+      createTableIfMissing: true
     });
-    
-    console.log('Session store initialized with Supabase connection pool');
   }
   
   // Method to clear all balances for a group - for admin use only

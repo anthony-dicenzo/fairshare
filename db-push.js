@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import { execSync } from 'child_process';
 
 console.log('Pushing database schema...');
