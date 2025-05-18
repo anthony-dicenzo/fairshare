@@ -27,7 +27,7 @@ export async function initializeBalanceCache(): Promise<void> {
     
     for (const group of allGroups) {
       try {
-        console.log(`⚙️ Processing group ${group.id} (${group.name})...`);
+        console.log(`⚙ Updating balances for group ${group.id}`);
         await storage.updateAllBalancesInGroup(group.id);
         successCount++;
         console.log(`✅ Successfully updated balances for group ${group.id}`);
