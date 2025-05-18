@@ -8,7 +8,7 @@ import { useTutorial } from "@/components/tutorial/tutorial-context";
 const ExpenseFormComponent = lazy(() => import("../expenses/expense-form").then(module => ({ 
   default: module.ExpenseForm 
 })));
-const CreateGroupDialog = lazy(() => import("../groups/create-group-dialog"));
+const CreateGroupDialog = lazy(() => import("../groups/create-group-dialog").then(module => module.default));
 
 export function MobileNav() {
   const [location] = useLocation();

@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
 import { useLocation } from 'wouter';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useMutation } from '@tanstack/react-query';
-import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { queryClient } from '@/lib/queryClient';
 import { useTutorial } from '@/components/tutorial/tutorial-context';
 
 // Create schema for group creation
@@ -18,6 +17,7 @@ const createGroupSchema = z.object({
   name: z.string().min(1, "Group name is required").max(50, "Group name cannot exceed 50 characters")
 });
 
+// Get type from schema
 type CreateGroupFormValues = z.infer<typeof createGroupSchema>;
 
 interface CreateGroupDialogProps {
@@ -25,13 +25,10 @@ interface CreateGroupDialogProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({ 
-  open, 
-  onOpenChange = () => {} 
-}) => {
-  const [, navigate] = useLocation();
-  const { nextStep, currentStep } = useTutorial();
+export default function CreateGroupDialog({ open, onOpenChange = () => {} }: CreateGroupDialogProps) {
+  const [_, navigate] = useLocation();
   const { toast } = useToast();
+  const { nextStep, currentStep } = useTutorial();
   
   // Initialize the form
   const form = useForm<CreateGroupFormValues>({
@@ -41,7 +38,7 @@ const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({
     }
   });
 
-  // API mutation to create a new group
+  // Create group mutation
   const createGroupMutation = useMutation({
     mutationFn: async (data: CreateGroupFormValues) => {
       const response = await fetch('/api/groups', {
@@ -87,28 +84,29 @@ const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({
       // Show error toast
       toast({
         title: "Failed to create group",
-        description: "There was an error creating your group. Please try again.",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
     }
   });
 
+  // Form submission handler
   const onSubmit = (data: CreateGroupFormValues) => {
     createGroupMutation.mutate(data);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" data-tutorial="create-group-dialog">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Create a New Group</DialogTitle>
           <DialogDescription>
-            Start a new group to track expenses with friends, family, or roommates.
+            Create a group to share expenses with friends, roommates, or for trips.
           </DialogDescription>
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)}>
             <FormField
               control={form.control}
               name="name"
@@ -117,10 +115,10 @@ const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({
                   <FormLabel>Group Name</FormLabel>
                   <FormControl>
                     <Input 
-                      placeholder="Enter a name for your group" 
-                      {...field}
-                      autoFocus
+                      placeholder="e.g. Roommates, Summer Trip, etc." 
+                      {...field} 
                       data-tutorial="group-name-input"
+                      disabled={createGroupMutation.isPending}
                     />
                   </FormControl>
                   <FormMessage />
@@ -128,11 +126,12 @@ const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({
               )}
             />
             
-            <DialogFooter className="flex justify-end gap-2 pt-4">
+            <DialogFooter className="flex justify-end space-x-2 mt-4">
               <Button 
                 type="button" 
                 variant="outline" 
                 onClick={() => onOpenChange(false)}
+                disabled={createGroupMutation.isPending}
               >
                 Cancel
               </Button>
@@ -160,6 +159,4 @@ const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({
       </DialogContent>
     </Dialog>
   );
-};
-
-export default CreateGroupDialog;
+}
