@@ -75,14 +75,17 @@ async function refreshGroupBalances(groupId) {
     });
     
     const result = await response.json();
-    
-    if (response.ok) {
+
+    if (response.ok && result.message === "Balances refreshed successfully") {
       console.log(`✅ Successfully refreshed balances for group ${groupId}`);
       return true;
-    } else {
-      console.error(`❌ Failed to refresh balances for group ${groupId}:`, result.error || 'Unknown error');
-      return false;
     }
+
+    console.error(
+      `❌ Failed to refresh balances for group ${groupId}:`,
+      result.error || result.message || 'Unknown error'
+    );
+    return false;
   } catch (error) {
     console.error(`❌ Error refreshing balances for group ${groupId}:`, error.message);
     return false;
