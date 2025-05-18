@@ -82,15 +82,7 @@ export default function HomePage() {
         </Suspense>
       )}
       
-      {/* First-time tutorial dialog */}
-      {showFirstTimeDialog && (
-        <Suspense fallback={null}>
-          <FirstTimeDialog
-            open={showFirstTimeDialog}
-            onOpenChange={setShowFirstTimeDialog}
-          />
-        </Suspense>
-      )}
+      {/* No longer needed - using the welcome dialog in App.tsx */}
     </SimplifiedLayout>
   );
 }
