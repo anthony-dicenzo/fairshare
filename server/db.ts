@@ -14,9 +14,16 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Use the DATABASE_URL environment variable, falling back to a sample Supabase
 // connection string if not provided.
-const connectionString =
-  process.env.DATABASE_URL ||
+let connectionString = process.env.DATABASE_URL || 
   'postgres://postgres:password@aws-0-us-west-1.pooler.supabase.com:5432/postgres';
+
+// Clean up the URL if it contains quotes or other unexpected characters
+if (connectionString.startsWith('"') && connectionString.includes('"', 1)) {
+  connectionString = connectionString.replace(/^"|".*$/g, '');
+}
+
+console.log('Using connection string (masked):', 
+  connectionString.replace(/:[^:@]*@/, ':****@')); // Log without password
 
 // Initialize postgres client for Drizzle ORM
 const client = postgres(connectionString, { max: 10 });
