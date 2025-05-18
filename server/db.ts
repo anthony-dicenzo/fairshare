@@ -40,13 +40,13 @@ if (!connectionString) {
   console.error('Please set DATABASE_URL in your .env file.');
 }
 
-// Initialize postgres client for Drizzle ORM
-const client = postgres(connectionString, { max: 10 });
-export const db = drizzle(client, { schema });
+// Initialize postgres client for Drizzle ORM (only if connection string is available)
+const client = connectionString ? postgres(connectionString, { max: 10 }) : null;
+export const db = client ? drizzle(client, { schema }) : null;
 
 // Create a regular PostgreSQL pool for session store compatibility
 // using the standard node-postgres library instead of neon-serverless
-export const pool = new Pool({ 
+export const pool = connectionString ? new Pool({ 
   connectionString,
   ssl: { rejectUnauthorized: false } // Required for Supabase connection
-});
+}) : null;
