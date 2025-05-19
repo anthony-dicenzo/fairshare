@@ -5,6 +5,7 @@ import InteractiveGuide from './InteractiveGuide';
 import AnimatedGuidedTour from './AnimatedGuidedTour';
 import SimpleGuide from './SimpleGuide';
 import ReliableGuide from './ReliableGuide';
+import CombinedOnboarding from './CombinedOnboarding';
 import DemoButtons from './DemoButtons';
 import { toast } from '@/hooks/use-toast';
 
@@ -13,6 +14,7 @@ export function TestOnboarding() {
   const [showAnimated, setShowAnimated] = useState(false);
   const [showSimple, setShowSimple] = useState(false);
   const [showReliable, setShowReliable] = useState(false);
+  const [showCombined, setShowCombined] = useState(false);
 
   const handleCompleteInteractive = () => {
     setShowInteractive(false);
@@ -47,6 +49,15 @@ export function TestOnboarding() {
     });
   };
 
+  const handleCompleteCombined = () => {
+    setShowCombined(false);
+    toast({
+      title: "Complete Onboarding Experience Finished",
+      description: "You've completed the full onboarding experience with animation and interactive guide.",
+      variant: "success",
+    });
+  };
+
   return (
     <div className="container mx-auto p-4 max-w-xl">
       <Card className="mb-6">
@@ -61,10 +72,17 @@ export function TestOnboarding() {
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
           <Button 
+            className="w-full bg-purple-600 hover:bg-purple-700 font-semibold"
+            onClick={() => setShowCombined(true)}
+          >
+            Try Complete Onboarding Experience ✨ RECOMMENDED
+          </Button>
+          <div className="w-full border-t my-1 border-gray-200 dark:border-gray-700"></div>
+          <Button 
             className="w-full bg-indigo-600 hover:bg-indigo-700"
             onClick={() => setShowReliable(true)}
           >
-            Try Reliable Interactive Guide ✨ NEW
+            Try Reliable Interactive Guide
           </Button>
           <Button 
             className="w-full bg-green-600 hover:bg-green-700"
@@ -100,6 +118,12 @@ export function TestOnboarding() {
         </ul>
       </div>
 
+      {showCombined && (
+        <CombinedOnboarding
+          onComplete={handleCompleteCombined}
+        />
+      )}
+      
       {showReliable && (
         <ReliableGuide 
           onComplete={handleCompleteReliable} 
