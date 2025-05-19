@@ -1,5 +1,15 @@
-import { useState } from 'react';
-import { useLocation } from 'wouter';
+import React, { useEffect, useState } from 'react';
+import { Link, useLocation } from 'wouter';
+import { useOnboarding, ONBOARDING_STEPS } from '../../context/OnboardingContext';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -8,295 +18,327 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { PlusCircle, Users, DollarSign, Mail } from 'lucide-react';
+import { Check, X, ArrowRight, Users, Receipt, UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-// Tutorial steps enum
-enum TutorialStep {
-  Welcome,
-  CreateGroup,
-  AddExpense,
-  InviteUser,
-  Complete
-}
-
-interface OnboardingTutorialProps {
-  open: boolean;
-  onComplete: () => void;
-}
-
-const OnboardingTutorial = ({ open, onComplete }: OnboardingTutorialProps) => {
-  const [currentStep, setCurrentStep] = useState<TutorialStep>(TutorialStep.Welcome);
-  const [dialogOpen, setDialogOpen] = useState(open);
-  const [, navigate] = useLocation();
+export default function OnboardingTutorial() {
   const { toast } = useToast();
+  const [location, navigate] = useLocation();
+  const { onboarding, markStepComplete, skipOnboarding } = useOnboarding();
+  const [open, setOpen] = useState(false);
+  const [groupId, setGroupId] = useState<number | null>(null);
 
-  // Calculate progress percentage based on current step
-  const progressPercentage = (currentStep / (Object.keys(TutorialStep).length / 2 - 1)) * 100;
+  // Open the tutorial dialog when not completed
+  useEffect(() => {
+    if (!onboarding.completed && onboarding.isNewUser) {
+      setOpen(true);
+    }
+  }, [onboarding.completed, onboarding.isNewUser]);
 
-  // Handle next step
-  const handleNext = () => {
-    if (currentStep === TutorialStep.Complete) {
-      setDialogOpen(false);
-      onComplete();
-    } else {
-      setCurrentStep(currentStep + 1);
-      
-      // If we're moving to create group step, navigate to groups page
-      if (currentStep === TutorialStep.Welcome) {
-        navigate('/groups');
-      }
-      
-      // If we're moving to add expense step, show a toast with instructions
-      if (currentStep === TutorialStep.CreateGroup) {
-        toast({
-          title: '💡 Create an Expense',
-          description: "Now let's add your first expense. Select a group and click the + button.",
-          duration: 5000,
-        });
-      }
-      
-      // If we're moving to invite user step, show a toast with instructions
-      if (currentStep === TutorialStep.AddExpense) {
-        toast({
-          title: '💡 Invite Someone',
-          description: "Finally, invite friends to join your group by clicking 'Invite' on the group page.",
-          duration: 5000,
-        });
-      }
+  // Check if we're on the groups page
+  const isGroupsPage = location === '/groups';
+
+  // Determine which step to show based on current step
+  const renderContent = () => {
+    switch (onboarding.currentStep) {
+      case ONBOARDING_STEPS.WELCOME:
+        return (
+          <WelcomeStep 
+            onComplete={() => markStepComplete(ONBOARDING_STEPS.WELCOME)} 
+          />
+        );
+      case ONBOARDING_STEPS.CREATE_GROUP:
+        return (
+          <CreateGroupStep 
+            onComplete={() => markStepComplete(ONBOARDING_STEPS.CREATE_GROUP)}
+            setGroupId={setGroupId}
+          />
+        );
+      case ONBOARDING_STEPS.ADD_EXPENSE:
+        return (
+          <AddExpenseStep 
+            onComplete={() => markStepComplete(ONBOARDING_STEPS.ADD_EXPENSE)}
+            groupId={groupId}
+          />
+        );
+      case ONBOARDING_STEPS.INVITE_FRIEND:
+        return (
+          <InviteFriendStep 
+            onComplete={() => markStepComplete(ONBOARDING_STEPS.INVITE_FRIEND)}
+            groupId={groupId}
+          />
+        );
+      case ONBOARDING_STEPS.COMPLETED:
+        return (
+          <CompletedStep 
+            onClose={() => setOpen(false)}
+          />
+        );
+      default:
+        return null;
     }
   };
 
-  // Handle skip tutorial
-  const handleSkip = () => {
-    setDialogOpen(false);
-    onComplete();
-  };
+  if (!open || !onboarding.isNewUser) return null;
 
-  // Show content based on current step
-  const renderStepContent = () => {
-    switch (currentStep) {
-      case TutorialStep.Welcome:
-        return (
-          <>
-            <DialogHeader>
-              <DialogTitle className="text-2xl">Welcome to FairShare!</DialogTitle>
-              <DialogDescription className="text-base py-2">
-                Let's get you started with a quick tour of how to use the app.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex flex-col space-y-4 py-4">
-              <div className="flex items-center space-x-4">
-                <div className="bg-primary/10 p-3 rounded-full">
-                  <Users className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-medium">Create a Group</h3>
-                  <p className="text-sm text-muted-foreground">Start by creating a group for your expenses</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-4">
-                <div className="bg-primary/10 p-3 rounded-full">
-                  <DollarSign className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-medium">Add Expenses</h3>
-                  <p className="text-sm text-muted-foreground">Track shared expenses within your group</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-4">
-                <div className="bg-primary/10 p-3 rounded-full">
-                  <Mail className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-medium">Invite Friends</h3>
-                  <p className="text-sm text-muted-foreground">Share the group with friends to split expenses</p>
-                </div>
-              </div>
-            </div>
-            <DialogFooter className="flex gap-2">
-              <Button variant="ghost" onClick={handleSkip}>
-                Skip Tutorial
-              </Button>
-              <Button onClick={handleNext}>
-                Start Tour
-              </Button>
-            </DialogFooter>
-          </>
-        );
-        
-      case TutorialStep.CreateGroup:
-        return (
-          <>
-            <DialogHeader>
-              <DialogTitle className="text-xl">Step 1: Create a Group</DialogTitle>
-              <DialogDescription>
-                Create a group to start tracking expenses with friends, roommates, or family.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4 space-y-4">
-              <div className="rounded-lg border p-4 bg-muted/50">
-                <div className="flex items-center space-x-2 mb-2">
-                  <PlusCircle className="h-5 w-5 text-primary" />
-                  <span className="font-medium">Click "Create group"</span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  You can find the "Create group" button at the top of the Groups page.
-                  Give your group a descriptive name like "Roommates" or "Trip to Paris".
-                </p>
-              </div>
-              <div className="flex justify-center">
-                <img 
-                  src="/create-group-demo.png" 
-                  alt="Create Group Demonstration" 
-                  className="rounded-md border shadow-sm max-w-full h-auto"
-                  onError={(e) => e.currentTarget.style.display = 'none'} // Hide image if it fails to load
-                />
-              </div>
-            </div>
-            <DialogFooter className="flex gap-2">
-              <Button variant="ghost" onClick={handleSkip}>
-                Skip Tutorial
-              </Button>
-              <Button onClick={handleNext}>
-                I've Created a Group
-              </Button>
-            </DialogFooter>
-          </>
-        );
-        
-      case TutorialStep.AddExpense:
-        return (
-          <>
-            <DialogHeader>
-              <DialogTitle className="text-xl">Step 2: Add an Expense</DialogTitle>
-              <DialogDescription>
-                Record expenses within your group to keep track of who paid what.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4 space-y-4">
-              <div className="rounded-lg border p-4 bg-muted/50">
-                <div className="flex items-center space-x-2 mb-2">
-                  <DollarSign className="h-5 w-5 text-primary" />
-                  <span className="font-medium">Click the "+" button in your group</span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Enter the expense details including title, amount, date, and how to split it.
-                  FairShare will automatically calculate who owes what.
-                </p>
-              </div>
-              <div className="rounded-lg border p-4 bg-muted/50">
-                <h4 className="font-medium mb-1">Pro Tips:</h4>
-                <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
-                  <li>Use descriptive titles like "Groceries" or "Dinner at Luigi's"</li>
-                  <li>Select who participated in the expense</li>
-                  <li>Choose how to split: equally, by percentage, or custom amounts</li>
-                </ul>
-              </div>
-            </div>
-            <DialogFooter className="flex gap-2">
-              <Button variant="ghost" onClick={handleSkip}>
-                Skip Tutorial
-              </Button>
-              <Button onClick={handleNext}>
-                I've Added an Expense
-              </Button>
-            </DialogFooter>
-          </>
-        );
-        
-      case TutorialStep.InviteUser:
-        return (
-          <>
-            <DialogHeader>
-              <DialogTitle className="text-xl">Step 3: Invite Friends</DialogTitle>
-              <DialogDescription>
-                Share your group with friends so they can view and add expenses too.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4 space-y-4">
-              <div className="rounded-lg border p-4 bg-muted/50">
-                <div className="flex items-center space-x-2 mb-2">
-                  <Users className="h-5 w-5 text-primary" />
-                  <span className="font-medium">Click "Invite" in your group</span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  You can find the Invite button in your group details page.
-                  Share the invite link with your friends so they can join.
-                </p>
-              </div>
-              <div className="rounded-lg border p-4 bg-primary/10">
-                <h4 className="font-medium mb-1 flex items-center">
-                  <Mail className="h-4 w-4 mr-1" />
-                  Why invite friends?
-                </h4>
-                <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
-                  <li>They'll be able to see all group expenses</li>
-                  <li>They can add their own expenses</li>
-                  <li>Everyone stays on the same page about who owes what</li>
-                </ul>
-              </div>
-            </div>
-            <DialogFooter className="flex gap-2">
-              <Button variant="ghost" onClick={handleSkip}>
-                Skip Tutorial
-              </Button>
-              <Button onClick={handleNext}>
-                Continue
-              </Button>
-            </DialogFooter>
-          </>
-        );
-        
-      case TutorialStep.Complete:
-        return (
-          <>
-            <DialogHeader>
-              <DialogTitle className="text-xl">You're All Set! 🎉</DialogTitle>
-              <DialogDescription>
-                You've completed the basic tutorial for FairShare.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4 space-y-4">
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4 rounded-md">
-                <h4 className="font-medium text-green-800 dark:text-green-300 mb-2">Here's what you can do now:</h4>
-                <ul className="text-sm text-green-700 dark:text-green-400 list-disc list-inside space-y-2">
-                  <li>Create more groups for different purposes</li>
-                  <li>Add recurring expenses for monthly bills</li>
-                  <li>Settle up with friends when debts build up</li>
-                  <li>Check the Activity tab to see recent updates</li>
-                </ul>
-              </div>
-              <p className="text-sm text-center text-muted-foreground pt-2">
-                Need help? Check out our Help section or contact support.
-              </p>
-            </div>
-            <DialogFooter>
-              <Button onClick={handleNext} className="w-full">
-                Start Using FairShare
-              </Button>
-            </DialogFooter>
-          </>
-        );
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>
+            {getTitleFromStep(onboarding.currentStep)}
+          </DialogTitle>
+          <DialogDescription>
+            Let's help you get started with FairShare
+          </DialogDescription>
+        </DialogHeader>
+        {renderContent()}
+        <DialogFooter className="flex justify-between">
+          <Button 
+            variant="outline" 
+            onClick={skipOnboarding}
+            className="mr-auto"
+          >
+            Skip tutorial
+          </Button>
+          <div className="flex space-x-1 text-xs text-muted-foreground">
+            {renderStepIndicator(onboarding.currentStep)}
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Helper function to get a title based on the current step
+const getTitleFromStep = (step: string) => {
+  switch (step) {
+    case ONBOARDING_STEPS.WELCOME:
+      return "Welcome to FairShare";
+    case ONBOARDING_STEPS.CREATE_GROUP:
+      return "Create your first group";
+    case ONBOARDING_STEPS.ADD_EXPENSE:
+      return "Add your first expense";
+    case ONBOARDING_STEPS.INVITE_FRIEND:
+      return "Invite your friends";
+    case ONBOARDING_STEPS.COMPLETED:
+      return "You're all set!";
+    default:
+      return "Onboarding Tutorial";
+  }
+};
+
+// Step indicator component
+const renderStepIndicator = (currentStep: string) => {
+  const steps = [
+    ONBOARDING_STEPS.WELCOME,
+    ONBOARDING_STEPS.CREATE_GROUP,
+    ONBOARDING_STEPS.ADD_EXPENSE,
+    ONBOARDING_STEPS.INVITE_FRIEND,
+    ONBOARDING_STEPS.COMPLETED
+  ];
+  
+  return (
+    <div className="flex space-x-2">
+      {steps.map((step, index) => (
+        <div 
+          key={step}
+          className={`w-2 h-2 rounded-full ${
+            currentStep === step 
+              ? 'bg-primary' 
+              : steps.indexOf(currentStep) > index 
+                ? 'bg-primary/50' 
+                : 'bg-muted'
+          }`}
+        />
+      ))}
+    </div>
+  );
+};
+
+// Individual step components
+const WelcomeStep = ({ onComplete }: { onComplete: () => void }) => {
+  return (
+    <div className="py-4">
+      <p className="mb-4">
+        FairShare makes it easy to split expenses with friends, roommates, and travel groups.
+      </p>
+      <p className="mb-4">
+        This quick tutorial will help you learn the basics:
+      </p>
+      <ul className="space-y-2 mb-4">
+        <li className="flex items-center">
+          <Users className="mr-2 h-4 w-4" />
+          Create expense groups
+        </li>
+        <li className="flex items-center">
+          <Receipt className="mr-2 h-4 w-4" />
+          Track shared expenses
+        </li>
+        <li className="flex items-center">
+          <UserPlus className="mr-2 h-4 w-4" />
+          Invite friends to join
+        </li>
+      </ul>
+      <Button onClick={onComplete} className="w-full">
+        Let's get started <ArrowRight className="ml-2 h-4 w-4" />
+      </Button>
+    </div>
+  );
+};
+
+const CreateGroupStep = ({ 
+  onComplete,
+  setGroupId
+}: { 
+  onComplete: () => void,
+  setGroupId: (id: number) => void
+}) => {
+  const [isCreating, setIsCreating] = useState(false);
+  const { toast } = useToast();
+  const [_, navigate] = useLocation();
+
+  // Create a default group
+  const createDefaultGroup = async () => {
+    setIsCreating(true);
+    
+    try {
+      const response = await fetch('/api/groups', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: 'My First Group',
+          description: 'Created during onboarding',
+        }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        toast({
+          title: 'Success!',
+          description: 'Your first group has been created.',
+        });
+        setGroupId(data.id);
+        onComplete();
+        // Navigate to the groups page
+        navigate('/groups');
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to create group. Please try again.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to create group. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCreating(false);
     }
   };
 
   return (
-    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-      <DialogContent className="sm:max-w-md">
-        <div className="mb-4">
-          <div className="relative w-full h-2 bg-muted rounded-full overflow-hidden">
-            <div 
-              className="absolute top-0 left-0 h-full bg-primary transition-all duration-300" 
-              style={{ width: `${progressPercentage}%` }}
-            />
-          </div>
-        </div>
-        {renderStepContent()}
-      </DialogContent>
-    </Dialog>
+    <div className="py-4">
+      <p className="mb-4">
+        Groups help you organize expenses with different people.
+        Create your first group to get started.
+      </p>
+      
+      <Button 
+        onClick={createDefaultGroup} 
+        className="w-full"
+        disabled={isCreating}
+      >
+        {isCreating ? 'Creating...' : 'Create My First Group'} <Users className="ml-2 h-4 w-4" />
+      </Button>
+      
+      <div className="mt-4 text-sm text-muted-foreground">
+        You can also create it manually from the Groups page.
+      </div>
+    </div>
   );
 };
 
-export default OnboardingTutorial;
+const AddExpenseStep = ({ 
+  onComplete,
+  groupId
+}: { 
+  onComplete: () => void,
+  groupId: number | null
+}) => {
+  const [_, navigate] = useLocation();
+  
+  // Navigate to the group page
+  const navigateToGroup = () => {
+    if (groupId) {
+      navigate(`/groups/${groupId}`);
+    }
+    onComplete();
+  };
+  
+  return (
+    <div className="py-4">
+      <p className="mb-4">
+        Now let's add your first expense to the group.
+      </p>
+      <p className="mb-4">
+        Whenever you pay for something that should be split with others, 
+        add it as an expense. FairShare will track who owes what.
+      </p>
+      
+      <Button onClick={navigateToGroup} className="w-full">
+        Add an expense <Receipt className="ml-2 h-4 w-4" />
+      </Button>
+    </div>
+  );
+};
+
+const InviteFriendStep = ({ 
+  onComplete,
+  groupId
+}: { 
+  onComplete: () => void,
+  groupId: number | null
+}) => {
+  return (
+    <div className="py-4">
+      <p className="mb-4">
+        Now it's time to invite others to join your group.
+      </p>
+      <p className="mb-4">
+        You can share an invite link directly, or add members through their email.
+      </p>
+      
+      <Button onClick={onComplete} className="w-full">
+        Got it <Check className="ml-2 h-4 w-4" />
+      </Button>
+    </div>
+  );
+};
+
+const CompletedStep = ({ onClose }: { onClose: () => void }) => {
+  return (
+    <div className="py-4 text-center">
+      <div className="flex justify-center mb-4">
+        <div className="rounded-full bg-green-100 p-3">
+          <Check className="h-8 w-8 text-green-600" />
+        </div>
+      </div>
+      <p className="mb-4 font-medium text-lg">
+        You're all set to start using FairShare!
+      </p>
+      <p className="mb-6">
+        You now know the basics to get started. Explore the app to discover more features.
+      </p>
+      
+      <Button onClick={onClose} className="w-full">
+        Start using FairShare
+      </Button>
+    </div>
+  );
+};

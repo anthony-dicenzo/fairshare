@@ -4,13 +4,12 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/use-auth";
-import { OnboardingProvider } from "@/hooks/use-onboarding";
-import { NewUserProvider } from "@/hooks/use-new-user";
 import { ProtectedRoute } from "./lib/protected-route";
 import { OfflineBanner } from "@/components/offline-banner";
 import { PWANotification } from "@/components/pwa-notification";
-import { OnboardingManager } from "@/components/onboarding";
-import { TestOnboarding } from "@/components/onboarding/TestOnboarding";
+import { OnboardingProvider } from "./context/OnboardingContext";
+import OnboardingTutorial from "./components/onboarding/OnboardingTutorial";
+import { OnboardingInitializer } from "./components/onboarding/OnboardingInitializer";
 import HomePage from "@/pages/home-page";
 import GroupPage from "@/pages/group-page";
 import GroupsPage from "@/pages/groups-page";
@@ -30,7 +29,6 @@ function Router() {
       <ProtectedRoute path="/groups" component={GroupsPage} />
       <ProtectedRoute path="/activity" component={ActivityPage} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
-      <ProtectedRoute path="/test-onboarding" component={TestOnboarding} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/invite/:inviteCode" component={InvitePage} />
       <Route path="/firebase-debug" component={FirebaseDebugPage} />
@@ -45,15 +43,14 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <OnboardingProvider>
-          <NewUserProvider>
-            <TooltipProvider>
-              <OfflineBanner />
-              <PWANotification />
-              <Toaster />
-              <OnboardingManager />
-              <Router />
-            </TooltipProvider>
-          </NewUserProvider>
+          <TooltipProvider>
+            <OfflineBanner />
+            <PWANotification />
+            <Toaster />
+            <OnboardingInitializer />
+            <OnboardingTutorial />
+            <Router />
+          </TooltipProvider>
         </OnboardingProvider>
       </AuthProvider>
     </QueryClientProvider>
