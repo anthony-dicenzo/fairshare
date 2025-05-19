@@ -1267,60 +1267,69 @@ export class DatabaseStorage implements IStorage {
     expense?: Expense;
     payment?: Payment;
   })[]> {
-    // Get all groups the user is a member of
-    const userGroups = await this.getGroupsByUserId(userId);
-    const groupIds = userGroups.map(g => g.id);
-    
-    // Get activities where user is actor or in user's groups
-    const activities = await db
-      .select({
-        activity: activityLog,
-        user: users
-      })
-      .from(activityLog)
-      .where(
-        groupIds.length > 0 
-          ? or(
-              eq(activityLog.userId, userId),
-              inArray(activityLog.groupId, groupIds)
-            )
-          : eq(activityLog.userId, userId)
-      )
-      .innerJoin(users, eq(activityLog.userId, users.id))
-      .orderBy(desc(activityLog.createdAt))
-      .limit(limit);
-    
-    // Enrich with group, expense, payment data
-    const enrichedActivities = await Promise.all(activities.map(async (a) => {
-      const enriched: any = {
-        ...a.activity,
-        user: a.user
-      };
+    try {
+      console.log(`Getting activity for user ${userId}`);
+      // Get all groups the user is a member of
+      const userGroups = await this.getGroupsByUserId(userId);
+      const groupIds = userGroups.map(g => g.id);
       
-      if (a.activity.groupId) {
-        const group = await this.getGroup(a.activity.groupId);
-        if (group) enriched.group = group;
+      // Get direct expenses data for user instead of relying on activity table
+      console.log(`Fetching expenses for user in ${groupIds.length} groups`);
+      let allExpenses: (Expense & { group: Group })[] = [];
+      
+      try {
+        for (const groupId of groupIds) {
+          const groupExpenses = await this.getExpensesByGroupId(groupId, 50);
+          const group = await this.getGroup(groupId);
+          
+          if (group) {
+            const expensesWithGroup = groupExpenses.map(expense => ({
+              ...expense,
+              group
+            }));
+            allExpenses = [...allExpenses, ...expensesWithGroup];
+          }
+        }
+      } catch (error) {
+        console.error(`Error fetching expenses: ${error}`);
       }
       
-      if (a.activity.expenseId) {
-        const expense = await this.getExpenseById(a.activity.expenseId);
-        if (expense) enriched.expense = expense;
-      }
+      // Sort expenses by created date descending
+      allExpenses.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
       
-      if (a.activity.paymentId) {
-        const payment = await db
-          .select()
-          .from(payments)
-          .where(eq(payments.id, a.activity.paymentId))
-          .then(res => res[0]);
+      // Limit to most recent ones
+      allExpenses = allExpenses.slice(0, limit);
+      
+      // Convert expenses to activity format
+      const syntheticActivities = await Promise.all(allExpenses.map(async (expense) => {
+        const payer = await this.getUser(expense.paidBy);
         
-        if (payment) enriched.payment = payment;
-      }
+        return {
+          id: expense.id, // Use expense ID as activity ID
+          userId: expense.paidBy,
+          groupId: expense.groupId,
+          actionType: "add_expense",
+          expenseId: expense.id,
+          createdAt: expense.createdAt,
+          // Add other required properties
+          user: payer,
+          group: expense.group,
+          expense: expense,
+        } as (ActivityLogEntry & {
+          user: User;
+          group: Group;
+          expense: Expense;
+        });
+      }));
       
-      return enriched;
-    }));
-    
-    return enrichedActivities;
+      console.log(`Generated ${syntheticActivities.length} activity entries`);
+      return syntheticActivities;
+    } catch (error) {
+      console.error(`Error in getActivityByUserId: ${error}`);
+      return []; // Return empty array on error
+    }
   }
   
   async getActivityByGroupId(groupId: number, limit: number = 20): Promise<(ActivityLogEntry & {
@@ -1329,48 +1338,89 @@ export class DatabaseStorage implements IStorage {
     expense?: Expense;
     payment?: Payment;
   })[]> {
-    const activities = await db
-      .select({
-        activity: activityLog,
-        user: users
-      })
-      .from(activityLog)
-      .where(eq(activityLog.groupId, groupId))
-      .innerJoin(users, eq(activityLog.userId, users.id))
-      .orderBy(desc(activityLog.createdAt))
-      .limit(limit);
-    
-    // Enrich with group, expense, payment data
-    const enrichedActivities = await Promise.all(activities.map(async (a) => {
-      const enriched: any = {
-        ...a.activity,
-        user: a.user
-      };
+    try {
+      console.log(`Getting activity for group ${groupId}`);
       
-      if (a.activity.groupId) {
-        const group = await this.getGroup(a.activity.groupId);
-        if (group) enriched.group = group;
+      // Get direct expenses data for the group instead of relying on activity table
+      console.log(`Fetching expenses for group ${groupId}`);
+      const groupExpenses = await this.getExpensesByGroupId(groupId, limit);
+      const group = await this.getGroup(groupId);
+      
+      if (!group) {
+        console.error(`Group ${groupId} not found`);
+        return [];
       }
       
-      if (a.activity.expenseId) {
-        const expense = await this.getExpenseById(a.activity.expenseId);
-        if (expense) enriched.expense = expense;
-      }
-      
-      if (a.activity.paymentId) {
-        const payment = await db
-          .select()
-          .from(payments)
-          .where(eq(payments.id, a.activity.paymentId))
-          .then(res => res[0]);
+      // Convert expenses to activity format
+      const syntheticActivities = await Promise.all(groupExpenses.map(async (expense) => {
+        const payer = await this.getUser(expense.paidBy);
         
-        if (payment) enriched.payment = payment;
-      }
+        return {
+          id: expense.id, // Use expense ID as activity ID
+          userId: expense.paidBy,
+          groupId: expense.groupId,
+          actionType: "add_expense",
+          expenseId: expense.id,
+          createdAt: expense.createdAt,
+          // Add other required properties
+          user: payer,
+          group: group,
+          expense: expense,
+        } as (ActivityLogEntry & {
+          user: User;
+          group: Group;
+          expense: Expense;
+        });
+      }));
       
-      return enriched;
-    }));
-    
-    return enrichedActivities;
+      // Get payments for this group (if any)
+      try {
+        const groupPayments = await this.getPaymentsByGroupId(groupId, limit);
+        
+        // Convert payments to activity format and add to synthetic activities
+        const paymentActivities = await Promise.all(groupPayments.map(async (payment) => {
+          const payer = await this.getUser(payment.paidBy);
+          
+          return {
+            id: payment.id + 10000, // Use payment ID + offset as activity ID to avoid collisions
+            userId: payment.paidBy,
+            groupId: payment.groupId,
+            actionType: "record_payment",
+            paymentId: payment.id,
+            createdAt: payment.createdAt,
+            // Add other required properties
+            user: payer,
+            group: group,
+            payment: payment,
+          } as (ActivityLogEntry & {
+            user: User;
+            group: Group;
+            payment: Payment;
+          });
+        }));
+        
+        // Combine expense and payment activities
+        const combinedActivities = [...syntheticActivities, ...paymentActivities];
+        
+        // Sort by created date descending
+        combinedActivities.sort((a, b) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        
+        // Limit to requested count
+        const limitedActivities = combinedActivities.slice(0, limit);
+        
+        console.log(`Generated ${limitedActivities.length} activity entries for group ${groupId}`);
+        return limitedActivities;
+      } catch (error) {
+        console.error(`Error fetching payments: ${error}`);
+        console.log(`Returning ${syntheticActivities.length} expense activities only`);
+        return syntheticActivities;
+      }
+    } catch (error) {
+      console.error(`Error in getActivityByGroupId: ${error}`);
+      return []; // Return empty array on error
+    }
   }
   
   async getUserBalanceInGroup(userId: number, groupId: number): Promise<number> {
