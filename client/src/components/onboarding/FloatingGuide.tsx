@@ -8,6 +8,16 @@ import {
 import { Button } from '@/components/ui/button';
 import { X, ArrowRight, ChevronsRight } from 'lucide-react';
 
+// Add global styles for z-index
+const GLOBAL_STYLES = `
+  .onboarding-highlight {
+    z-index: 9999 !important;
+  }
+  .onboarding-card {
+    z-index: 10000 !important;
+  }
+`;
+
 interface FloatingGuideProps {
   title: string;
   description: string;
@@ -39,6 +49,26 @@ export function FloatingGuide({
   const cardRef = useRef<HTMLDivElement>(null);
   
   // Find target element and update coordinates
+  // Insert global styles to DOM
+  useEffect(() => {
+    // Create a style element if it doesn't exist
+    const styleId = 'onboarding-global-styles';
+    if (!document.getElementById(styleId)) {
+      const styleElem = document.createElement('style');
+      styleElem.id = styleId;
+      styleElem.textContent = GLOBAL_STYLES;
+      document.head.appendChild(styleElem);
+    }
+    
+    return () => {
+      // Clean up style element when component unmounts
+      const elem = document.getElementById(styleId);
+      if (elem) {
+        elem.remove();
+      }
+    };
+  }, []);
+
   useEffect(() => {
     if (!isVisible || !targetSelector) return;
     
@@ -71,6 +101,15 @@ export function FloatingGuide({
       }
       
       if (targetElement) {
+        // Add a special class to bring it to front
+        targetElement.classList.add('onboarding-target');
+        // Set higher z-index via inline style to ensure visibility
+        const currentZIndex = window.getComputedStyle(targetElement).zIndex;
+        if (currentZIndex === 'auto' || parseInt(currentZIndex) < 9000) {
+          targetElement.style.zIndex = '9000';
+          targetElement.dataset.originalZIndex = currentZIndex;
+        }
+        
         setFoundTarget(true);
         const rect = targetElement.getBoundingClientRect();
         setCoords({
@@ -150,19 +189,37 @@ export function FloatingGuide({
     setCardPosition({ top, left });
   }, [coords, foundTarget, position]);
   
+  // Clean up original z-index on unmount
+  useEffect(() => {
+    return () => {
+      // Reset z-index for any elements with onboarding-target class
+      document.querySelectorAll('.onboarding-target').forEach(el => {
+        const element = el as HTMLElement;
+        if (element.dataset.originalZIndex) {
+          element.style.zIndex = element.dataset.originalZIndex;
+          delete element.dataset.originalZIndex;
+        }
+        element.classList.remove('onboarding-target');
+      });
+    };
+  }, []);
+
   // Don't render if not visible
   if (!isVisible) return null;
   
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 pointer-events-none z-50">
+      <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 9990 }}>
+        {/* Semi-transparent overlay to make content stand out */}
+        <div className="fixed inset-0 bg-black bg-opacity-30" style={{ zIndex: 9991 }} />
+        
         {/* Highlight overlay for target element */}
         {foundTarget && showHighlight && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute"
+            className="absolute onboarding-highlight"
             style={{
               top: coords.y - 4,
               left: coords.x - 4,
@@ -170,7 +227,6 @@ export function FloatingGuide({
               height: coords.height + 8,
               backgroundColor: highlightColor,
               borderRadius: '4px',
-              zIndex: 50,
               boxShadow: '0 0 0 4px rgba(59, 130, 246, 0.3)'
             }}
           >
@@ -187,18 +243,17 @@ export function FloatingGuide({
         {/* Guide card */}
         <motion.div
           ref={cardRef}
-          className="fixed pointer-events-auto"
+          className="fixed pointer-events-auto onboarding-card"
           style={{ 
             top: cardPosition.top, 
-            left: cardPosition.left,
-            zIndex: 60
+            left: cardPosition.left
           }}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 10 }}
           transition={{ duration: 0.2 }}
         >
-          <Card className="w-64 shadow-lg border border-blue-200 dark:border-blue-800">
+          <Card className="w-64 shadow-lg border border-blue-500 dark:border-blue-800">
             <CardContent className="pt-4 pb-2">
               <div className="flex justify-between items-start mb-2">
                 <h3 className="font-medium text-sm">{title}</h3>
