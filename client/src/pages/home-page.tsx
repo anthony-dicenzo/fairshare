@@ -9,7 +9,9 @@ import { useToast } from "@/hooks/use-toast";
 const ExpenseForm = lazy(() => import("@/components/expenses/expense-form").then(module => ({
   default: module.ExpenseForm
 })));
-const PaymentForm = lazy(() => import("@/components/expenses/payment-form"));
+const PaymentForm = lazy(() => import("@/components/expenses/payment-form").then(module => ({
+  default: module.PaymentForm
+})));
 
 // Define filter types
 type FilterType = 'all' | 'you-owe' | 'owed-to-you' | 'settled';

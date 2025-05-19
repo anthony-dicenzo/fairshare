@@ -29,7 +29,7 @@ interface PaymentFormProps {
   preselectedGroupId?: string;
 }
 
-export default function PaymentForm({ 
+export function PaymentForm({ 
   open, 
   onOpenChange, 
   preselectedGroupId 
