@@ -43,7 +43,32 @@ export function FloatingGuide({
     if (!isVisible || !targetSelector) return;
     
     const findTargetAndPosition = () => {
-      const targetElement = document.querySelector(targetSelector) as HTMLElement;
+      // Handle multiple selectors separated by commas
+      const selectors = targetSelector.split(',').map(s => s.trim());
+      let targetElement: HTMLElement | null = null;
+      
+      // Try each selector until we find a match
+      for (const selector of selectors) {
+        try {
+          // Special case for "contains" text content
+          if (selector.includes('button:contains(')) {
+            const buttonText = selector.match(/button:contains\('(.+?)'\)/)?.[1];
+            if (buttonText) {
+              const buttons = Array.from(document.querySelectorAll('button'));
+              targetElement = buttons.find(btn => 
+                btn.textContent?.includes(buttonText)
+              ) as HTMLElement || null;
+              if (targetElement) break;
+            }
+          } else {
+            // Regular selector
+            targetElement = document.querySelector(selector) as HTMLElement;
+            if (targetElement) break;
+          }
+        } catch (e) {
+          console.error('Invalid selector:', selector);
+        }
+      }
       
       if (targetElement) {
         setFoundTarget(true);

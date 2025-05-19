@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import InteractiveGuide from './InteractiveGuide';
 import AnimatedGuidedTour from './AnimatedGuidedTour';
+import DemoButtons from './DemoButtons';
 import { toast } from '@/hooks/use-toast';
 
 export function TestOnboarding() {
@@ -53,6 +54,9 @@ export function TestOnboarding() {
           </Button>
         </CardFooter>
       </Card>
+      
+      {/* Demo buttons for testing the interactive guide */}
+      <DemoButtons />
 
       <div className="text-sm text-muted-foreground">
         <h3 className="font-medium mb-2">How these differ:</h3>

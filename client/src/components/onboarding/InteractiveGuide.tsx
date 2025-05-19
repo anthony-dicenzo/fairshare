@@ -122,7 +122,7 @@ export function InteractiveGuide({ onComplete }: InteractiveGuideProps) {
           <FloatingGuide
             title="Create a Group"
             description="Click the 'Create group' button to organize your shared expenses."
-            targetSelector="button:contains('Create group'), [data-tour='create-group']"
+            targetSelector="[data-tour='create-group'], button.add-group-button"
             position="bottom"
             onComplete={handleStepComplete}
             onSkip={handleSkipStep}
@@ -151,7 +151,7 @@ export function InteractiveGuide({ onComplete }: InteractiveGuideProps) {
           <FloatingGuide
             title="Add an Expense"
             description="Now click the '+' button to add your first expense to the group."
-            targetSelector="button:contains('+'), [data-tour='add-expense'], .add-expense-button"
+            targetSelector="[data-tour='add-expense'], .add-expense-button, button.add-expense"
             position="bottom"
             onComplete={handleStepComplete}
             onSkip={handleSkipStep}
@@ -165,7 +165,7 @@ export function InteractiveGuide({ onComplete }: InteractiveGuideProps) {
           <FloatingGuide
             title="Enter Expense Details"
             description="Fill in the expense title, amount, and who paid for it."
-            targetSelector="form input[name='description'], [data-tour='expense-form']"
+            targetSelector="[data-tour='expense-form'], input[name='description'], form input[type='text']"
             position="right"
             onComplete={handleStepComplete}
             onSkip={handleSkipStep}
@@ -180,7 +180,7 @@ export function InteractiveGuide({ onComplete }: InteractiveGuideProps) {
           <FloatingGuide
             title="Invite Friends"
             description="Click 'Invite' to share this group with friends."
-            targetSelector="button:contains('Invite'), [data-tour='invite-button']"
+            targetSelector="[data-tour='invite-button'], .invite-button, button.invite"
             position="bottom"
             onComplete={handleStepComplete}
             onSkip={handleSkipStep}
@@ -194,7 +194,7 @@ export function InteractiveGuide({ onComplete }: InteractiveGuideProps) {
           <FloatingGuide
             title="Share with Friends"
             description="You can copy the invite link or send an email invitation."
-            targetSelector="input[type='text'][readonly], [data-tour='invite-link']"
+            targetSelector="[data-tour='invite-link'], input[readonly], .invite-link"
             position="bottom"
             onComplete={handleStepComplete}
             onSkip={handleSkipStep}
