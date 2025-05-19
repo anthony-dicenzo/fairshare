@@ -7,6 +7,7 @@ import SimpleGuide from './SimpleGuide';
 import ReliableGuide from './ReliableGuide';
 import CombinedOnboarding from './CombinedOnboarding';
 import SequentialOnboarding from './SequentialOnboarding';
+import ExactSequentialGuide from './ExactSequentialGuide';
 import DemoButtons from './DemoButtons';
 import { toast } from '@/hooks/use-toast';
 
@@ -17,6 +18,7 @@ export function TestOnboarding() {
   const [showReliable, setShowReliable] = useState(false);
   const [showCombined, setShowCombined] = useState(false);
   const [showSequential, setShowSequential] = useState(false);
+  const [showExactSequential, setShowExactSequential] = useState(false);
 
   const handleCompleteInteractive = () => {
     setShowInteractive(false);
@@ -68,6 +70,15 @@ export function TestOnboarding() {
       variant: "success",
     });
   };
+  
+  const handleCompleteExactSequential = () => {
+    setShowExactSequential(false);
+    toast({
+      title: "Exact Sequential Onboarding Completed",
+      description: "You've completed the complete onboarding experience using the original components.",
+      variant: "success",
+    });
+  };
 
   return (
     <div className="container mx-auto p-4 max-w-xl">
@@ -83,10 +94,17 @@ export function TestOnboarding() {
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
           <Button 
-            className="w-full bg-purple-600 hover:bg-purple-700 font-semibold"
+            className="w-full bg-rose-600 hover:bg-rose-700 font-semibold"
+            onClick={() => setShowExactSequential(true)}
+          >
+            Try Exact Sequential Onboarding ✨ RECOMMENDED
+          </Button>
+          <div className="w-full border-t my-1 border-gray-200 dark:border-gray-700"></div>
+          <Button 
+            className="w-full bg-purple-600 hover:bg-purple-700"
             onClick={() => setShowSequential(true)}
           >
-            Try Sequential Onboarding ✨ RECOMMENDED
+            Try Sequential Onboarding
           </Button>
           <div className="w-full border-t my-1 border-gray-200 dark:border-gray-700"></div>
           <Button 
@@ -129,6 +147,12 @@ export function TestOnboarding() {
         </ul>
       </div>
 
+      {showExactSequential && (
+        <ExactSequentialGuide
+          onComplete={handleCompleteExactSequential}
+        />
+      )}
+      
       {showSequential && (
         <SequentialOnboarding
           onComplete={handleCompleteSequential}
