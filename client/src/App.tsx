@@ -7,6 +7,9 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./lib/protected-route";
 import { OfflineBanner } from "@/components/offline-banner";
 import { PWANotification } from "@/components/pwa-notification";
+import { OnboardingProvider } from "./context/OnboardingContext";
+import OnboardingTutorial from "./components/onboarding/OnboardingTutorial";
+import { OnboardingInitializer } from "./components/onboarding/OnboardingInitializer";
 import HomePage from "@/pages/home-page";
 import GroupPage from "@/pages/group-page";
 import GroupsPage from "@/pages/groups-page";
@@ -39,12 +42,16 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <TooltipProvider>
-          <OfflineBanner />
-          <PWANotification />
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+        <OnboardingProvider>
+          <TooltipProvider>
+            <OfflineBanner />
+            <PWANotification />
+            <Toaster />
+            <OnboardingInitializer />
+            <OnboardingTutorial />
+            <Router />
+          </TooltipProvider>
+        </OnboardingProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
