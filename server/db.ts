@@ -41,12 +41,20 @@ if (!connectionString) {
 }
 
 // Initialize postgres client for Drizzle ORM (only if connection string is available)
-const client = connectionString ? postgres(connectionString, { max: 10 }) : null;
+const client = connectionString ? postgres(connectionString, { 
+  max: 10,
+  connect_timeout: 30,  // Increase connection timeout to 30 seconds
+  idle_timeout: 30,     // Timeout for idle connections
+  max_lifetime: 60 * 30 // Connection max lifetime in seconds (30 minutes)
+}) : null;
 export const db = client ? drizzle(client, { schema }) : null;
 
 // Create a regular PostgreSQL pool for session store compatibility
 // using the standard node-postgres library instead of neon-serverless
 export const pool = connectionString ? new Pool({ 
   connectionString,
-  ssl: { rejectUnauthorized: false } // Required for Supabase connection
+  ssl: { rejectUnauthorized: false }, // Required for Supabase connection
+  connectionTimeoutMillis: 30000,     // 30 seconds connection timeout
+  idleTimeoutMillis: 30000,           // 30 seconds idle timeout
+  max: 10                             // Maximum number of clients in the pool
 }) : null;
