@@ -11,9 +11,27 @@ export function WelcomeDialog() {
   
   // Check if this is a first-time user
   useEffect(() => {
-    if (!user) return; // Only proceed if user is logged in
+    // Check if we've already shown a welcome dialog in this browser
+    const browserWelcomeKey = 'fairshare_welcome_seen_browser';
+    const hasSeenWelcomeInBrowser = localStorage.getItem(browserWelcomeKey);
     
-    // Create a user-specific key for localStorage
+    // Special handling for users who aren't logged in yet or during database issues
+    // This ensures the tutorial can still be seen even without a logged-in user
+    if (!user) {
+      console.log('No authenticated user found, using browser-based welcome tracking');
+      
+      if (!hasSeenWelcomeInBrowser) {
+        console.log('New browser detected, showing welcome dialog for anonymous user');
+        const timer = setTimeout(() => {
+          setOpen(true);
+        }, 1000);
+        
+        return () => clearTimeout(timer);
+      }
+      return;
+    }
+    
+    // For logged-in users, use user-specific tracking
     const welcomeKey = `fairshare_welcome_seen_${user.id}`;
     const hasSeenWelcome = localStorage.getItem(welcomeKey);
     
@@ -24,7 +42,7 @@ export function WelcomeDialog() {
       // Show welcome dialog after a short delay
       const timer = setTimeout(() => {
         setOpen(true);
-      }, 1500);
+      }, 1000);
       
       return () => clearTimeout(timer);
     }
