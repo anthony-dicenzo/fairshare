@@ -20,26 +20,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     
     try {
+      console.log(`Creating group with data:`, JSON.stringify(req.body));
+      console.log(`User ID:`, req.user.id);
+      
       const validatedData = insertGroupSchema.parse({
         ...req.body,
         createdBy: req.user.id
       });
       
+      console.log(`Validated group data:`, JSON.stringify(validatedData));
+      
       const group = await storage.createGroup(validatedData);
+      console.log(`Created group with ID: ${group.id}`);
       
-      // Log activity
-      await storage.logActivity({
-        groupId: group.id,
-        userId: req.user.id,
-        actionType: "create_group"
-      });
+      try {
+        // Log activity
+        console.log(`Logging activity for new group ${group.id}`);
+        await storage.logActivity({
+          groupId: group.id,
+          userId: req.user.id,
+          actionType: "create_group"
+        });
+        console.log(`Activity logged successfully`);
+      } catch (activityError) {
+        console.error(`Error logging activity for group ${group.id}:`, activityError);
+        // Continue anyway since the group was created
+      }
       
+      console.log(`Group creation completed successfully`);
       res.status(201).json(group);
     } catch (error) {
+      console.error("Error creating group:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: error.errors });
       }
-      res.status(500).json({ error: "Failed to create group" });
+      // Include more details in error response for debugging
+      res.status(500).json({ 
+        error: "Failed to create group", 
+        details: error instanceof Error ? error.message : String(error) 
+      });
     }
   });
   
