@@ -11,15 +11,16 @@ dotenv.config({ path: '.env.secrets' });
 dotenv.config({ path: '.env.database' });
 dotenv.config({ path: '.env.local' });
 
-// The fixed Supabase connection string (as a fallback)
+// Use Supabase connection directly to ensure we don't use Neon database
 const SUPABASE_CONNECTION = 'postgresql://postgres:WCRjkMkrg7vDYahc@aws-0-ca-central-1.pooler.supabase.com:6543/postgres';
 
 // Get Supabase credentials from environment variables
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
 
-// Get database connection string, using SUPABASE_CONNECTION as fallback
-const connectionString = process.env.DATABASE_URL || SUPABASE_CONNECTION;
+// Force using Supabase connection string instead of relying on environment variables
+// This ensures we're connecting to Supabase instead of the old Neon database
+const connectionString = SUPABASE_CONNECTION;
 
 // Log connection information (safely)
 if (supabaseUrl) {
