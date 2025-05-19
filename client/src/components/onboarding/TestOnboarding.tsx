@@ -4,6 +4,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import InteractiveGuide from './InteractiveGuide';
 import AnimatedGuidedTour from './AnimatedGuidedTour';
 import SimpleGuide from './SimpleGuide';
+import ReliableGuide from './ReliableGuide';
 import DemoButtons from './DemoButtons';
 import { toast } from '@/hooks/use-toast';
 
@@ -11,6 +12,7 @@ export function TestOnboarding() {
   const [showInteractive, setShowInteractive] = useState(false);
   const [showAnimated, setShowAnimated] = useState(false);
   const [showSimple, setShowSimple] = useState(false);
+  const [showReliable, setShowReliable] = useState(false);
 
   const handleCompleteInteractive = () => {
     setShowInteractive(false);
@@ -36,6 +38,15 @@ export function TestOnboarding() {
     });
   };
 
+  const handleCompleteReliable = () => {
+    setShowReliable(false);
+    toast({
+      title: "Reliable Guide Completed",
+      description: "You've completed the reliable interactive guide.",
+      variant: "success",
+    });
+  };
+
   return (
     <div className="container mx-auto p-4 max-w-xl">
       <Card className="mb-6">
@@ -50,16 +61,22 @@ export function TestOnboarding() {
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
           <Button 
+            className="w-full bg-indigo-600 hover:bg-indigo-700"
+            onClick={() => setShowReliable(true)}
+          >
+            Try Reliable Interactive Guide ✨ NEW
+          </Button>
+          <Button 
             className="w-full bg-green-600 hover:bg-green-700"
             onClick={() => setShowSimple(true)}
           >
-            Try Simple Guide (Recommended)
+            Try Simple Guide
           </Button>
           <Button 
             className="w-full bg-blue-600 hover:bg-blue-700"
             onClick={() => setShowInteractive(true)}
           >
-            Try Interactive Guide
+            Try Original Interactive Guide
           </Button>
           <Button 
             variant="outline" 
@@ -83,8 +100,18 @@ export function TestOnboarding() {
         </ul>
       </div>
 
+      {showReliable && (
+        <ReliableGuide 
+          onComplete={handleCompleteReliable} 
+          onSkip={() => setShowReliable(false)} 
+        />
+      )}
+
       {showSimple && (
-        <SimpleGuide onComplete={handleCompleteSimple} onSkip={() => setShowSimple(false)} />
+        <SimpleGuide 
+          onComplete={handleCompleteSimple} 
+          onSkip={() => setShowSimple(false)} 
+        />
       )}
 
       {showInteractive && (
