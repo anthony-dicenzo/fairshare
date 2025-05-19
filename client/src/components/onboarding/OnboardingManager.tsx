@@ -1,57 +1,76 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { useOnboarding } from '@/hooks/use-onboarding';
+import { useNewUser } from '@/hooks/use-new-user';
+import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import AnimatedGuidedTour from './AnimatedGuidedTour';
+import WelcomeAnimation from './WelcomeAnimation';
 import { GuidedTour } from './GuidedTour';
 
 export function OnboardingManager() {
   const { showOnboarding, completeOnboarding } = useOnboarding();
-  const [isNewUser, setIsNewUser] = useState(false);
+  const { isNewUser, markUserAsExisting } = useNewUser();
+  const { user } = useAuth();
+  const [showWelcomeAnimation, setShowWelcomeAnimation] = useState(false);
+  const [showGuidedTour, setShowGuidedTour] = useState(false);
   const [, navigate] = useLocation();
   const { toast } = useToast();
 
-  // Check if this is a new user
-  useEffect(() => {
-    // We'll consider someone a new user if they don't have any onboarding info in localStorage
-    const hasOnboardingData = localStorage.getItem('fairshare_onboarding_completed');
-    const hasSeenAnimation = localStorage.getItem('fairshare_animation_seen');
-    
-    // If they've never seen the onboarding or animation, they're a new user
-    if (!hasOnboardingData && !hasSeenAnimation) {
-      console.log('Starting onboarding for new user:', localStorage.getItem('fairshare_username'));
-      setIsNewUser(true);
-      localStorage.setItem('fairshare_animation_seen', 'true');
-    }
-  }, []);
-
-  // Delay showing the guided tour for new users to show the welcome animation first
+  // Set up animation flag when a new user is detected
   useEffect(() => {
     if (isNewUser) {
-      // After the welcome animation, navigate to groups to start the tour
-      const timer = setTimeout(() => {
-        navigate('/groups');
-      }, 3000); // Allow time for the welcome animation
+      // Check if they've seen the animation before
+      const hasSeenAnimation = localStorage.getItem('fairshare_animation_seen');
       
-      return () => clearTimeout(timer);
+      if (!hasSeenAnimation) {
+        setShowWelcomeAnimation(true);
+        localStorage.setItem('fairshare_animation_seen', 'true');
+      } else {
+        // If they've seen the animation but are still new, show the guided tour
+        setShowGuidedTour(true);
+      }
     }
-  }, [isNewUser, navigate]);
+  }, [isNewUser]);
 
-  // If we're showing onboarding and it's not a brand new user, show the regular guided tour
-  if (showOnboarding && !isNewUser) {
-    return <GuidedTour />;
+  // If we're showing onboarding for an existing user, show the regular guided tour
+  useEffect(() => {
+    if (showOnboarding && !isNewUser) {
+      setShowGuidedTour(true);
+    }
+  }, [showOnboarding, isNewUser]);
+
+  // Handle completion of welcome animation
+  const handleWelcomeAnimationComplete = () => {
+    setShowWelcomeAnimation(false);
+    setShowGuidedTour(true);
+    navigate('/groups');
+  };
+
+  // Handle completion of guided tour
+  const handleGuidedTourComplete = () => {
+    setShowGuidedTour(false);
+    markUserAsExisting();
+    completeOnboarding();
+    toast({
+      title: "Welcome to FairShare!",
+      description: "Your account is all set up and ready to go.",
+    });
+  };
+
+  // Show welcome animation for brand new users
+  if (showWelcomeAnimation) {
+    return (
+      <WelcomeAnimation 
+        onComplete={handleWelcomeAnimationComplete}
+        userName={user?.name}
+      />
+    );
   }
 
-  // If it's a new user, show the animated guided tour
-  if (isNewUser) {
-    return <AnimatedGuidedTour onComplete={() => {
-      setIsNewUser(false);
-      completeOnboarding();
-      toast({
-        title: "Welcome to FairShare!",
-        description: "Your account is all set up and ready to go.",
-      });
-    }} />;
+  // Show animated guided tour for users in the onboarding process
+  if (showGuidedTour) {
+    return <AnimatedGuidedTour onComplete={handleGuidedTourComplete} />;
   }
 
   return null;

@@ -43,13 +43,15 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <OnboardingProvider>
-          <TooltipProvider>
-            <OfflineBanner />
-            <PWANotification />
-            <Toaster />
-            <OnboardingManager />
-            <Router />
-          </TooltipProvider>
+          <NewUserProvider>
+            <TooltipProvider>
+              <OfflineBanner />
+              <PWANotification />
+              <Toaster />
+              <OnboardingManager />
+              <Router />
+            </TooltipProvider>
+          </NewUserProvider>
         </OnboardingProvider>
       </AuthProvider>
     </QueryClientProvider>

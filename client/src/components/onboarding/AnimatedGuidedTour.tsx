@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/card';
 import { Users, Coins, UserPlus, CheckCircle, ArrowRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import confetti from 'canvas-confetti';
+import { celebrateSuccess } from '@/components/ui/confetti';
 
 interface AnimatedGuidedTourProps {
   onComplete: () => void;
@@ -36,28 +36,7 @@ export function AnimatedGuidedTour({ onComplete }: AnimatedGuidedTourProps) {
   // Trigger confetti explosion on completion
   useEffect(() => {
     if (currentStep === TourStep.Complete) {
-      const duration = 3 * 1000;
-      const animationEnd = Date.now() + duration;
-      
-      const randomInRange = (min: number, max: number) => {
-        return Math.random() * (max - min) + min;
-      }
-      
-      const makeConfetti = () => {
-        if (Date.now() < animationEnd) {
-          confetti({
-            particleCount: 2,
-            angle: randomInRange(55, 125),
-            spread: randomInRange(50, 70),
-            origin: { y: 0.6 },
-            colors: ['#FFD700', '#3498db', '#2ecc71', '#e74c3c', '#9b59b6']
-          });
-          
-          requestAnimationFrame(makeConfetti);
-        }
-      }
-      
-      makeConfetti();
+      celebrateSuccess();
     }
   }, [currentStep]);
 
