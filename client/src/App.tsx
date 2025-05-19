@@ -10,6 +10,7 @@ import { ProtectedRoute } from "./lib/protected-route";
 import { OfflineBanner } from "@/components/offline-banner";
 import { PWANotification } from "@/components/pwa-notification";
 import { OnboardingManager } from "@/components/onboarding";
+import { TestOnboarding } from "@/components/onboarding/TestOnboarding";
 import HomePage from "@/pages/home-page";
 import GroupPage from "@/pages/group-page";
 import GroupsPage from "@/pages/groups-page";
@@ -29,6 +30,7 @@ function Router() {
       <ProtectedRoute path="/groups" component={GroupsPage} />
       <ProtectedRoute path="/activity" component={ActivityPage} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
+      <ProtectedRoute path="/test-onboarding" component={TestOnboarding} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/invite/:inviteCode" component={InvitePage} />
       <Route path="/firebase-debug" component={FirebaseDebugPage} />
