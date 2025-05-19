@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { useOnboarding } from '@/hooks/use-onboarding';
 import { useToast } from '@/hooks/use-toast';
-import { AnimatedGuidedTour } from './AnimatedGuidedTour';
+import AnimatedGuidedTour from './AnimatedGuidedTour';
 import { GuidedTour } from './GuidedTour';
 
 export function OnboardingManager() {
