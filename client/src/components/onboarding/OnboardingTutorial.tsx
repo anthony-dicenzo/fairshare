@@ -1,8 +1,15 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'wouter';
-import { useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import React, { useEffect, useState } from 'react';
+import { Link, useLocation } from 'wouter';
+import { useOnboarding, ONBOARDING_STEPS } from '../../context/OnboardingContext';
 import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -11,244 +18,327 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { cn } from '@/lib/utils';
-import { CheckCircle2, Circle, ArrowRight, Plus, UserPlus } from 'lucide-react';
+import { Check, X, ArrowRight, Users, Receipt, UserPlus } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
-// Define each step of the onboarding
-const ONBOARDING_STEPS = [
-  {
-    id: 'welcome',
-    title: 'Welcome to FairShare!',
-    description: 'Let\'s get you started with a quick tour of the essential features.',
-    icon: CheckCircle2,
-  },
-  {
-    id: 'create-group',
-    title: 'Create your first group',
-    description: 'Start by creating a group for sharing expenses with friends, roommates, or colleagues.',
-    icon: Plus,
-    action: '/groups',
-    actionText: 'Create a group',
-  },
-  {
-    id: 'add-expense',
-    title: 'Add your first expense',
-    description: 'Now let\'s add an expense to your group. This could be rent, a meal, utilities, or anything you share with others.',
-    icon: Plus,
-    actionText: 'Add an expense',
-  },
-  {
-    id: 'invite-friend',
-    title: 'Invite others to join',
-    description: 'Share your group with friends so they can see expenses and contribute their share.',
-    icon: UserPlus,
-    actionText: 'Invite a friend',
-  },
-  {
-    id: 'completed',
-    title: 'You\'re all set!',
-    description: 'You\'ve completed the basic onboarding. Enjoy using FairShare to manage your shared expenses!',
-    icon: CheckCircle2,
-  },
-];
+export default function OnboardingTutorial() {
+  const { toast } = useToast();
+  const [location, setLocation] = useLocation();
+  const { onboarding, markStepComplete, skipOnboarding } = useOnboarding();
+  const [open, setOpen] = useState(false);
+  const [groupId, setGroupId] = useState<number | null>(null);
 
-export default function OnboardingTutorial({ 
-  userId, 
-  isNewUser = false 
-}: { 
-  userId: number, 
-  isNewUser?: boolean 
-}) {
-  const [open, setOpen] = useState(isNewUser);
-  const [currentStep, setCurrentStep] = useState(0);
-  const [tutorialCompleted, setTutorialCompleted] = useState(false);
-  const [userProgress, setUserProgress] = useState({
-    groupCreated: false,
-    expenseAdded: false,
-    friendInvited: false,
-  });
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-
-  // Check user's progress when component mounts
+  // Open the tutorial dialog when not completed
   useEffect(() => {
-    const checkUserProgress = async () => {
-      try {
-        // Check if user has groups
-        const groupsResponse = await apiRequest('/api/groups');
-        setUserProgress(prev => ({ 
-          ...prev, 
-          groupCreated: groupsResponse.groups && groupsResponse.groups.length > 0 
-        }));
-
-        // For more advanced progress tracking, you could add API endpoints to check:
-        // - If the user has created expenses
-        // - If the user has invited anyone
-      } catch (error) {
-        console.error('Error checking user progress:', error);
-      }
-    };
-
-    if (open && userId) {
-      checkUserProgress();
+    if (!onboarding.completed && onboarding.isNewUser) {
+      setOpen(true);
     }
-  }, [open, userId]);
+  }, [onboarding.completed, onboarding.isNewUser]);
 
-  // Save onboarding progress to user preferences
-  const saveProgress = async (step: string, completed: boolean) => {
-    try {
-      await apiRequest('/api/user/preferences', {
-        method: 'POST',
-        body: JSON.stringify({
-          onboardingStep: step,
-          onboardingCompleted: completed
-        })
-      });
-    } catch (error) {
-      console.error('Error saving onboarding progress:', error);
-    }
-  };
+  // Check if we're on the groups page
+  const isGroupsPage = location === '/groups';
 
-  const handleNextStep = () => {
-    if (currentStep < ONBOARDING_STEPS.length - 1) {
-      setCurrentStep(prev => prev + 1);
-      saveProgress(ONBOARDING_STEPS[currentStep + 1].id, false);
-    } else {
-      handleComplete();
-    }
-  };
-
-  const handleActionClick = () => {
-    const currentStepData = ONBOARDING_STEPS[currentStep];
-    
-    // If there's a specific action (link), navigate there
-    if (currentStepData.action) {
-      navigate(currentStepData.action);
-    }
-    
-    // Handle specific actions based on the step ID
-    switch (currentStepData.id) {
-      case 'create-group':
-        // The navigate above will take them to the groups page
-        // We'll close the tutorial temporarily so they can create a group
-        setOpen(false);
-        break;
-      case 'add-expense':
-        // Close tutorial to let them add an expense 
-        setOpen(false);
-        break;
-      case 'invite-friend':
-        // Close tutorial to let them invite someone
-        setOpen(false);
-        break;
+  // Determine which step to show based on current step
+  const renderContent = () => {
+    switch (onboarding.currentStep) {
+      case ONBOARDING_STEPS.WELCOME:
+        return (
+          <WelcomeStep 
+            onComplete={() => markStepComplete(ONBOARDING_STEPS.WELCOME)} 
+          />
+        );
+      case ONBOARDING_STEPS.CREATE_GROUP:
+        return (
+          <CreateGroupStep 
+            onComplete={() => markStepComplete(ONBOARDING_STEPS.CREATE_GROUP)}
+            setGroupId={setGroupId}
+          />
+        );
+      case ONBOARDING_STEPS.ADD_EXPENSE:
+        return (
+          <AddExpenseStep 
+            onComplete={() => markStepComplete(ONBOARDING_STEPS.ADD_EXPENSE)}
+            groupId={groupId}
+          />
+        );
+      case ONBOARDING_STEPS.INVITE_FRIEND:
+        return (
+          <InviteFriendStep 
+            onComplete={() => markStepComplete(ONBOARDING_STEPS.INVITE_FRIEND)}
+            groupId={groupId}
+          />
+        );
+      case ONBOARDING_STEPS.COMPLETED:
+        return (
+          <CompletedStep 
+            onClose={() => setOpen(false)}
+          />
+        );
+      default:
+        return null;
     }
   };
 
-  const handleComplete = () => {
-    setTutorialCompleted(true);
-    setOpen(false);
-    saveProgress('completed', true);
-  };
-
-  const handleSkip = () => {
-    setOpen(false);
-    saveProgress('skipped', true);
-  };
-
-  // Handle reopening the tutorial when a user returns after completing a step
-  useEffect(() => {
-    if (!open && isNewUser && !tutorialCompleted) {
-      // Check if they've created a group since closing the tutorial
-      const checkCompletion = async () => {
-        try {
-          const groupsResponse = await apiRequest('/api/groups');
-          const hasGroups = groupsResponse.groups && groupsResponse.groups.length > 0;
-          
-          // If they've created a group and were on the create-group step, advance to next step
-          if (hasGroups && ONBOARDING_STEPS[currentStep].id === 'create-group') {
-            setCurrentStep(prev => prev + 1);
-            setOpen(true);
-          }
-          
-          // Similar logic could be added for expenses and invites
-        } catch (error) {
-          console.error('Error checking completion:', error);
-        }
-      };
-      
-      // Set a timeout to check if they've completed the action
-      const timer = setTimeout(checkCompletion, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [open, isNewUser, tutorialCompleted, currentStep]);
-
-  if (!isNewUser && !open) return null;
-
-  const currentStepData = ONBOARDING_STEPS[currentStep];
+  if (!open || !onboarding.isNewUser) return null;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {currentStepData.icon && <currentStepData.icon className="h-5 w-5 text-primary" />}
-            {currentStepData.title}
+          <DialogTitle>
+            {getTitleFromStep(onboarding.currentStep)}
           </DialogTitle>
           <DialogDescription>
-            {currentStepData.description}
+            Let's help you get started with FairShare
           </DialogDescription>
         </DialogHeader>
-
-        {/* Progress indicator */}
-        <div className="flex justify-center space-x-2 py-4">
-          {ONBOARDING_STEPS.map((step, index) => (
-            <div 
-              key={step.id} 
-              className={cn(
-                "h-2 w-2 rounded-full",
-                index === currentStep ? "bg-primary" : "bg-muted"
-              )}
-            />
-          ))}
-        </div>
-
-        <DialogFooter className="flex flex-col sm:flex-row gap-2">
-          {currentStep === ONBOARDING_STEPS.length - 1 ? (
-            <Button onClick={handleComplete} className="w-full">
-              Get Started <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          ) : (
-            <>
-              {currentStepData.actionText && (
-                <Button 
-                  onClick={handleActionClick}
-                  variant="default" 
-                  className="w-full"
-                >
-                  {currentStepData.actionText}
-                </Button>
-              )}
-              <Button 
-                onClick={handleNextStep}
-                variant="outline" 
-                className="w-full"
-              >
-                {currentStepData.actionText ? 'I\'ll do this later' : 'Next'}
-              </Button>
-            </>
-          )}
-          
-          {currentStep < ONBOARDING_STEPS.length - 1 && (
-            <Button 
-              onClick={handleSkip} 
-              variant="ghost" 
-              className="text-muted-foreground text-xs"
-            >
-              Skip tutorial
-            </Button>
-          )}
+        {renderContent()}
+        <DialogFooter className="flex justify-between">
+          <Button 
+            variant="outline" 
+            onClick={skipOnboarding}
+            className="mr-auto"
+          >
+            Skip tutorial
+          </Button>
+          <div className="flex space-x-1 text-xs text-muted-foreground">
+            {renderStepIndicator(onboarding.currentStep)}
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
+// Helper function to get a title based on the current step
+const getTitleFromStep = (step: string) => {
+  switch (step) {
+    case ONBOARDING_STEPS.WELCOME:
+      return "Welcome to FairShare";
+    case ONBOARDING_STEPS.CREATE_GROUP:
+      return "Create your first group";
+    case ONBOARDING_STEPS.ADD_EXPENSE:
+      return "Add your first expense";
+    case ONBOARDING_STEPS.INVITE_FRIEND:
+      return "Invite your friends";
+    case ONBOARDING_STEPS.COMPLETED:
+      return "You're all set!";
+    default:
+      return "Onboarding Tutorial";
+  }
+};
+
+// Step indicator component
+const renderStepIndicator = (currentStep: string) => {
+  const steps = [
+    ONBOARDING_STEPS.WELCOME,
+    ONBOARDING_STEPS.CREATE_GROUP,
+    ONBOARDING_STEPS.ADD_EXPENSE,
+    ONBOARDING_STEPS.INVITE_FRIEND,
+    ONBOARDING_STEPS.COMPLETED
+  ];
+  
+  return (
+    <div className="flex space-x-2">
+      {steps.map((step, index) => (
+        <div 
+          key={step}
+          className={`w-2 h-2 rounded-full ${
+            currentStep === step 
+              ? 'bg-primary' 
+              : steps.indexOf(currentStep) > index 
+                ? 'bg-primary/50' 
+                : 'bg-muted'
+          }`}
+        />
+      ))}
+    </div>
+  );
+};
+
+// Individual step components
+const WelcomeStep = ({ onComplete }: { onComplete: () => void }) => {
+  return (
+    <div className="py-4">
+      <p className="mb-4">
+        FairShare makes it easy to split expenses with friends, roommates, and travel groups.
+      </p>
+      <p className="mb-4">
+        This quick tutorial will help you learn the basics:
+      </p>
+      <ul className="space-y-2 mb-4">
+        <li className="flex items-center">
+          <Users className="mr-2 h-4 w-4" />
+          Create expense groups
+        </li>
+        <li className="flex items-center">
+          <Receipt className="mr-2 h-4 w-4" />
+          Track shared expenses
+        </li>
+        <li className="flex items-center">
+          <UserPlus className="mr-2 h-4 w-4" />
+          Invite friends to join
+        </li>
+      </ul>
+      <Button onClick={onComplete} className="w-full">
+        Let's get started <ArrowRight className="ml-2 h-4 w-4" />
+      </Button>
+    </div>
+  );
+};
+
+const CreateGroupStep = ({ 
+  onComplete,
+  setGroupId
+}: { 
+  onComplete: () => void,
+  setGroupId: (id: number) => void
+}) => {
+  const [isCreating, setIsCreating] = useState(false);
+  const { toast } = useToast();
+  const [location, setLocation] = useLocation();
+
+  // Create a default group
+  const createDefaultGroup = async () => {
+    setIsCreating(true);
+    
+    try {
+      const response = await fetch('/api/groups', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: 'My First Group',
+          description: 'Created during onboarding',
+        }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        toast({
+          title: 'Success!',
+          description: 'Your first group has been created.',
+        });
+        setGroupId(data.id);
+        onComplete();
+        // Navigate to the groups page
+        setLocation('/groups');
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to create group. Please try again.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to create group. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  return (
+    <div className="py-4">
+      <p className="mb-4">
+        Groups help you organize expenses with different people.
+        Create your first group to get started.
+      </p>
+      
+      <Button 
+        onClick={createDefaultGroup} 
+        className="w-full"
+        disabled={isCreating}
+      >
+        {isCreating ? 'Creating...' : 'Create My First Group'} <Users className="ml-2 h-4 w-4" />
+      </Button>
+      
+      <div className="mt-4 text-sm text-muted-foreground">
+        You can also create it manually from the Groups page.
+      </div>
+    </div>
+  );
+};
+
+const AddExpenseStep = ({ 
+  onComplete,
+  groupId
+}: { 
+  onComplete: () => void,
+  groupId: number | null
+}) => {
+  const [location, setLocation] = useLocation();
+  
+  // Navigate to the group page
+  const navigateToGroup = () => {
+    if (groupId) {
+      setLocation(`/groups/${groupId}`);
+    }
+    onComplete();
+  };
+  
+  return (
+    <div className="py-4">
+      <p className="mb-4">
+        Now let's add your first expense to the group.
+      </p>
+      <p className="mb-4">
+        Whenever you pay for something that should be split with others, 
+        add it as an expense. FairShare will track who owes what.
+      </p>
+      
+      <Button onClick={navigateToGroup} className="w-full">
+        Add an expense <Receipt className="ml-2 h-4 w-4" />
+      </Button>
+    </div>
+  );
+};
+
+const InviteFriendStep = ({ 
+  onComplete,
+  groupId
+}: { 
+  onComplete: () => void,
+  groupId: number | null
+}) => {
+  return (
+    <div className="py-4">
+      <p className="mb-4">
+        Now it's time to invite others to join your group.
+      </p>
+      <p className="mb-4">
+        You can share an invite link directly, or add members through their email.
+      </p>
+      
+      <Button onClick={onComplete} className="w-full">
+        Got it <Check className="ml-2 h-4 w-4" />
+      </Button>
+    </div>
+  );
+};
+
+const CompletedStep = ({ onClose }: { onClose: () => void }) => {
+  return (
+    <div className="py-4 text-center">
+      <div className="flex justify-center mb-4">
+        <div className="rounded-full bg-green-100 p-3">
+          <Check className="h-8 w-8 text-green-600" />
+        </div>
+      </div>
+      <p className="mb-4 font-medium text-lg">
+        You're all set to start using FairShare!
+      </p>
+      <p className="mb-6">
+        You now know the basics to get started. Explore the app to discover more features.
+      </p>
+      
+      <Button onClick={onClose} className="w-full">
+        Start using FairShare
+      </Button>
+    </div>
+  );
+};
