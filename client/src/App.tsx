@@ -4,12 +4,11 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/use-auth";
+import { OnboardingProvider } from "@/hooks/use-onboarding";
 import { ProtectedRoute } from "./lib/protected-route";
 import { OfflineBanner } from "@/components/offline-banner";
 import { PWANotification } from "@/components/pwa-notification";
-import { OnboardingProvider } from "./context/OnboardingContext";
-import OnboardingTutorial from "./components/onboarding/OnboardingTutorial";
-import { OnboardingInitializer } from "./components/onboarding/OnboardingInitializer";
+import { OnboardingManager } from "@/components/onboarding";
 import HomePage from "@/pages/home-page";
 import GroupPage from "@/pages/group-page";
 import GroupsPage from "@/pages/groups-page";
@@ -47,8 +46,7 @@ function App() {
             <OfflineBanner />
             <PWANotification />
             <Toaster />
-            <OnboardingInitializer />
-            <OnboardingTutorial />
+            <OnboardingManager />
             <Router />
           </TooltipProvider>
         </OnboardingProvider>

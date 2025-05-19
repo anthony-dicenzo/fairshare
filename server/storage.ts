@@ -11,8 +11,7 @@ import {
   UserBalance, InsertUserBalance,
   UserBalanceBetweenUsers, InsertUserBalanceBetweenUsers,
   users, groups, groupMembers, expenses, expenseParticipants, payments, 
-  activityLog, groupInvites, userBalances, userBalancesBetweenUsers,
-  userPreferences, InsertUserPreferencesSchema
+  activityLog, groupInvites, userBalances, userBalancesBetweenUsers
 } from "@shared/schema";
 import { db, pool } from "./db";
 import { eq, and, desc, asc, inArray, or, sql } from "drizzle-orm";
