@@ -1,4 +1,4 @@
-import OnboardingTutorial from './OnboardingTutorial';
+import { GuidedTour } from './GuidedTour';
 import { useOnboarding } from '@/hooks/use-onboarding';
 
 export function OnboardingManager() {
@@ -7,10 +7,7 @@ export function OnboardingManager() {
   return (
     <>
       {showOnboarding && (
-        <OnboardingTutorial 
-          open={showOnboarding} 
-          onComplete={completeOnboarding} 
-        />
+        <GuidedTour />
       )}
     </>
   );
