@@ -8,7 +8,7 @@ import { useOnboarding } from '../../context/OnboardingContext';
  */
 export function OnboardingInitializer() {
   const auth = useAuth();
-  const { startOnboarding } = useOnboarding();
+  const { startOnboarding, onboarding } = useOnboarding();
 
   // Check if this is a new user when they sign in
   useEffect(() => {
@@ -24,12 +24,19 @@ export function OnboardingInitializer() {
       const isNewAccount = now - userCreationTime < 5 * 60 * 1000; // 5 minutes
       
       // If the user account was just created or they haven't completed onboarding
-      if (isNewAccount || !hasSeenOnboarding) {
+      if ((isNewAccount || !hasSeenOnboarding) && !onboarding.completed) {
         console.log('Starting onboarding for new user:', auth.user.username);
         startOnboarding();
       }
     }
-  }, [auth, startOnboarding]);
+  }, [auth, startOnboarding, onboarding.completed]);
+  
+  // Mark onboarding as completed in localStorage when user completes all steps
+  useEffect(() => {
+    if (onboarding.completed) {
+      localStorage.setItem('hasCompletedOnboarding', 'true');
+    }
+  }, [onboarding.completed]);
 
   // This is a utility component that doesn't render anything
   return null;
