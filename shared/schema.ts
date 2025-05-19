@@ -67,6 +67,16 @@ export const activityLog = pgTable("activity_log", {
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
+// User preferences table to store onboarding progress and app settings
+export const userPreferences = pgTable("user_preferences", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id).unique(),
+  onboardingStep: text("onboarding_step"),
+  onboardingCompleted: boolean("onboarding_completed").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
 export const groupInvites = pgTable("group_invites", {
   id: serial("id").primaryKey(),
   groupId: integer("group_id").notNull().references(() => groups.id),
@@ -186,6 +196,13 @@ export const insertUserBalanceBetweenUsersSchema = createInsertSchema(userBalanc
 export const loginUserSchema = z.object({
   username: z.string().min(1, "Username is required"),
   password: z.string().min(1, "Password is required")
+});
+
+// User preferences schema
+export const insertUserPreferencesSchema = createInsertSchema(userPreferences).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
 });
 
 // Types
