@@ -3,12 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import InteractiveGuide from './InteractiveGuide';
 import AnimatedGuidedTour from './AnimatedGuidedTour';
+import SimpleGuide from './SimpleGuide';
 import DemoButtons from './DemoButtons';
 import { toast } from '@/hooks/use-toast';
 
 export function TestOnboarding() {
   const [showInteractive, setShowInteractive] = useState(false);
   const [showAnimated, setShowAnimated] = useState(false);
+  const [showSimple, setShowSimple] = useState(false);
 
   const handleCompleteInteractive = () => {
     setShowInteractive(false);
@@ -25,6 +27,14 @@ export function TestOnboarding() {
       description: "You've finished the guided tour experience.",
     });
   };
+  
+  const handleCompleteSimple = () => {
+    setShowSimple(false);
+    toast({
+      title: "Simple Guide Completed",
+      description: "You've completed the simple guided tour.",
+    });
+  };
 
   return (
     <div className="container mx-auto p-4 max-w-xl">
@@ -39,6 +49,12 @@ export function TestOnboarding() {
           </p>
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
+          <Button 
+            className="w-full bg-green-600 hover:bg-green-700"
+            onClick={() => setShowSimple(true)}
+          >
+            Try Simple Guide (Recommended)
+          </Button>
           <Button 
             className="w-full bg-blue-600 hover:bg-blue-700"
             onClick={() => setShowInteractive(true)}
@@ -61,10 +77,15 @@ export function TestOnboarding() {
       <div className="text-sm text-muted-foreground">
         <h3 className="font-medium mb-2">How these differ:</h3>
         <ul className="list-disc pl-5 space-y-2">
+          <li><strong>Simple Guide (Recommended):</strong> A step-by-step guide with clear instructions that doesn't rely on finding UI elements.</li>
           <li><strong>Interactive Guide:</strong> Allows you to interact with the app while following tooltips that guide you through each step.</li>
           <li><strong>Full-Screen Guided Tour:</strong> A more traditional step-by-step tutorial that explains features before you use them.</li>
         </ul>
       </div>
+
+      {showSimple && (
+        <SimpleGuide onComplete={handleCompleteSimple} onSkip={() => setShowSimple(false)} />
+      )}
 
       {showInteractive && (
         <InteractiveGuide onComplete={handleCompleteInteractive} />
