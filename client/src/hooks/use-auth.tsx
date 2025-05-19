@@ -17,7 +17,6 @@ import {
   Auth
 } from "firebase/auth";
 import { auth, googleProvider } from "../lib/firebase";
-import { prefetchPages } from "@/lib/prefetchPages";
 
 // Extend the InsertUser type for registration with confirmPassword
 const registerSchema = insertUserSchema.extend({
@@ -230,9 +229,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Login successful",
         description: `Welcome back, ${user.name}!`,
       });
-
-      // Prefetch main application pages in the background
-      prefetchPages();
     },
     onError: (error) => {
       console.error("Login mutation error:", error);
@@ -274,9 +270,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Registration successful",
         description: `Welcome to FairShare, ${user.name}!`,
       });
-
-      // Prefetch main application pages after account creation
-      prefetchPages();
     },
     onError: (error) => {
       toast({
@@ -385,9 +378,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Google sign-in successful",
         description: `Welcome${user.name ? `, ${user.name}` : ''}!`,
       });
-
-      // Prefetch app pages for a smoother first navigation
-      prefetchPages();
     },
     onError: (error) => {
       console.error("Google sign-in mutation error:", error);

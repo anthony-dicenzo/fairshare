@@ -1,8 +1,8 @@
-import { ReactNode, useState, lazy, Suspense } from "react";
+import { ReactNode, useState } from "react";
 import { useLocation, Link } from "wouter";
 import { cn } from "@/lib/utils";
 import { Home, BarChart4, Users, Plus, User } from "lucide-react";
-const ExpenseForm = lazy(() => import("@/components/expenses/expense-form"));
+import { ExpenseForm } from "@/components/expenses/expense-form";
 
 interface SimplifiedLayoutProps {
   children: ReactNode;
@@ -73,11 +73,7 @@ export function SimplifiedLayout({
       </div>
       
       {/* Expense modal */}
-      {showExpenseModal && (
-        <Suspense fallback={null}>
-          <ExpenseForm open={showExpenseModal} onOpenChange={setShowExpenseModal} />
-        </Suspense>
-      )}
+      <ExpenseForm open={showExpenseModal} onOpenChange={setShowExpenseModal} />
     </div>
   );
 }

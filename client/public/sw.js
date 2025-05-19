@@ -1,12 +1,13 @@
 // Service Worker with Workbox pattern
 const CACHE_NAME = 'fairshare-cache-v1';
 
-// App Shell - the core HTML, CSS, and JavaScript files that make your app work.
-// Route-based chunks under /assets are cached on first fetch.
+// App Shell - the core HTML, CSS, and JavaScript files that make your app work
 const APP_SHELL = [
   '/',
   '/index.html',
-  '/offline.html'
+  '/offline.html',
+  '/src/main.tsx',
+  '/src/index.css'
 ];
 
 // Static Assets - images, fonts, etc.
