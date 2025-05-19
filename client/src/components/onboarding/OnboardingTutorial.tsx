@@ -286,7 +286,12 @@ const OnboardingTutorial = ({ open, onComplete }: OnboardingTutorialProps) => {
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogContent className="sm:max-w-md">
         <div className="mb-4">
-          <Progress value={progressPercentage} className="h-2" />
+          <div className="relative w-full h-2 bg-muted rounded-full overflow-hidden">
+            <div 
+              className="absolute top-0 left-0 h-full bg-primary transition-all duration-300" 
+              style={{ width: `${progressPercentage}%` }}
+            />
+          </div>
         </div>
         {renderStepContent()}
       </DialogContent>
