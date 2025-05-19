@@ -6,6 +6,7 @@ import AnimatedGuidedTour from './AnimatedGuidedTour';
 import SimpleGuide from './SimpleGuide';
 import ReliableGuide from './ReliableGuide';
 import CombinedOnboarding from './CombinedOnboarding';
+import SequentialOnboarding from './SequentialOnboarding';
 import DemoButtons from './DemoButtons';
 import { toast } from '@/hooks/use-toast';
 
@@ -15,6 +16,7 @@ export function TestOnboarding() {
   const [showSimple, setShowSimple] = useState(false);
   const [showReliable, setShowReliable] = useState(false);
   const [showCombined, setShowCombined] = useState(false);
+  const [showSequential, setShowSequential] = useState(false);
 
   const handleCompleteInteractive = () => {
     setShowInteractive(false);
@@ -57,6 +59,15 @@ export function TestOnboarding() {
       variant: "success",
     });
   };
+  
+  const handleCompleteSequential = () => {
+    setShowSequential(false);
+    toast({
+      title: "Sequential Onboarding Completed",
+      description: "You've completed both the animated tour and interactive guide tutorial.",
+      variant: "success",
+    });
+  };
 
   return (
     <div className="container mx-auto p-4 max-w-xl">
@@ -73,9 +84,9 @@ export function TestOnboarding() {
         <CardFooter className="flex flex-col gap-4">
           <Button 
             className="w-full bg-purple-600 hover:bg-purple-700 font-semibold"
-            onClick={() => setShowCombined(true)}
+            onClick={() => setShowSequential(true)}
           >
-            Try Complete Onboarding Experience ✨ RECOMMENDED
+            Try Sequential Onboarding ✨ RECOMMENDED
           </Button>
           <div className="w-full border-t my-1 border-gray-200 dark:border-gray-700"></div>
           <Button 
@@ -118,6 +129,12 @@ export function TestOnboarding() {
         </ul>
       </div>
 
+      {showSequential && (
+        <SequentialOnboarding
+          onComplete={handleCompleteSequential}
+        />
+      )}
+      
       {showCombined && (
         <CombinedOnboarding
           onComplete={handleCompleteCombined}
