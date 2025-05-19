@@ -23,7 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function OnboardingTutorial() {
   const { toast } = useToast();
-  const [location, setLocation] = useLocation();
+  const [location, navigate] = useLocation();
   const { onboarding, markStepComplete, skipOnboarding } = useOnboarding();
   const [open, setOpen] = useState(false);
   const [groupId, setGroupId] = useState<number | null>(null);
@@ -196,7 +196,7 @@ const CreateGroupStep = ({
 }) => {
   const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
-  const [location, setLocation] = useLocation();
+  const [_, navigate] = useLocation();
 
   // Create a default group
   const createDefaultGroup = async () => {
@@ -223,7 +223,7 @@ const CreateGroupStep = ({
         setGroupId(data.id);
         onComplete();
         // Navigate to the groups page
-        setLocation('/groups');
+        navigate('/groups');
       } else {
         toast({
           title: 'Error',
@@ -271,12 +271,12 @@ const AddExpenseStep = ({
   onComplete: () => void,
   groupId: number | null
 }) => {
-  const [location, setLocation] = useLocation();
+  const [_, navigate] = useLocation();
   
   // Navigate to the group page
   const navigateToGroup = () => {
     if (groupId) {
-      setLocation(`/groups/${groupId}`);
+      navigate(`/groups/${groupId}`);
     }
     onComplete();
   };
