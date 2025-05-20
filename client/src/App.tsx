@@ -32,6 +32,7 @@ function Router() {
       <Route path="/invite/:inviteCode" component={InvitePage} />
       <Route path="/firebase-debug" component={FirebaseDebugPage} />
       <Route path="/google-auth-test" component={GoogleAuthTestPage} />
+      <ProtectedRoute path="/onboarding-test" component={OnboardingTestPage} />
       <Route component={NotFound} />
     </Switch>
   );
