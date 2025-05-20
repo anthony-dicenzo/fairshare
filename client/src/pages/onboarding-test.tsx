@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { SimplifiedLayout } from "@/components/layout/simplified-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import InteractiveOnboarding from "@/components/onboarding/InteractiveOnboarding";
+import CreateGroupHighlight from "@/components/onboarding/CreateGroupHighlight";
 
 export default function OnboardingTestPage() {
   const { user } = useAuth();
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showHighlight, setShowHighlight] = useState(false);
 
   if (!user) return null;
 
@@ -54,9 +56,16 @@ export default function OnboardingTestPage() {
             </div>
           </CardContent>
           
-          <CardFooter>
+          <CardFooter className="flex flex-col space-y-3">
             <Button onClick={startOnboarding} className="w-full">
               Start Interactive Tutorial
+            </Button>
+            <Button 
+              onClick={() => setShowHighlight(!showHighlight)} 
+              variant="outline" 
+              className="w-full"
+            >
+              {showHighlight ? "Hide" : "Show"} Create Group Button Highlight
             </Button>
           </CardFooter>
         </Card>
@@ -70,6 +79,9 @@ export default function OnboardingTestPage() {
           onSkip={skipOnboarding} 
         />
       )}
+      
+      {/* Show create group button highlight */}
+      {showHighlight && <CreateGroupHighlight />}
     </SimplifiedLayout>
   );
 }
