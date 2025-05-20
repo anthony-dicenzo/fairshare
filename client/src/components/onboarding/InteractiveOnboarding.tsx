@@ -412,8 +412,8 @@ const InteractiveOnboarding: React.FC<InteractiveOnboardingProps> = ({
             textAlign: 'center',
             ...(currentStep === OnboardingStep.CREATE_GROUP ? {
               bottom: '120px',
-              left: '50%',
-              transform: 'translateX(-50%)'
+              right: '20px', // Move to bottom right to avoid covering Create Group button
+              transform: 'none' // Remove horizontal centering
             } : currentStep === OnboardingStep.ADD_EXPENSE ? {
               bottom: '120px',
               left: '50%',
