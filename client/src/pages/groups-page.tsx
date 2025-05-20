@@ -12,7 +12,7 @@ export default function GroupsPage() {
   return (
     <SimplifiedLayout headerText="Groups">
       <SimplifiedGroupsView />
-      <ArrowIndicator position="left" top="115px" right="160px" color="#ff5500" />
+      <ArrowIndicator position="right" top="115px" right="160px" color="#32846b" />
     </SimplifiedLayout>
   );
 }

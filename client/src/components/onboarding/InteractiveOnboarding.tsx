@@ -441,38 +441,7 @@ const InteractiveOnboarding: React.FC<InteractiveOnboardingProps> = ({
         </motion.div>
       </AnimatePresence>
       
-      {/* Highlight element */}
-      <div
-        className="highlight-element"
-        style={{
-          position: 'fixed',
-          border: '3px dashed rgba(255, 255, 255, 0.8)',
-          zIndex: 999,
-          pointerEvents: 'none',
-          animation: 'pulse 2s infinite',
-          ...(currentStep === OnboardingStep.CREATE_GROUP ? {
-            bottom: '55px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: '70px',
-            height: '70px',
-            borderRadius: '50%'
-          } : currentStep === OnboardingStep.ADD_EXPENSE ? {
-            bottom: '55px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: '70px',
-            height: '70px',
-            borderRadius: '50%'
-          } : currentStep === OnboardingStep.INVITE_FRIEND ? {
-            top: '60px',
-            right: '20px',
-            width: '100px',
-            height: '40px',
-            borderRadius: '20px'
-          } : {})
-        }}
-      />
+      {/* We've replaced this with our custom arrow component */}
     </>,
     document.body
   );
