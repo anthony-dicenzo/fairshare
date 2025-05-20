@@ -33,6 +33,16 @@ export default function HomePage() {
         setFilterOpen={setFilterOpen}
       />
       
+      {/* Quick access to onboarding test */}
+      <div className="mt-2 mb-4 flex justify-center">
+        <a 
+          href="/onboarding-test" 
+          className="text-sm text-[#32846b] font-medium hover:underline"
+        >
+          Try Interactive Onboarding Test
+        </a>
+      </div>
+      
       {/* Groups list */}
       <SimplifiedGroupsList 
         filterType={filterType}
