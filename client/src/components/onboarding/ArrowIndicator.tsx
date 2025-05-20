@@ -9,6 +9,8 @@ interface ArrowIndicatorProps {
   bottom?: string;
   left?: string;
   color?: string;
+  showTooltip?: boolean;
+  tooltipText?: string;
 }
 
 const ArrowIndicator = ({
@@ -18,15 +20,26 @@ const ArrowIndicator = ({
   right = "180px", // Positioned to the left of the Create Group button
   bottom,
   left,
-  color = "#ff5500"
+  color = "#32846b",
+  showTooltip = true,
+  tooltipText = "Click here"
 }: ArrowIndicatorProps) => {
   const [offset, setOffset] = useState(0);
+  const [tooltipVisible, setTooltipVisible] = useState(true);
   
-  // Animation effect
+  // Animation effect - smoother, more gentle animation
   useEffect(() => {
     const interval = setInterval(() => {
-      setOffset((prev) => (prev === 0 ? 10 : 0));
-    }, 600);
+      setOffset((prev) => (prev === 0 ? 8 : 0));
+    }, 800); // Slightly slower animation for smoother feel
+    return () => clearInterval(interval);
+  }, []);
+
+  // Periodically hide/show tooltip for attention
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTooltipVisible(prev => !prev);
+    }, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -36,8 +49,8 @@ const ArrowIndicator = ({
       zIndex: 9001,
       width: '40px',
       height: '40px',
-      transition: 'transform 0.3s ease-in-out',
-      filter: `drop-shadow(0 0 3px rgba(0, 0, 0, 0.5))`,
+      transition: 'transform 0.5s ease-in-out',
+      filter: `drop-shadow(0 0 4px rgba(50, 132, 107, 0.7))`,
     };
 
     // Set the position
@@ -65,7 +78,45 @@ const ArrowIndicator = ({
     return baseStyle;
   };
 
-  // SVG arrow
+  const getTooltipStyle = () => {
+    const baseStyle: React.CSSProperties = {
+      position: 'fixed',
+      zIndex: 9002,
+      backgroundColor: color,
+      color: 'white',
+      padding: '8px 12px',
+      borderRadius: '6px',
+      fontSize: '14px',
+      fontWeight: 500,
+      opacity: tooltipVisible ? 1 : 0,
+      transition: 'opacity 0.3s ease-in-out',
+      boxShadow: '0 2px 10px rgba(0, 0, 0, 0.15)'
+    };
+
+    // Position the tooltip next to the arrow based on its direction
+    switch (position) {
+      case "right":
+        baseStyle.top = typeof top === 'string' ? `calc(${top} - 30px)` : undefined;
+        baseStyle.right = typeof right === 'string' ? `calc(${right} + 50px)` : undefined;
+        break;
+      case "left":
+        baseStyle.top = typeof top === 'string' ? `calc(${top} - 30px)` : undefined;
+        baseStyle.left = typeof left === 'string' ? `calc(${left} + 50px)` : undefined;
+        break;
+      case "top":
+        baseStyle.top = typeof top === 'string' ? `calc(${top} - 50px)` : undefined;
+        baseStyle.right = typeof right === 'string' ? `calc(${right} - 20px)` : undefined;
+        break;
+      case "bottom":
+        baseStyle.bottom = typeof bottom === 'string' ? `calc(${bottom} - 50px)` : undefined;
+        baseStyle.right = typeof right === 'string' ? `calc(${right} - 20px)` : undefined;
+        break;
+    }
+
+    return baseStyle;
+  };
+
+  // SVG arrow with improved styling
   const arrow = (
     <div style={getArrowStyle()}>
       <svg
@@ -150,7 +201,13 @@ const ArrowIndicator = ({
     </div>
   );
 
-  return createPortal(arrow, document.body);
+  return createPortal(
+    <>
+      {arrow}
+      {showTooltip && <div style={getTooltipStyle()}>{tooltipText}</div>}
+    </>,
+    document.body
+  );
 };
 
 export default ArrowIndicator;

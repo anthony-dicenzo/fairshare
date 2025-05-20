@@ -12,7 +12,13 @@ export default function GroupsPage() {
   return (
     <SimplifiedLayout headerText="Groups">
       <SimplifiedGroupsView />
-      <ArrowIndicator position="right" top="115px" right="160px" color="#32846b" />
+      <ArrowIndicator 
+        position="right" 
+        top="115px" 
+        right="160px" 
+        color="#32846b" 
+        tooltipText="Click to create a new group" 
+      />
     </SimplifiedLayout>
   );
 }
