@@ -305,10 +305,10 @@ const InteractiveOnboarding: React.FC<InteractiveOnboardingProps> = ({
       case OnboardingStep.CREATE_GROUP:
         return {
           position: 'fixed',
-          top: '115px',
+          top: '111px',
           right: '20px',
-          width: '150px',
-          height: '45px',
+          width: '140px',
+          height: '42px',
           borderRadius: '8px'
         };
       case OnboardingStep.ADD_EXPENSE:
