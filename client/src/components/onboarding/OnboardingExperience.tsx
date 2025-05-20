@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'wouter';
+import { useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User } from '@shared/schema';
 import { ChevronRight, Plus, UserPlus, DollarSign, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import confetti from 'canvas-confetti';
+import './onboarding.css';
 
 // Define the onboarding steps
 export enum OnboardingStep {
@@ -28,7 +29,7 @@ const OnboardingExperience: React.FC<OnboardingExperienceProps> = ({
 }) => {
   const [currentStep, setCurrentStep] = useState<OnboardingStep>(OnboardingStep.WELCOME);
   const [showOnboarding, setShowOnboarding] = useState(true);
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
 
   // Track if we're in the full screen animation
   const [isIntroAnimation, setIsIntroAnimation] = useState(true);
@@ -62,16 +63,15 @@ const OnboardingExperience: React.FC<OnboardingExperienceProps> = ({
   const handleStepAction = () => {
     switch (currentStep) {
       case OnboardingStep.CREATE_GROUP:
-        navigate('/groups/new');
+        setLocation('/groups/new');
         break;
       case OnboardingStep.ADD_EXPENSE:
-        // Assumes user created a group
-        // This should be improved to check if user has groups
-        navigate('/groups/1/expenses/new');
+        // Assumes user created a group - this would be improved to check for actual group IDs
+        setLocation('/groups/1/expenses/new');
         break;
       case OnboardingStep.INVITE_FRIEND:
         // Same assumption as above
-        navigate('/groups/1/invite');
+        setLocation('/groups/1/invite');
         break;
       default:
         break;
