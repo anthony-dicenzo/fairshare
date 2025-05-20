@@ -17,6 +17,7 @@ import AuthPage from "@/pages/auth-page";
 import InvitePage from "@/pages/invite-page";
 import FirebaseDebugPage from "@/pages/firebase-debug";
 import GoogleAuthTestPage from "@/pages/google-auth-test";
+import OnboardingTestPage from "@/pages/onboarding-test";
 import NotFound from "@/pages/not-found";
 
 function Router() {

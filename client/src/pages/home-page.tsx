@@ -2,15 +2,19 @@ import { useState } from "react";
 import { ExpenseForm } from "@/components/expenses/expense-form";
 import { PaymentForm } from "@/components/expenses/payment-form";
 import { useAuth } from "@/hooks/use-auth";
+import { useOnboarding } from "@/components/onboarding";
 import { SimplifiedLayout } from "@/components/layout/simplified-layout";
 import { SimplifiedBalanceSummary } from "@/components/dashboard/simplified-balance-summary";
 import { SimplifiedGroupsList } from "@/components/dashboard/simplified-groups-list";
+import { Button } from "@/components/ui/button";
+import { HelpCircle } from "lucide-react";
 
 // Define filter types
 type FilterType = 'all' | 'you-owe' | 'owed-to-you' | 'settled';
 
 export default function HomePage() {
   const { user } = useAuth();
+  const { startOnboarding } = useOnboarding();
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [filterType, setFilterType] = useState<FilterType>('all');
