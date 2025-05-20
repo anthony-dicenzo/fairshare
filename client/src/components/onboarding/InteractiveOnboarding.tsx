@@ -304,12 +304,11 @@ const InteractiveOnboarding: React.FC<InteractiveOnboardingProps> = ({
       case OnboardingStep.CREATE_GROUP:
         return {
           position: 'fixed',
-          bottom: '55px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: '70px',
-          height: '70px',
-          borderRadius: '50%'
+          top: '120px',
+          right: '30px',
+          width: '140px',
+          height: '40px',
+          borderRadius: '8px'
         };
       case OnboardingStep.ADD_EXPENSE:
         return {
@@ -346,14 +345,16 @@ const InteractiveOnboarding: React.FC<InteractiveOnboardingProps> = ({
               <h3 className="text-lg font-semibold text-white">Create a Group</h3>
             </div>
             <p className="text-white mb-3 text-sm">
-              Tap the + button to create your first group for shared expenses.
+              Click the "Create group" button to start your first group for shared expenses.
             </p>
             <motion.div 
-              animate={{ y: [0, 5, 0] }} 
+              animate={{ x: [0, 5, 0] }} 
               transition={{ repeat: Infinity, duration: 1.5 }}
               className="text-white"
             >
-              <ArrowDown size={18} className="mx-auto" />
+              <div className="rotate-180 transform">
+                <ArrowDown size={18} className="mx-auto rotate-90" />
+              </div>
             </motion.div>
           </>
         );
@@ -366,7 +367,7 @@ const InteractiveOnboarding: React.FC<InteractiveOnboardingProps> = ({
               <h3 className="text-lg font-semibold text-white">Add an Expense</h3>
             </div>
             <p className="text-white mb-3 text-sm">
-              Now tap the + button again to add your first expense to the group.
+              Tap the floating + button to add your first expense to the group.
             </p>
             <motion.div 
               animate={{ y: [0, 5, 0] }} 
