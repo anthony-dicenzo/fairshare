@@ -150,8 +150,8 @@
 
 .highlight-element-marker {
   position: fixed;
-  border: 3px dashed rgba(255, 255, 255, 0.8);
-  box-shadow: 0 0 0 4px rgba(50, 132, 107, 0.3);
+  border: 3px dashed #ff5500; /* Bright orange color */
+  box-shadow: 0 0 10px rgba(255, 85, 0, 0.7);
   z-index: 9001;
   pointer-events: none;
   animation: pulse 2s infinite;

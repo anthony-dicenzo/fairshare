@@ -5,6 +5,7 @@ import { ChevronRight, Plus, UserPlus, DollarSign, Check, X, ArrowDown } from 'l
 import { Button } from '@/components/ui/button';
 import confetti from 'canvas-confetti';
 import { createPortal } from 'react-dom';
+import HighlightOverlay from './HighlightOverlay';
 
 // Define user type
 interface UserType {
@@ -15,14 +16,8 @@ interface UserType {
   createdAt: string | Date;
 }
 
-// Onboarding steps
-enum OnboardingStep {
-  WELCOME = 'welcome',
-  CREATE_GROUP = 'create_group',
-  ADD_EXPENSE = 'add_expense',
-  INVITE_FRIEND = 'invite_friend',
-  COMPLETED = 'completed',
-}
+// Import the OnboardingStep enum from the HighlightOverlay component
+import { OnboardingStep } from './HighlightOverlay';
 
 interface InteractiveOnboardingProps {
   user: UserType;
@@ -304,12 +299,13 @@ const InteractiveOnboarding: React.FC<InteractiveOnboardingProps> = ({
     switch (currentStep) {
       case OnboardingStep.CREATE_GROUP:
         return {
-          position: 'fixed',
-          top: '111px',
+          position: 'absolute',
+          top: '112px',
           right: '20px',
-          width: '140px',
+          width: '142px',
           height: '42px',
-          borderRadius: '8px'
+          borderRadius: '8px',
+          pointerEvents: 'none'
         };
       case OnboardingStep.ADD_EXPENSE:
         return {
