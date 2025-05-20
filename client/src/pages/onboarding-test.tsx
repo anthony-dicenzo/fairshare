@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { SimplifiedLayout } from "@/components/layout/simplified-layout";
 import { Button } from "@/components/ui/button";
@@ -43,15 +43,15 @@ export default function OnboardingTestPage() {
               Click the button below to start the onboarding experience.
             </p>
             
-            <p className="mb-6">
+            <p className="mb-2">
               The tutorial features:
-              <ul className="list-disc pl-6 mt-2 space-y-1">
-                <li>Interactive tooltips that highlight actual UI elements</li>
-                <li>Ability to interact with the app while being guided</li>
-                <li>Celebration animations when completing steps</li>
-                <li>Step-by-step guidance through key features</li>
-              </ul>
             </p>
+            <div className="pl-6 mt-2 space-y-1 mb-4">
+              • Interactive tooltips that highlight actual UI elements<br/>
+              • Ability to interact with the app while being guided<br/>
+              • Celebration animations when completing steps<br/>
+              • Step-by-step guidance through key features
+            </div>
           </CardContent>
           
           <CardFooter>

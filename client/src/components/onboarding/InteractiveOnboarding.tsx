@@ -149,6 +149,8 @@ const InteractiveOnboarding: React.FC<InteractiveOnboardingProps> = ({
       case OnboardingStep.WELCOME:
         setShowWelcomeScreen(false);
         setCurrentStep(OnboardingStep.CREATE_GROUP);
+        // Navigate to groups page where the Create group button is located
+        setLocation('/groups');
         break;
       case OnboardingStep.CREATE_GROUP:
         setLocation('/groups/new');
@@ -303,10 +305,10 @@ const InteractiveOnboarding: React.FC<InteractiveOnboardingProps> = ({
       case OnboardingStep.CREATE_GROUP:
         return {
           position: 'fixed',
-          top: '119px',
+          top: '115px',
           right: '20px',
-          width: '140px',
-          height: '40px',
+          width: '150px',
+          height: '45px',
           borderRadius: '8px'
         };
       case OnboardingStep.ADD_EXPENSE:
