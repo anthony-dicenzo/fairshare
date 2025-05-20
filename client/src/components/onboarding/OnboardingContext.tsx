@@ -1,6 +1,14 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { User } from '@shared/schema';
 import OnboardingExperience from './OnboardingExperience';
+
+// Define a user type that matches what the auth context provides
+interface SafeUser {
+  id: number;
+  username: string;
+  name: string;
+  email: string;
+  createdAt: string | Date;
+}
 
 // Define the context type
 interface OnboardingContextType {
@@ -26,7 +34,7 @@ const ONBOARDING_COMPLETE_KEY = 'fairshare_onboarding_complete';
 
 interface OnboardingProviderProps {
   children: React.ReactNode;
-  user: User | null;
+  user: SafeUser | null;
 }
 
 export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ 

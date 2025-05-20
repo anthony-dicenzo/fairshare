@@ -1,21 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
-// Define the same user type as in OnboardingContext
-interface SafeUser {
+import { ChevronRight, Plus, UserPlus, DollarSign, Check, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import confetti from 'canvas-confetti';
+
+// Define user type that matches what auth provides
+interface UserType {
   id: number;
   username: string;
   name: string;
   email: string;
   createdAt: string | Date;
 }
-import { ChevronRight, Plus, UserPlus, DollarSign, Check, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import confetti from 'canvas-confetti';
-import './onboarding.css';
 
-// Define the onboarding steps
-export enum OnboardingStep {
+// Onboarding step enum
+enum OnboardingStep {
   WELCOME = 'welcome',
   CREATE_GROUP = 'create_group',
   ADD_EXPENSE = 'add_expense',
@@ -23,25 +23,42 @@ export enum OnboardingStep {
   COMPLETED = 'completed',
 }
 
-interface OnboardingExperienceProps {
-  user: SafeUser;
-  onComplete: () => void;
-  onSkip: () => void;
+// Context type
+interface OnboardingContextType {
+  isOnboardingComplete: boolean;
+  startOnboarding: () => void;
+  completeOnboarding: () => void;
+  skipOnboarding: () => void;
 }
 
-const OnboardingExperience: React.FC<OnboardingExperienceProps> = ({ 
-  user, 
-  onComplete, 
-  onSkip 
-}) => {
+// Create context with default values
+const OnboardingContext = createContext<OnboardingContextType>({
+  isOnboardingComplete: true,
+  startOnboarding: () => {},
+  completeOnboarding: () => {},
+  skipOnboarding: () => {},
+});
+
+// Local storage key
+const ONBOARDING_COMPLETE_KEY = 'fairshare_onboarding_complete';
+
+// Hook to use onboarding context
+export const useOnboarding = () => useContext(OnboardingContext);
+
+// Onboarding experience component
+const OnboardingExperience: React.FC<{
+  user: UserType;
+  onComplete: () => void;
+  onSkip: () => void;
+}> = ({ user, onComplete, onSkip }) => {
   const [currentStep, setCurrentStep] = useState<OnboardingStep>(OnboardingStep.WELCOME);
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [, setLocation] = useLocation();
-
+  
   // Track if we're in the full screen animation
   const [isIntroAnimation, setIsIntroAnimation] = useState(true);
-
-  // Handle the next step
+  
+  // Handle next step
   const handleNextStep = () => {
     // Trigger confetti for step completion
     triggerConfetti();
@@ -65,72 +82,69 @@ const OnboardingExperience: React.FC<OnboardingExperienceProps> = ({
         break;
     }
   };
-
-  // Handle navigation based on the step
+  
+  // Handle action for current step
   const handleStepAction = () => {
     switch (currentStep) {
       case OnboardingStep.CREATE_GROUP:
         setLocation('/groups/new');
         break;
       case OnboardingStep.ADD_EXPENSE:
-        // Assumes user created a group - this would be improved to check for actual group IDs
+        // This would ideally check if the user has any groups
         setLocation('/groups/1/expenses/new');
         break;
       case OnboardingStep.INVITE_FRIEND:
-        // Same assumption as above
         setLocation('/groups/1/invite');
         break;
       default:
         break;
     }
   };
-
+  
+  // Complete onboarding
   const completeOnboarding = () => {
-    // Trigger final confetti celebration
     triggerConfetti('complete');
     
-    // Delay to allow confetti to show
     setTimeout(() => {
       setShowOnboarding(false);
       onComplete();
     }, 2000);
   };
-
+  
   // Confetti animation
   const triggerConfetti = (type: 'step' | 'complete' = 'step') => {
-    const duration = type === 'complete' ? 3000 : 1500;
     const particleCount = type === 'complete' ? 200 : 100;
     
     confetti({
       particleCount,
       spread: 70,
       origin: { y: 0.6 },
-      colors: ['#4F46E5', '#10B981', '#F59E0B'],
+      colors: ['#32846b', '#10B981', '#F59E0B'],
       disableForReducedMotion: true,
       zIndex: 9999,
       scalar: 2
     });
     
     if (type === 'complete') {
-      // For completion, add a second burst after a delay
+      // Add a second burst for completion
       setTimeout(() => {
         confetti({
           particleCount: 150,
           spread: 100,
           origin: { y: 0.7 },
-          colors: ['#4F46E5', '#10B981', '#F59E0B'],
+          colors: ['#32846b', '#10B981', '#F59E0B'],
           disableForReducedMotion: true,
           zIndex: 9999
         });
       }, 500);
     }
   };
-
-  // Render the intro animation
+  
+  // Render intro animation
   const renderIntroAnimation = () => {
     return (
       <motion.div 
-        className="fixed inset-0 bg-gradient-to-br from-indigo-600 to-cyan-500 flex flex-col items-center justify-center z-50 text-white p-8"
+        className="fixed inset-0 bg-gradient-to-br from-[#32846b] to-[#A3D5FF] flex flex-col items-center justify-center z-50 text-white p-8"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -156,7 +170,7 @@ const OnboardingExperience: React.FC<OnboardingExperienceProps> = ({
             animate={{ scale: 1, rotate: 0 }}
             transition={{ delay: 1.2, duration: 0.7, type: "spring" }}
           >
-            <DollarSign size={40} className="text-indigo-600" />
+            <DollarSign size={40} className="text-[#32846b]" />
           </motion.div>
           
           <motion.p 
@@ -165,7 +179,7 @@ const OnboardingExperience: React.FC<OnboardingExperienceProps> = ({
             animate={{ opacity: 1 }}
             transition={{ delay: 1.6, duration: 0.5 }}
           >
-            Let's get you started with sharing expenses fairly with your friends and family!
+            Hi {user.name}! Let's get you started with sharing expenses fairly with your friends and family.
           </motion.p>
           
           <motion.div
@@ -176,7 +190,7 @@ const OnboardingExperience: React.FC<OnboardingExperienceProps> = ({
             <Button 
               size="lg" 
               onClick={handleNextStep}
-              className="bg-white text-indigo-600 hover:bg-slate-100"
+              className="bg-white text-[#32846b] hover:bg-slate-100"
             >
               Let's Go! <ChevronRight className="ml-2" size={18} />
             </Button>
@@ -185,8 +199,8 @@ const OnboardingExperience: React.FC<OnboardingExperienceProps> = ({
       </motion.div>
     );
   };
-
-  // Render the specific step content
+  
+  // Render step content
   const renderStepContent = () => {
     switch (currentStep) {
       case OnboardingStep.WELCOME:
@@ -252,7 +266,7 @@ const OnboardingExperience: React.FC<OnboardingExperienceProps> = ({
             exit={{ opacity: 0, x: -20 }}
           >
             <div className="step-icon">
-              <Check size={24} className="text-green-500" />
+              <Check size={24} className="text-white" />
             </div>
             <h3>You're All Set!</h3>
             <p>Great job! You've completed the tutorial and are ready to use FairShare.</p>
@@ -264,18 +278,15 @@ const OnboardingExperience: React.FC<OnboardingExperienceProps> = ({
         return null;
     }
   };
-
-  // If onboarding is not shown, return null
+  
   if (!showOnboarding) {
     return null;
   }
-
-  // If we're in the intro animation, show it full screen
+  
   if (isIntroAnimation) {
     return renderIntroAnimation();
   }
-
-  // Otherwise show the guided tutorial overlay
+  
   return (
     <div className="onboarding-container">
       <AnimatePresence mode="wait">
@@ -283,7 +294,6 @@ const OnboardingExperience: React.FC<OnboardingExperienceProps> = ({
           <div className="onboarding-content">
             {renderStepContent()}
             
-            {/* Skip button */}
             <Button 
               variant="ghost" 
               className="onboarding-skip" 
@@ -292,7 +302,6 @@ const OnboardingExperience: React.FC<OnboardingExperienceProps> = ({
               Skip Tutorial <X size={16} className="ml-2" />
             </Button>
             
-            {/* Progress indicators */}
             <div className="onboarding-progress">
               {Object.values(OnboardingStep).map((step, index) => (
                 <div 
@@ -308,4 +317,62 @@ const OnboardingExperience: React.FC<OnboardingExperienceProps> = ({
   );
 };
 
-export default OnboardingExperience;
+// Onboarding provider component
+export const OnboardingProvider: React.FC<{
+  children: React.ReactNode;
+  user: UserType | null;
+}> = ({ children, user }) => {
+  const [isOnboardingComplete, setIsOnboardingComplete] = useState<boolean>(() => {
+    const saved = localStorage.getItem(ONBOARDING_COMPLETE_KEY);
+    return saved ? JSON.parse(saved) : false;
+  });
+  
+  const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
+
+  // Check if user is new and start onboarding
+  useEffect(() => {
+    if (user && !isOnboardingComplete) {
+      console.log('Starting onboarding for new user:', user.username);
+      setShowOnboarding(true);
+    }
+  }, [user, isOnboardingComplete]);
+
+  // Onboarding actions
+  const startOnboarding = () => {
+    setIsOnboardingComplete(false);
+    setShowOnboarding(true);
+  };
+
+  const completeOnboarding = () => {
+    setIsOnboardingComplete(true);
+    setShowOnboarding(false);
+    localStorage.setItem(ONBOARDING_COMPLETE_KEY, JSON.stringify(true));
+  };
+
+  const skipOnboarding = () => {
+    setIsOnboardingComplete(true);
+    setShowOnboarding(false);
+    localStorage.setItem(ONBOARDING_COMPLETE_KEY, JSON.stringify(true));
+  };
+
+  return (
+    <OnboardingContext.Provider 
+      value={{ 
+        isOnboardingComplete, 
+        startOnboarding, 
+        completeOnboarding, 
+        skipOnboarding 
+      }}
+    >
+      {children}
+      
+      {user && showOnboarding && (
+        <OnboardingExperience 
+          user={user} 
+          onComplete={completeOnboarding} 
+          onSkip={skipOnboarding} 
+        />
+      )}
+    </OnboardingContext.Provider>
+  );
+};

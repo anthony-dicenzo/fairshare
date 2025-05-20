@@ -36,15 +36,28 @@ function Router() {
   );
 }
 
+// Wrapper for OnboardingProvider that has access to auth
+function OnboardingWrapper({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  
+  return (
+    <OnboardingProvider user={user}>
+      {children}
+    </OnboardingProvider>
+  );
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
-          <OfflineBanner />
-          <PWANotification />
-          <Toaster />
-          <Router />
+          <OnboardingWrapper>
+            <OfflineBanner />
+            <PWANotification />
+            <Toaster />
+            <Router />
+          </OnboardingWrapper>
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>
