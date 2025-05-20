@@ -276,9 +276,8 @@ const InteractiveOnboarding: React.FC<InteractiveOnboardingProps> = ({
       case OnboardingStep.CREATE_GROUP:
         return {
           position: 'fixed',
-          bottom: '120px',
-          left: '50%',
-          transform: 'translateX(-50%)'
+          top: '165px',
+          right: '20px',
         };
       case OnboardingStep.ADD_EXPENSE:
         return {
@@ -304,8 +303,8 @@ const InteractiveOnboarding: React.FC<InteractiveOnboardingProps> = ({
       case OnboardingStep.CREATE_GROUP:
         return {
           position: 'fixed',
-          top: '120px',
-          right: '30px',
+          top: '119px',
+          right: '20px',
           width: '140px',
           height: '40px',
           borderRadius: '8px'
