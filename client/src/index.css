@@ -107,6 +107,7 @@
   z-index: 10000;
   animation: pulse 2s infinite;
   box-shadow: 0 0 0 rgba(50, 132, 107, 0.6);
+  pointer-events: none; /* Ensures clicks go through to the elements below */
 }
 
 @keyframes pulse {
@@ -118,6 +119,51 @@
   }
   100% {
     box-shadow: 0 0 0 0 rgba(50, 132, 107, 0);
+  }
+}
+
+/* Styles for Interactive Onboarding */
+.onboarding-interactive-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9000;
+  pointer-events: none; /* This makes the overlay click-through */
+}
+
+.onboarding-interactive-overlay * {
+  pointer-events: auto; /* Child elements like buttons can receive clicks */
+}
+
+.onboarding-tooltip {
+  background-color: rgba(50, 132, 107, 0.95);
+  color: white;
+  padding: 1rem;
+  border-radius: 8px;
+  max-width: 250px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  pointer-events: auto; /* So tooltip buttons can be clicked */
+  z-index: 9999;
+}
+
+.highlight-element-marker {
+  position: fixed;
+  border: 3px dashed rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 0 4px rgba(50, 132, 107, 0.3);
+  z-index: 9001;
+  pointer-events: none;
+  animation: pulse 2s infinite;
+}
+
+/* Animation for arrow pointing to interactive elements */
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(10px);
   }
 }
 
