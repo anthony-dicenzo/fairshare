@@ -27,7 +27,16 @@ export function SimplifiedLayout({
         
         {/* Page header - kept for structure but no text shown */}
         <header className="p-4 text-white">
-          <h1 className="text-xl font-bold">{headerText}</h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-bold">{headerText}</h1>
+            
+            {/* Test page link */}
+            <Link href="/onboarding-test">
+              <div className="bg-orange-500 text-white px-4 py-2 rounded-md flex items-center font-bold hover:bg-orange-600 active:bg-orange-700 cursor-pointer">
+                Onboarding Test
+              </div>
+            </Link>
+          </div>
         </header>
       </div>
       
