@@ -35,7 +35,7 @@ const ArrowIndicator = ({
     return () => clearInterval(interval);
   }, []);
 
-  // Periodically hide/show tooltip for attention
+  // Pulse tooltip opacity slightly for attention, but never fully hide it
   useEffect(() => {
     const interval = setInterval(() => {
       setTooltipVisible(prev => !prev);
@@ -46,7 +46,7 @@ const ArrowIndicator = ({
   const getArrowStyle = () => {
     const baseStyle: React.CSSProperties = {
       position: 'fixed',
-      zIndex: 9001,
+      zIndex: 9999,
       width: '40px',
       height: '40px',
       transition: 'transform 0.5s ease-in-out',
@@ -81,26 +81,29 @@ const ArrowIndicator = ({
   const getTooltipStyle = () => {
     const baseStyle: React.CSSProperties = {
       position: 'fixed',
-      zIndex: 9002,
+      zIndex: 9999, // Ensure highest priority to stay on top
       backgroundColor: color,
       color: 'white',
       padding: '8px 12px',
       borderRadius: '6px',
       fontSize: '14px',
       fontWeight: 500,
-      opacity: tooltipVisible ? 1 : 0,
+      opacity: tooltipVisible ? 1 : 0.7, // Never fully disappear, just slightly fade
       transition: 'opacity 0.3s ease-in-out',
-      boxShadow: '0 2px 10px rgba(0, 0, 0, 0.15)'
+      boxShadow: '0 2px 10px rgba(0, 0, 0, 0.15)',
+      whiteSpace: 'nowrap', // Keep text on one line
+      pointerEvents: 'none' // Don't interfere with clicks
     };
 
     // Position the tooltip next to the arrow based on its direction
     switch (position) {
       case "right":
-        baseStyle.top = typeof top === 'string' ? `calc(${top} - 30px)` : undefined;
-        baseStyle.right = typeof right === 'string' ? `calc(${right} + 50px)` : undefined;
+        // For "Create group" button in the top right
+        baseStyle.top = typeof top === 'string' ? `calc(${top})` : undefined; // Same level as the arrow
+        baseStyle.right = typeof right === 'string' ? `calc(${right} + 50px)` : undefined; // Right of the arrow
         break;
       case "left":
-        baseStyle.top = typeof top === 'string' ? `calc(${top} - 30px)` : undefined;
+        baseStyle.top = typeof top === 'string' ? `calc(${top})` : undefined;
         baseStyle.left = typeof left === 'string' ? `calc(${left} + 50px)` : undefined;
         break;
       case "top":
