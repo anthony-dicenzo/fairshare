@@ -7,7 +7,7 @@ import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./lib/protected-route";
 import { OfflineBanner } from "@/components/offline-banner";
 import { PWANotification } from "@/components/pwa-notification";
-import { OnboardingProvider } from "@/components/onboarding/OnboardingContext";
+import { OnboardingProvider } from "@/components/onboarding";
 import HomePage from "@/pages/home-page";
 import GroupPage from "@/pages/group-page";
 import GroupsPage from "@/pages/groups-page";
