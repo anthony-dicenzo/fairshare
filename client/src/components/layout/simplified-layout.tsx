@@ -83,7 +83,7 @@ export function SimplifiedLayout({
                 icon={<AlertCircle className="h-3 w-3 text-fairshare-primary" />}
                 onDismiss={onDismissExpenseNotification}
                 style={{
-                  bottom: "calc(100% + 8px)",
+                  bottom: "calc(100% + 40px)",
                   right: "auto",
                   left: "-75px",
                   whiteSpace: "nowrap",
