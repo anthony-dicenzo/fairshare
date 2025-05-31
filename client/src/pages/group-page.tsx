@@ -358,7 +358,10 @@ export default function GroupPage() {
 
   if (isLoadingGroup) {
     return (
-      <SimplifiedLayout headerText="Loading Group">
+      <SimplifiedLayout 
+        headerText="Loading Group"
+        showExpenseNotification={false}
+      >
         <div className="px-4 py-4">
           <div className="flex items-center mb-6">
             <Button variant="ghost" size="sm" asChild className="mr-2">
@@ -379,7 +382,10 @@ export default function GroupPage() {
   // Show a friendly error message if there was an error or no group found
   if (hasError || !group) {
     return (
-      <SimplifiedLayout headerText={group ? group.name : "Group"}>
+      <SimplifiedLayout 
+        headerText={group ? group.name : "Group"}
+        showExpenseNotification={false}
+      >
         <div className="px-4 py-6 md:px-6 lg:px-8">
           <div className="flex items-center mb-6">
             <Button variant="ghost" size="sm" asChild className="mr-2">
@@ -412,7 +418,14 @@ export default function GroupPage() {
   }
 
   return (
-    <SimplifiedLayout headerText={group ? group.name : "Group"}>
+    <SimplifiedLayout 
+      headerText={group ? group.name : "Group"}
+      showExpenseNotification={showExpenseNotification}
+      onDismissExpenseNotification={() => {
+        setShowExpenseNotification(false);
+        localStorage.removeItem(`fairshare_expense_notification_${groupId}`);
+      }}
+    >
       <div className="px-4 py-3 md:px-6 lg:px-8">
         <div className="flex justify-between items-center mb-3">
           <Button 

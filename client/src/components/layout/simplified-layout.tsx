@@ -1,19 +1,24 @@
 import { ReactNode, useState } from "react";
 import { useLocation, Link } from "wouter";
 import { cn } from "@/lib/utils";
-import { Home, BarChart4, Users, Plus, User } from "lucide-react";
+import { Home, BarChart4, Users, Plus, User, AlertCircle } from "lucide-react";
 import { ExpenseForm } from "@/components/expenses/expense-form";
+import { PersistentNotification } from "@/components/ui/persistent-notification";
 
 interface SimplifiedLayoutProps {
   children: ReactNode;
   pageBackground?: string;
   headerText?: string;
+  showExpenseNotification?: boolean;
+  onDismissExpenseNotification?: () => void;
 }
 
 export function SimplifiedLayout({ 
   children, 
   pageBackground = "bg-fairshare-cream", 
-  headerText = "Dashboard" 
+  headerText = "Dashboard",
+  showExpenseNotification = false,
+  onDismissExpenseNotification
 }: SimplifiedLayoutProps) {
   const [location] = useLocation();
   const [showExpenseModal, setShowExpenseModal] = useState(false);
@@ -57,12 +62,37 @@ export function SimplifiedLayout({
               <span className={`text-xs font-medium ${location === "/groups" ? "text-[#32846b]" : ""}`}>Groups</span>
             </div>
           </Link>
-          <button 
-            onClick={() => setShowExpenseModal(true)}
-            className="flex items-center justify-center w-16 h-16 rounded-full bg-[#32846b] text-white shadow-lg -mt-8"
-          >
-            <Plus className="h-8 w-8" />
-          </button>
+          <div className="relative">
+            <button 
+              onClick={() => setShowExpenseModal(true)}
+              className={`flex items-center justify-center w-16 h-16 rounded-full text-white shadow-lg -mt-8 ${
+                showExpenseNotification 
+                ? 'animate-flash-mango' 
+                : 'bg-[#32846b]'
+              }`}
+            >
+              <Plus className="h-8 w-8" />
+            </button>
+            {showExpenseNotification && onDismissExpenseNotification && (
+              <PersistentNotification
+                message="Add your first expense"
+                position="tooltip"
+                variant="default"
+                size="sm"
+                animate={true}
+                icon={<AlertCircle className="h-3 w-3 text-fairshare-primary" />}
+                onDismiss={onDismissExpenseNotification}
+                style={{
+                  bottom: "calc(100% + 8px)",
+                  right: "auto",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  whiteSpace: "nowrap",
+                  zIndex: 50,
+                }}
+              />
+            )}
+          </div>
           <Link href="/activity">
             <div className="flex flex-col items-center gap-1 cursor-pointer">
               <BarChart4 className={cn("h-6 w-6", location === "/activity" ? "text-[#32846b]" : "text-fairshare-dark/60")} />
