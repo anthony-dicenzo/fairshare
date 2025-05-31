@@ -52,8 +52,9 @@ export const supabase = (supabaseUrl && supabaseKey)
 let client = null;
 try {
   client = postgres(connectionString, { 
+    ssl: { rejectUnauthorized: false },
     max: 1,
-    ssl: 'require'
+    transform: postgres.camel
   });
   console.log('Successfully initialized database client for Supabase');
 } catch (error) {
