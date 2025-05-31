@@ -42,22 +42,28 @@ export const supabase = (supabaseUrl && supabaseKey)
   ? createClient(supabaseUrl, supabaseKey)
   : null;
 
-// Initialize postgres client for Drizzle ORM with better error handling
+// Initialize postgres client for Drizzle ORM with fresh connection
 let client = null;
 try {
+  // Force a fresh connection to ensure schema is recognized
   client = postgres(connectionString, { 
     max: 10,
     idle_timeout: 20,
     connect_timeout: 10,
-    ssl: { rejectUnauthorized: false }
+    ssl: { rejectUnauthorized: false },
+    // Force schema refresh
+    prepare: false,
+    connection: {
+      statement_timeout: 30000
+    }
   });
-  console.log('Successfully initialized database client');
+  console.log('Successfully initialized database client with fresh connection');
 } catch (error) {
   console.error('Failed to initialize database client:', error.message);
 }
 
-// Create the Drizzle ORM instance
-export const db = client ? drizzle(client, { schema }) : null;
+// Create the Drizzle ORM instance with fresh schema
+export const db = client ? drizzle(client, { schema, logger: false }) : null;
 
 // Create a PostgreSQL pool for session store compatibility
 let poolInstance = null;
