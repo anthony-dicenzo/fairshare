@@ -75,8 +75,9 @@ export function GroupForm({ open, onOpenChange }: GroupFormProps) {
       // to trigger the persistent notification
       navigate(`/group/${newGroup.id}?from=newGroup`);
       
-      // Also set the localStorage flag directly to ensure notification shows
+      // Also set the localStorage flags directly to ensure notifications show
       localStorage.setItem(`fairshare_invite_notification_${newGroup.id}`, 'true');
+      localStorage.setItem(`fairshare_expense_notification_${newGroup.id}`, 'true');
       
       onOpenChange(false);
       form.reset();
