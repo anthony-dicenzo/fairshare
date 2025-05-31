@@ -553,15 +553,25 @@ export class DatabaseStorage implements IStorage {
     try {
       const inviteCode = this.generateInviteCode();
       
-      // Use direct SQL to avoid schema cache issues
-      const result = await db.execute(sql`
+      // Use direct SQL to bypass ORM schema cache issues
+      const query = `
         INSERT INTO group_invites (group_id, invite_code, created_by, is_active, expires_at)
-        VALUES (${inviteData.groupId}, ${inviteCode}, ${inviteData.createdBy}, ${inviteData.isActive || true}, ${inviteData.expiresAt || null})
+        VALUES ($1, $2, $3, $4, $5)
         RETURNING *
-      `);
+      `;
+      
+      const values = [
+        inviteData.groupId,
+        inviteCode,
+        inviteData.createdBy,
+        inviteData.isActive || true,
+        inviteData.expiresAt || null
+      ];
+      
+      const result = await pool.query(query, values);
       
       if (result.rows && result.rows.length > 0) {
-        const row = result.rows[0] as any;
+        const row = result.rows[0];
         return {
           id: row.id,
           groupId: row.group_id,
