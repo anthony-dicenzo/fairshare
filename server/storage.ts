@@ -550,12 +550,34 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createGroupInvite(inviteData: InsertGroupInvite): Promise<GroupInvite> {
-    const inviteCode = this.generateInviteCode();
-    const result = await db.insert(groupInvites).values({
-      ...inviteData,
-      inviteCode
-    }).returning();
-    return result[0];
+    try {
+      const inviteCode = this.generateInviteCode();
+      
+      // Use direct SQL to avoid schema cache issues
+      const result = await db.execute(sql`
+        INSERT INTO group_invites (group_id, invite_code, created_by, is_active, expires_at)
+        VALUES (${inviteData.groupId}, ${inviteCode}, ${inviteData.createdBy}, ${inviteData.isActive || true}, ${inviteData.expiresAt || null})
+        RETURNING *
+      `);
+      
+      if (result.rows && result.rows.length > 0) {
+        const row = result.rows[0] as any;
+        return {
+          id: row.id,
+          groupId: row.group_id,
+          inviteCode: row.invite_code,
+          createdBy: row.created_by,
+          createdAt: new Date(row.created_at),
+          expiresAt: row.expires_at ? new Date(row.expires_at) : null,
+          isActive: row.is_active
+        };
+      }
+      
+      throw new Error('Failed to create invite');
+    } catch (error) {
+      console.error('Error creating group invite:', error);
+      throw error;
+    }
   }
   
   async getGroupInvite(inviteCode: string): Promise<GroupInvite | undefined> {
@@ -575,11 +597,31 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getGroupInvitesByGroupId(groupId: number): Promise<GroupInvite[]> {
-    const result = await db
-      .select()
-      .from(groupInvites)
-      .where(eq(groupInvites.groupId, groupId));
-    return result;
+    try {
+      // Use direct SQL to avoid schema cache issues
+      const result = await db.execute(sql`
+        SELECT * FROM group_invites 
+        WHERE group_id = ${groupId} 
+        ORDER BY created_at DESC
+      `);
+      
+      if (result.rows) {
+        return result.rows.map((row: any) => ({
+          id: row.id,
+          groupId: row.group_id,
+          inviteCode: row.invite_code,
+          createdBy: row.created_by,
+          createdAt: new Date(row.created_at),
+          expiresAt: row.expires_at ? new Date(row.expires_at) : null,
+          isActive: row.is_active
+        }));
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Error getting group invites:', error);
+      return [];
+    }
   }
   
   async deactivateGroupInvite(inviteId: number): Promise<boolean> {
