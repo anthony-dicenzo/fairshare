@@ -51,7 +51,7 @@ export const supabase = (supabaseUrl && supabaseKey)
 let poolInstance = null;
 try {
   poolInstance = new Pool({ 
-    connectionString,
+    connectionString: connectionString + '?sslmode=require',
     ssl: { rejectUnauthorized: false }
   });
   console.log('Successfully initialized database pool');
