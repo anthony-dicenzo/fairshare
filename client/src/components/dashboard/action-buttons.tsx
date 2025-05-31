@@ -5,16 +5,21 @@ interface ActionButtonsProps {
   onAddExpense: () => void;
   onAddPayment: () => void;
   compact?: boolean;
+  showExpenseNotification?: boolean;
 }
 
-export function ActionButtons({ onAddExpense, onAddPayment, compact = false }: ActionButtonsProps) {
+export function ActionButtons({ onAddExpense, onAddPayment, compact = false, showExpenseNotification = false }: ActionButtonsProps) {
   if (compact) {
     return (
       <div className="flex space-x-2">
         <Button 
           size="sm" 
           onClick={onAddExpense}
-          className="flex-1 sm:flex-none"
+          className={`flex-1 sm:flex-none ${
+            showExpenseNotification 
+            ? 'animate-flash-mango' 
+            : ''
+          }`}
         >
           <PlusCircle className="h-4 w-4 mr-1 sm:mr-2" />
           <span className="hidden sm:inline">Add Expense</span>
@@ -38,7 +43,11 @@ export function ActionButtons({ onAddExpense, onAddPayment, compact = false }: A
     <div className="flex w-full space-x-2 sm:space-x-3">
       <Button 
         onClick={onAddExpense}
-        className="flex-1 sm:flex-none text-xs sm:text-sm py-2 px-3 sm:px-4 bg-fairshare-primary text-white hover:bg-fairshare-primary-dark"
+        className={`flex-1 sm:flex-none text-xs sm:text-sm py-2 px-3 sm:px-4 ${
+          showExpenseNotification 
+          ? 'animate-flash-mango' 
+          : 'bg-fairshare-primary text-white hover:bg-fairshare-primary-dark'
+        }`}
       >
         <PlusCircle className="h-4 w-4 mr-1 sm:mr-2" />
         <span className="hidden xs:inline">Add Expense</span>

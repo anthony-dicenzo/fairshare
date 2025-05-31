@@ -47,6 +47,9 @@ export default function GroupPage() {
   // Persistent notification state for invite notifications
   const [showInviteNotification, setShowInviteNotification] = useState(false);
   
+  // Persistent notification state for expense notifications
+  const [showExpenseNotification, setShowExpenseNotification] = useState(false);
+  
   // User authentication data
   const { user } = useAuth();
 
@@ -230,13 +233,22 @@ export default function GroupPage() {
   
   // Set persistent notification when group is newly created
   useEffect(() => {
-    // Check URL parameter or localStorage flag
+    // Check URL parameter or localStorage flag for invite notification
     if ((params && params.from === 'newGroup') || 
         localStorage.getItem(`fairshare_invite_notification_${groupId}`) === 'true') {
       setShowInviteNotification(true);
       
       // Store the notification state in localStorage to persist across page refreshes
       localStorage.setItem(`fairshare_invite_notification_${groupId}`, 'true');
+    }
+    
+    // Check URL parameter or localStorage flag for expense notification
+    if ((params && params.from === 'newGroup') || 
+        localStorage.getItem(`fairshare_expense_notification_${groupId}`) === 'true') {
+      setShowExpenseNotification(true);
+      
+      // Store the notification state in localStorage to persist across page refreshes
+      localStorage.setItem(`fairshare_expense_notification_${groupId}`, 'true');
     }
   }, [params, groupId]);
 
@@ -468,6 +480,7 @@ export default function GroupPage() {
                 onAddExpense={() => setShowExpenseModal(true)}
                 onAddPayment={() => setShowPaymentModal(true)}
                 compact 
+                showExpenseNotification={showExpenseNotification}
               />
             </div>
           </div>
