@@ -51,11 +51,7 @@ export const supabase = (supabaseUrl && supabaseKey)
 // Initialize postgres client for Drizzle ORM
 let client = null;
 try {
-  client = postgres(connectionString, { 
-    ssl: { rejectUnauthorized: false },
-    max: 1,
-    transform: postgres.camel
-  });
+  client = postgres(connectionString);
   console.log('Successfully initialized database client for Supabase');
 } catch (error) {
   console.error('Failed to initialize database client:', error instanceof Error ? error.message : String(error));
