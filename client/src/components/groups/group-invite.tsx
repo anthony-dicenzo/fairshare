@@ -65,12 +65,12 @@ export function GroupInvite({ open, onOpenChange, groupId, members = [] }: Group
   const [inviteCode, setInviteCode] = useState<string | null>(null);
 
   // Fetch group info
-  const { data: group } = useQuery<GroupInfo>({
+  const { data: group } = useQuery({
     queryKey: ['/api/groups', groupId],
     enabled: !!groupId && open,
     queryFn: async () => {
-      const res = await apiRequest<GroupInfo>(`/api/groups/${groupId}`);
-      return res;
+      const res = await apiRequest(`/api/groups/${groupId}`);
+      return res as GroupInfo;
     }
   });
 
@@ -80,30 +80,19 @@ export function GroupInvite({ open, onOpenChange, groupId, members = [] }: Group
     
     setIsLoading(true);
     try {
-      // Implement a direct call to create the invite that will either:
-      // 1. Return an existing active invite, or
-      // 2. Create a new one if none exists
+      console.log(`Creating invite for group ${groupId}`);
       
-      console.log(`Directly creating invite for group ${groupId}`);
+      // Use the apiRequest function which handles authentication properly
+      const data = await apiRequest("POST", `/api/groups/${groupId}/invite`, {});
       
-      // Simplified approach with a single API call
-      const response = await fetch(`/api/groups/${groupId}/invite`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({})
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
       console.log("Invite response:", data);
       
       if (data && data.inviteCode) {
         setInviteCode(data.inviteCode);
+        toast({
+          title: "Invite link generated",
+          description: "You can now share this link with others.",
+        });
       } else {
         console.error("Invalid invite response format:", data);
         throw new Error("Invalid response format from server");

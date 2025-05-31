@@ -31,8 +31,7 @@ export function InviteLinkGenerator({ groupId, onLinkGenerated }: InviteLinkGene
         expiresAt: defaultExpirationDate.toISOString()
       } : {};
       
-      const res = await apiRequest("POST", `/api/groups/${groupId}/invite`, body);
-      const data = await res.json();
+      const data = await apiRequest("POST", `/api/groups/${groupId}/invite`, body);
       setInviteCode(data.inviteCode);
       
       if (onLinkGenerated) {
