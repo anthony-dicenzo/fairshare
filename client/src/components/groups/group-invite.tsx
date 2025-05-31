@@ -65,13 +65,12 @@ export function GroupInvite({ open, onOpenChange, groupId, members = [] }: Group
   const [inviteCode, setInviteCode] = useState<string | null>(null);
 
   // Fetch group info
-  const { data: group } = useQuery({
+  const { data: group } = useQuery<GroupInfo>({
     queryKey: ['/api/groups', groupId],
     enabled: !!groupId && open,
     queryFn: async () => {
-      const res = await apiRequest("GET", `/api/groups/${groupId}`);
-      const data = await res.json();
-      return data as GroupInfo;
+      const res = await apiRequest<GroupInfo>(`/api/groups/${groupId}`);
+      return res;
     }
   });
 
@@ -81,20 +80,30 @@ export function GroupInvite({ open, onOpenChange, groupId, members = [] }: Group
     
     setIsLoading(true);
     try {
-      console.log(`Creating invite for group ${groupId}`);
+      // Implement a direct call to create the invite that will either:
+      // 1. Return an existing active invite, or
+      // 2. Create a new one if none exists
       
-      // Use the apiRequest function which handles authentication properly
-      const response = await apiRequest("POST", `/api/groups/${groupId}/invite`, {});
+      console.log(`Directly creating invite for group ${groupId}`);
+      
+      // Simplified approach with a single API call
+      const response = await fetch(`/api/groups/${groupId}/invite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+      }
+      
       const data = await response.json();
-      
       console.log("Invite response:", data);
       
       if (data && data.inviteCode) {
         setInviteCode(data.inviteCode);
-        toast({
-          title: "Invite link generated",
-          description: "You can now share this link with others.",
-        });
       } else {
         console.error("Invalid invite response format:", data);
         throw new Error("Invalid response format from server");
@@ -122,8 +131,8 @@ export function GroupInvite({ open, onOpenChange, groupId, members = [] }: Group
   // Invite user mutation
   const inviteMutation = useMutation({
     mutationFn: async (data: { email: string }) => {
-      const res = await apiRequest("POST", `/api/groups/${groupId}/invite`, data);
-      return await res.json();
+      const res = await apiRequest<{ message?: string }>("POST", `/api/groups/${groupId}/invite`, data);
+      return res;
     },
     onSuccess: (data) => {
       // Check if the response is a notification about user not existing yet

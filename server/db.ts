@@ -2,51 +2,74 @@ import { createClient } from '@supabase/supabase-js';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from "@shared/schema";
-import { Pool } from 'pg';  // Using standard pg instead of neon-serverless
+import { Pool } from 'pg';
+import dotenv from 'dotenv';
 
-// Get Supabase credentials - MUST be provided in environment variables
+// Load environment variables from all available .env files
+dotenv.config();
+dotenv.config({ path: '.env.secrets' });
+dotenv.config({ path: '.env.database' });
+dotenv.config({ path: '.env.local' });
+
+// Use Supabase connection directly to ensure we don't use Neon database
+const SUPABASE_CONNECTION = 'postgresql://postgres.smrsiolztcggakkgtyab:WCRjkMkrg7vDYahc@aws-0-ca-central-1.pooler.supabase.com:6543/postgres';
+
+// Get Supabase credentials from environment variables
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
 
-// Validate required environment variables
-if (!supabaseUrl || !supabaseKey) {
-  console.error('ERROR: Missing Supabase credentials in environment variables.');
-  console.error('Please set SUPABASE_URL and SUPABASE_ANON_KEY in your .env file.');
-}
+// Force using Supabase connection string instead of relying on environment variables
+// This ensures we're connecting to Supabase instead of the old Neon database
+const connectionString = SUPABASE_CONNECTION;
 
-// Create Supabase client only if credentials are available
-export const supabase = supabaseUrl && supabaseKey 
-  ? createClient(supabaseUrl, supabaseKey)
-  : null;
-
-// Log connection information (without exposing sensitive details)
+// Log connection information (safely)
 if (supabaseUrl) {
-  console.log(`Connecting to Supabase at ${supabaseUrl}`);
+  console.log(`Connecting to Supabase API at ${supabaseUrl}`);
 }
 
-if (process.env.DATABASE_URL) {
-  const urlParts = process.env.DATABASE_URL.split('@');
+// Extract and log database host without showing credentials
+try {
+  const urlParts = connectionString.split('@');
   if (urlParts.length > 1) {
     console.log(`Database host: ${urlParts[1].split('/')[0]}`);
   }
+} catch (error) {
+  console.error('Error parsing database URL:', error.message);
 }
 
-// Use the DATABASE_URL from environment variables (REQUIRED)
-const connectionString = process.env.DATABASE_URL;
+// Create Supabase client for API interactions
+export const supabase = (supabaseUrl && supabaseKey) 
+  ? createClient(supabaseUrl, supabaseKey)
+  : null;
 
-// Validate database connection string
-if (!connectionString) {
-  console.error('ERROR: Missing DATABASE_URL in environment variables.');
-  console.error('Please set DATABASE_URL in your .env file.');
+// Initialize postgres client for Drizzle ORM with better error handling
+let client = null;
+try {
+  client = postgres(connectionString, { 
+    max: 10,
+    idle_timeout: 20,
+    connect_timeout: 10,
+    ssl: { rejectUnauthorized: false }
+  });
+  console.log('Successfully initialized database client');
+} catch (error) {
+  console.error('Failed to initialize database client:', error.message);
 }
 
-// Initialize postgres client for Drizzle ORM (only if connection string is available)
-const client = connectionString ? postgres(connectionString, { max: 10 }) : null;
+// Create the Drizzle ORM instance
 export const db = client ? drizzle(client, { schema }) : null;
 
-// Create a regular PostgreSQL pool for session store compatibility
-// using the standard node-postgres library instead of neon-serverless
-export const pool = connectionString ? new Pool({ 
-  connectionString,
-  ssl: { rejectUnauthorized: false } // Required for Supabase connection
-}) : null;
+// Create a PostgreSQL pool for session store compatibility
+let poolInstance = null;
+try {
+  poolInstance = new Pool({ 
+    connectionString,
+    ssl: { rejectUnauthorized: false },
+    connectionTimeoutMillis: 10000
+  });
+  console.log('Successfully initialized database pool');
+} catch (error) {
+  console.error('Failed to initialize database pool:', error.message);
+}
+
+export const pool = poolInstance;

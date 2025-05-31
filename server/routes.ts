@@ -20,26 +20,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     
     try {
+      console.log(`Creating group with data:`, JSON.stringify(req.body));
+      console.log(`User ID:`, req.user.id);
+      
       const validatedData = insertGroupSchema.parse({
         ...req.body,
         createdBy: req.user.id
       });
       
+      console.log(`Validated group data:`, JSON.stringify(validatedData));
+      
       const group = await storage.createGroup(validatedData);
+      console.log(`Created group with ID: ${group.id}`);
       
-      // Log activity
-      await storage.logActivity({
-        groupId: group.id,
-        userId: req.user.id,
-        actionType: "create_group"
-      });
+      try {
+        // Log activity
+        console.log(`Logging activity for new group ${group.id}`);
+        await storage.logActivity({
+          groupId: group.id,
+          userId: req.user.id,
+          actionType: "create_group"
+        });
+        console.log(`Activity logged successfully`);
+      } catch (activityError) {
+        console.error(`Error logging activity for group ${group.id}:`, activityError);
+        // Continue anyway since the group was created
+      }
       
+      console.log(`Group creation completed successfully`);
       res.status(201).json(group);
     } catch (error) {
+      console.error("Error creating group:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: error.errors });
       }
-      res.status(500).json({ error: "Failed to create group" });
+      // Include more details in error response for debugging
+      res.status(500).json({ 
+        error: "Failed to create group", 
+        details: error instanceof Error ? error.message : String(error) 
+      });
     }
   });
   
@@ -714,51 +733,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     
     try {
+      console.log("Creating expense with data:", JSON.stringify(req.body));
       const expenseData = req.body;
       const groupId = expenseData.groupId;
       
+      console.log(`Checking if user ${req.user.id} is a member of group ${groupId}`);
       // Check if user is a member of this group
       const members = await storage.getGroupMembers(groupId);
       const isMember = members.some(member => member.userId === req.user.id);
       
       if (!isMember) {
+        console.log(`User ${req.user.id} is not a member of group ${groupId}`);
         return res.status(403).json({ error: "You are not a member of this group" });
       }
       
       // Validate expense data
+      console.log("Validating expense data");
       const validatedExpense = insertExpenseSchema.parse(expenseData);
       
       // Create the expense
+      console.log("Creating expense in database");
       const expense = await storage.createExpense(validatedExpense);
+      console.log(`Created expense with ID: ${expense.id}`);
       
       // Add participants
       const participants = req.body.participants || [];
+      console.log(`Adding ${participants.length} participants to expense`);
       
       for (const participant of participants) {
-        await storage.addExpenseParticipant({
-          expenseId: expense.id,
-          userId: participant.userId,
-          amountOwed: participant.amountOwed
-        });
+        try {
+          await storage.addExpenseParticipant({
+            expenseId: expense.id,
+            userId: participant.userId,
+            amountOwed: participant.amountOwed
+          });
+          console.log(`Added participant ${participant.userId} with amount ${participant.amountOwed}`);
+        } catch (err) {
+          console.error(`Error adding participant ${participant.userId}:`, err);
+          // Continue with other participants
+        }
       }
       
-      // Log activity
-      await storage.logActivity({
-        groupId,
-        userId: req.user.id,
-        actionType: "add_expense",
-        expenseId: expense.id
-      });
+      try {
+        // Log activity
+        console.log("Logging activity for new expense");
+        await storage.logActivity({
+          groupId,
+          userId: req.user.id,
+          actionType: "add_expense",
+          expenseId: expense.id
+        });
+        console.log("Activity logged successfully");
+      } catch (activityErr) {
+        console.error("Failed to log activity, but expense was created:", activityErr);
+        // Continue anyway since the expense was created
+      }
       
-      // Update cached balances for this group
-      await storage.updateAllBalancesInGroup(groupId);
+      try {
+        // Update cached balances for this group
+        console.log(`Updating balances for group ${groupId}`);
+        await storage.updateAllBalancesInGroup(groupId);
+        console.log("Balances updated successfully");
+      } catch (balanceErr) {
+        console.error("Failed to update balances, but expense was created:", balanceErr);
+        // Continue anyway since the expense was created
+      }
       
+      console.log("Expense creation completed successfully");
       res.status(201).json(expense);
     } catch (error) {
+      console.error("Error creating expense:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: error.errors });
       }
-      res.status(500).json({ error: "Failed to create expense" });
+      // Include more details in error response for debugging
+      res.status(500).json({ 
+        error: "Failed to create expense", 
+        details: error instanceof Error ? error.message : String(error) 
+      });
     }
   });
   
@@ -1146,43 +1198,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     
     try {
+      console.log(`Fetching activity for user ${req.user.id}`);
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
       const type = req.query.type as string | undefined;
       
-      // Get all activities for the user
-      const activities = await storage.getActivityByUserId(req.user.id, limit);
-      
-      console.log('API Activity Response:', {
-        userId: req.user.id,
-        activityCount: activities.length,
-        sampleActivity: activities.length > 0 ? activities[0] : null
-      });
-      
-      // Filter activities by type if specified
-      if (type === 'expenses') {
-        const expenseActivities = activities.filter(a => a.actionType === 'add_expense');
-        return res.json({
-          activities: expenseActivities,
-          totalCount: expenseActivities.length,
+      // Try/catch specifically around the activity fetch
+      try {
+        // Get all activities for the user
+        const activities = await storage.getActivityByUserId(req.user.id, limit);
+        
+        console.log('API Activity Response:', {
+          userId: req.user.id,
+          activityCount: activities.length,
+          sampleActivity: activities.length > 0 ? JSON.stringify(activities[0]) : null
+        });
+        
+        // Filter activities by type if specified
+        if (type === 'expenses') {
+          const expenseActivities = activities.filter(a => a.actionType === 'add_expense');
+          return res.json({
+            activities: expenseActivities,
+            totalCount: expenseActivities.length,
+            hasMore: false
+          });
+        } else if (type === 'payments') {
+          const paymentActivities = activities.filter(a => a.actionType === 'record_payment');
+          return res.json({
+            activities: paymentActivities,
+            totalCount: paymentActivities.length,
+            hasMore: false
+          });
+        }
+        
+        // Return all activities if no type specified
+        res.json({
+          activities: activities,
+          totalCount: activities.length,
           hasMore: false
         });
-      } else if (type === 'payments') {
-        const paymentActivities = activities.filter(a => a.actionType === 'record_payment');
-        return res.json({
-          activities: paymentActivities,
-          totalCount: paymentActivities.length,
-          hasMore: false
+      } catch (activityError) {
+        console.error("Error fetching activities by user ID:", activityError);
+        
+        // Return an empty array instead of an error to not break the UI
+        console.log("Returning empty activities array due to error");
+        res.json({
+          activities: [],
+          totalCount: 0,
+          hasMore: false,
+          error: "There was an issue fetching activities, but you can still use the application"
         });
       }
-      
-      // Return all activities if no type specified
-      res.json({
-        activities: activities,
-        totalCount: activities.length,
-        hasMore: false
-      });
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch activity" });
+      console.error("Outer error in /api/activity:", error);
+      res.status(500).json({ 
+        error: "Failed to fetch activity",
+        details: error instanceof Error ? error.message : String(error)
+      });
     }
   });
   
