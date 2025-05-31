@@ -18,6 +18,12 @@ export function SimplifiedLayout({
   const [location] = useLocation();
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   
+  // Extract group ID from current location if on a group page
+  const getCurrentGroupId = (): number | undefined => {
+    const match = location.match(/^\/group\/(\d+)/);
+    return match ? parseInt(match[1]) : undefined;
+  };
+  
   return (
     <div className="flex flex-col min-h-screen bg-fairshare-cream">
       {/* All header area with new color #32846b for all pages */}
@@ -73,7 +79,11 @@ export function SimplifiedLayout({
       </div>
       
       {/* Expense modal */}
-      <ExpenseForm open={showExpenseModal} onOpenChange={setShowExpenseModal} />
+      <ExpenseForm 
+        open={showExpenseModal} 
+        onOpenChange={setShowExpenseModal} 
+        groupId={getCurrentGroupId()}
+      />
     </div>
   );
 }
