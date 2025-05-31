@@ -85,8 +85,7 @@ export function SimplifiedLayout({
                 style={{
                   bottom: "calc(100% + 8px)",
                   right: "auto",
-                  left: "50%",
-                  transform: "translateX(-50%)",
+                  left: "-75px",
                   whiteSpace: "nowrap",
                   zIndex: 50,
                 }}
