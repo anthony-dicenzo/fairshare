@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "@shared/schema";
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
@@ -48,25 +47,12 @@ export const supabase = (supabaseUrl && supabaseKey)
   ? createClient(supabaseUrl, supabaseKey)
   : null;
 
-// Initialize postgres client for Drizzle ORM
-let client = null;
-try {
-  client = postgres(connectionString);
-  console.log('Successfully initialized database client for Supabase');
-} catch (error) {
-  console.error('Failed to initialize database client:', error instanceof Error ? error.message : String(error));
-}
-
-// Create the Drizzle ORM instance with fresh schema
-export const db = client ? drizzle(client, { schema, logger: false }) : null;
-
 // Create a PostgreSQL pool for session store compatibility
 let poolInstance = null;
 try {
   poolInstance = new Pool({ 
     connectionString,
-    ssl: { rejectUnauthorized: false },
-    connectionTimeoutMillis: 10000
+    ssl: { rejectUnauthorized: false }
   });
   console.log('Successfully initialized database pool');
 } catch (error) {
@@ -74,3 +60,12 @@ try {
 }
 
 export const pool = poolInstance;
+
+// Use the PostgreSQL pool for Drizzle ORM to avoid SASL issues
+export const db = poolInstance ? drizzle(poolInstance, { schema, logger: false }) : null;
+
+if (db) {
+  console.log('Successfully initialized Drizzle ORM with PostgreSQL pool');
+} else {
+  console.error('Failed to initialize Drizzle ORM - no pool available');
+}
