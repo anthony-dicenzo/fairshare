@@ -523,39 +523,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         try {
           console.log(`Handling invite request for group ${groupId}`);
+          // Check for existing active invites first
+          const existingInvites = await storage.getGroupInvitesByGroupId(groupId);
+          console.log(`Found ${existingInvites.length} total invites for group ${groupId}`);
           
-          // Create a simple invite link without using the database table
-          // This works around the missing invite_code column issue
-          console.log(`Creating simplified invite for group ${groupId}`);
+          // Filter to find active invites
+          const activeInvites = existingInvites.filter(invite => {
+            if (!invite.isActive) return false;
+            if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) return false;
+            return true;
+          });
           
-          // Generate a basic invite code for this group
-          const inviteCode = `group-${groupId}-${Date.now()}`;
+          console.log(`Found ${activeInvites.length} active invites for group ${groupId}`);
           
-          const mockInvite = {
-            id: Date.now(),
-            groupId,
-            inviteCode,
-            createdBy: req.user.id,
-            createdAt: new Date(),
-            expiresAt: null,
-            isActive: true
-          };
-          
-          console.log(`Generated simplified invite: ${JSON.stringify(mockInvite)}`);
-          
-          // Try to log activity (but don't fail if it doesn't work)
-          try {
-            await storage.logActivity({
-              groupId,
-              userId: req.user.id,
-              actionType: "create_invite_link"
-            });
-          } catch (activityError) {
-            console.error("Failed to log activity:", activityError);
-            // Continue anyway
+          // If there's an active invite, use that
+          if (activeInvites.length > 0) {
+            console.log(`Returning existing invite: ${JSON.stringify(activeInvites[0])}`);
+            res.status(200).json(activeInvites[0]);
+            return;
           }
           
-          res.status(201).json(mockInvite);
+          console.log(`No active invites found, creating a new one for group ${groupId}`);
+          // Otherwise create a new shareable invite link
+          const invite = await storage.createGroupInvite({
+            groupId,
+            createdBy: req.user.id,
+            isActive: true,
+            // Set expiration if provided, otherwise leave it undefined
+            expiresAt: req.body.expiresAt ? new Date(req.body.expiresAt) : undefined
+          });
+          
+          console.log(`Created new invite: ${JSON.stringify(invite)}`);
+          
+          // Log activity
+          await storage.logActivity({
+            groupId,
+            userId: req.user.id,
+            actionType: "create_invite_link"
+          });
+          
+          res.status(201).json(invite);
         } catch (error) {
           console.error("Error handling invite request:", error);
           res.status(500).json({ error: "Failed to process invite request" });
