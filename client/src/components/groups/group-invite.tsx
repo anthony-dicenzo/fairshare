@@ -69,8 +69,9 @@ export function GroupInvite({ open, onOpenChange, groupId, members = [] }: Group
     queryKey: ['/api/groups', groupId],
     enabled: !!groupId && open,
     queryFn: async () => {
-      const res = await apiRequest(`/api/groups/${groupId}`);
-      return res as GroupInfo;
+      const res = await apiRequest("GET", `/api/groups/${groupId}`);
+      const data = await res.json();
+      return data as GroupInfo;
     }
   });
 
@@ -83,7 +84,8 @@ export function GroupInvite({ open, onOpenChange, groupId, members = [] }: Group
       console.log(`Creating invite for group ${groupId}`);
       
       // Use the apiRequest function which handles authentication properly
-      const data = await apiRequest("POST", `/api/groups/${groupId}/invite`, {});
+      const response = await apiRequest("POST", `/api/groups/${groupId}/invite`, {});
+      const data = await response.json();
       
       console.log("Invite response:", data);
       
@@ -120,8 +122,8 @@ export function GroupInvite({ open, onOpenChange, groupId, members = [] }: Group
   // Invite user mutation
   const inviteMutation = useMutation({
     mutationFn: async (data: { email: string }) => {
-      const res = await apiRequest<{ message?: string }>("POST", `/api/groups/${groupId}/invite`, data);
-      return res;
+      const res = await apiRequest("POST", `/api/groups/${groupId}/invite`, data);
+      return await res.json();
     },
     onSuccess: (data) => {
       // Check if the response is a notification about user not existing yet
