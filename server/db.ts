@@ -11,16 +11,16 @@ dotenv.config({ path: '.env.secrets' });
 dotenv.config({ path: '.env.database' });
 dotenv.config({ path: '.env.local' });
 
-// Force using Supabase connection string - override any system env vars
-const SUPABASE_CONNECTION = 'postgresql://postgres.smrsiolztcggakkgtyab:WCRjkMkrg7vDYahc@aws-0-ca-central-1.pooler.supabase.com:6543/postgres';
-
 // Get Supabase credentials from environment variables
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
 
-// Force using Supabase connection string instead of relying on environment variables
-// This ensures we're connecting to Supabase instead of the old Neon database
-const connectionString = SUPABASE_CONNECTION;
+// Use DATABASE_URL from environment (should be Supabase connection string)
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+  throw new Error('DATABASE_URL environment variable is required');
+}
 
 // Log connection information (safely)
 if (supabaseUrl) {
@@ -35,7 +35,7 @@ try {
   }
   console.log('Using connection string:', connectionString.substring(0, 20) + '...');
 } catch (error) {
-  console.error('Error parsing database URL:', error.message);
+  console.error('Error parsing database URL:', error instanceof Error ? error.message : String(error));
 }
 
 // Create Supabase client for API interactions
@@ -60,7 +60,7 @@ try {
   });
   console.log('Successfully initialized database client with fresh connection');
 } catch (error) {
-  console.error('Failed to initialize database client:', error.message);
+  console.error('Failed to initialize database client:', error instanceof Error ? error.message : String(error));
 }
 
 // Create the Drizzle ORM instance with fresh schema
@@ -76,7 +76,7 @@ try {
   });
   console.log('Successfully initialized database pool');
 } catch (error) {
-  console.error('Failed to initialize database pool:', error.message);
+  console.error('Failed to initialize database pool:', error instanceof Error ? error.message : String(error));
 }
 
 export const pool = poolInstance;
