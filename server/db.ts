@@ -11,8 +11,8 @@ dotenv.config({ path: '.env.secrets' });
 dotenv.config({ path: '.env.database' });
 dotenv.config({ path: '.env.local' });
 
-// Force using Supabase connection string - ensure we never use old Neon database
-const SUPABASE_CONNECTION = process.env.DATABASE_URL || 'postgresql://postgres.smrsiolztcggakkgtyab:WCRjkMkrg7vDYahc@aws-0-ca-central-1.pooler.supabase.com:6543/postgres';
+// Force using Supabase connection string - override any system env vars
+const SUPABASE_CONNECTION = 'postgresql://postgres.smrsiolztcggakkgtyab:WCRjkMkrg7vDYahc@aws-0-ca-central-1.pooler.supabase.com:6543/postgres';
 
 // Get Supabase credentials from environment variables
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -33,6 +33,7 @@ try {
   if (urlParts.length > 1) {
     console.log(`Database host: ${urlParts[1].split('/')[0]}`);
   }
+  console.log('Using connection string:', connectionString.substring(0, 20) + '...');
 } catch (error) {
   console.error('Error parsing database URL:', error.message);
 }
