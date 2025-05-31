@@ -15,12 +15,16 @@ dotenv.config({ path: '.env.local' });
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
 
-// Use DATABASE_URL from environment (should be Supabase connection string)
-const connectionString = process.env.DATABASE_URL;
+// Force Supabase connection - override any system environment variables
+const SUPABASE_DATABASE_URL = 'postgresql://postgres.smrsiolztcggakkgtyab:WCRjkMkrg7vDYahc@aws-0-ca-central-1.pooler.supabase.com:6543/postgres';
+const connectionString = SUPABASE_DATABASE_URL;
 
-if (!connectionString) {
-  throw new Error('DATABASE_URL environment variable is required');
+// Verify we're using Supabase (not Neon)
+if (connectionString.includes('neon.tech')) {
+  throw new Error('CRITICAL: Still connecting to Neon database instead of Supabase!');
 }
+
+console.log('✅ FORCED CONNECTION TO SUPABASE DATABASE');
 
 // Log connection information (safely)
 if (supabaseUrl) {
