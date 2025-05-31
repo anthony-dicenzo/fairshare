@@ -481,6 +481,10 @@ export default function GroupPage() {
                 onAddPayment={() => setShowPaymentModal(true)}
                 compact 
                 showExpenseNotification={showExpenseNotification}
+                onDismissExpenseNotification={() => {
+                  setShowExpenseNotification(false);
+                  localStorage.removeItem(`fairshare_expense_notification_${groupId}`);
+                }}
               />
             </div>
           </div>
@@ -520,13 +524,41 @@ export default function GroupPage() {
                   <p className="text-muted-foreground mb-4">
                     Add your first expense to start tracking
                   </p>
-                  <Button 
-                    onClick={() => setShowExpenseModal(true)}
-                    className="bg-[#32846b] hover:bg-[#276b55] text-white border-[#32846b] rounded-md"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Expense
-                  </Button>
+                  <div className="relative">
+                    <Button 
+                      onClick={() => setShowExpenseModal(true)}
+                      className={`text-white border-[#32846b] rounded-md ${
+                        showExpenseNotification 
+                        ? 'animate-flash-mango' 
+                        : 'bg-[#32846b] hover:bg-[#276b55]'
+                      }`}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Expense
+                    </Button>
+                    {showExpenseNotification && (
+                      <PersistentNotification
+                        message="Add your first expense"
+                        position="tooltip"
+                        variant="default"
+                        size="sm"
+                        animate={true}
+                        icon={<AlertCircle className="h-3 w-3 text-fairshare-primary" />}
+                        onDismiss={() => {
+                          setShowExpenseNotification(false);
+                          localStorage.removeItem(`fairshare_expense_notification_${groupId}`);
+                        }}
+                        style={{
+                          bottom: "calc(100% + 8px)",
+                          right: "auto",
+                          left: "50%",
+                          transform: "translateX(-50%)",
+                          whiteSpace: "nowrap",
+                          zIndex: 50,
+                        }}
+                      />
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="bg-white dark:bg-gray-800 rounded-lg border shadow-sm divide-y">
