@@ -15,16 +15,17 @@ dotenv.config({ path: '.env.local' });
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
 
-// Force Supabase connection - override any system environment variables
-const SUPABASE_DATABASE_URL = 'postgresql://postgres.smrsiolztcggakkgtyab:WCRjkMkrg7vDYahc@aws-0-ca-central-1.pooler.supabase.com:6543/postgres';
-const connectionString = SUPABASE_DATABASE_URL;
+// Use DATABASE_URL from environment variables
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+  throw new Error('DATABASE_URL environment variable is required');
+}
 
 // Verify we're using Supabase (not Neon)
 if (connectionString.includes('neon.tech')) {
-  throw new Error('CRITICAL: Still connecting to Neon database instead of Supabase!');
+  throw new Error('CRITICAL: DATABASE_URL still points to Neon database! Please update environment variables to use Supabase.');
 }
-
-console.log('✅ FORCED CONNECTION TO SUPABASE DATABASE');
 
 // Log connection information (safely)
 if (supabaseUrl) {
@@ -47,22 +48,14 @@ export const supabase = (supabaseUrl && supabaseKey)
   ? createClient(supabaseUrl, supabaseKey)
   : null;
 
-// Initialize postgres client for Drizzle ORM with fresh connection
+// Initialize postgres client for Drizzle ORM
 let client = null;
 try {
-  // Force a fresh connection to ensure schema is recognized
   client = postgres(connectionString, { 
-    max: 10,
-    idle_timeout: 20,
-    connect_timeout: 10,
-    ssl: { rejectUnauthorized: false },
-    // Force schema refresh
-    prepare: false,
-    connection: {
-      statement_timeout: 30000
-    }
+    max: 1,
+    ssl: 'require'
   });
-  console.log('Successfully initialized database client with fresh connection');
+  console.log('Successfully initialized database client for Supabase');
 } catch (error) {
   console.error('Failed to initialize database client:', error instanceof Error ? error.message : String(error));
 }
