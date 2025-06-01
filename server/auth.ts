@@ -507,25 +507,22 @@ export function setupAuth(app: Express) {
         
         const user = await storage.getUser(userIdNum);
         if (!user) {
+          console.log(`User not found for ID: ${userIdNum}`);
           return next();
         }
         
         // Validate session token (simple validation for this example)
         const isValidToken = sessionToken && (sessionToken as string).length > 10;
         if (!isValidToken) {
+          console.log(`Invalid session token for user: ${userIdNum}`);
           return next();
         }
         
-        // Log the user in
-        req.login(user, (err) => {
-          if (err) {
-            console.error("Error in header-based auth:", err);
-            return next();
-          }
-          
-          console.log(`Header-based auth successful for: ${user.username}`);
-          next();
-        });
+        // Set the user directly on the request object and create a custom isAuthenticated method
+        req.user = user;
+        req.isAuthenticated = () => true;
+        console.log(`Header-based auth successful for: ${user.username}`);
+        next();
       } catch (error) {
         console.error("Error in header-based auth:", error);
         next();
