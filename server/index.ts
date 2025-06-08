@@ -4,6 +4,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initializeBalanceCache } from "./init-balance-cache";
 import { securityHeaders, sanitizeInput, apiLimiter, authLimiter } from "./middleware/security";
+import { dbHealthCheck, monitorConnections } from "./middleware/database";
 
 // Environment validation
 import { config } from '../config/environment';
@@ -32,6 +33,7 @@ app.use(helmet({
 
 app.use(securityHeaders);
 app.use(sanitizeInput);
+app.use(dbHealthCheck);
 
 // Apply rate limiting to API routes
 app.use('/api/', apiLimiter);
@@ -103,6 +105,9 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    
+    // Start database connection monitoring
+    monitorConnections();
     
     // Initialize the balance cache in the background
     // This won't block server startup but ensures balances are up-to-date

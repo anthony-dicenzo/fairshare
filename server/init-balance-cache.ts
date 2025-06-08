@@ -17,6 +17,21 @@ export async function initializeBalanceCache(): Promise<void> {
   console.log('🔄 Initializing balance cache...');
   
   try {
+    // Check if database is available
+    if (!db) {
+      console.log('⚠️ Database not available for balance cache initialization');
+      return;
+    }
+
+    // Test database connection first
+    try {
+      await db.select().from(groups).limit(1);
+    } catch (connectionError) {
+      console.log('⚠️ Database connection not ready for balance cache initialization');
+      console.log('Server will continue normally, balance cache can be initialized later');
+      return;
+    }
+
     // Get all groups from the database
     const allGroups = await db.select().from(groups);
     console.log(`📊 Found ${allGroups.length} groups to process`);
@@ -41,5 +56,6 @@ export async function initializeBalanceCache(): Promise<void> {
     console.log(`📊 Summary: ${successCount} groups successfully processed, ${errorCount} errors`);
   } catch (error) {
     console.error('❌ Error initializing balance cache:', error);
+    console.log('⚠️ Balance cache initialization failed, but server will continue');
   }
 }

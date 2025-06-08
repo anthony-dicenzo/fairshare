@@ -47,7 +47,10 @@ let client = null;
 try {
   client = postgres(connectionString, { 
     ssl: 'require',
-    connect_timeout: 5
+    connect_timeout: 10,
+    max: 10,
+    idle_timeout: 20,
+    max_lifetime: 60 * 30
   });
   console.log('Successfully initialized database client for Supabase');
 } catch (error) {

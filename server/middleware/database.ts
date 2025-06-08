@@ -54,6 +54,8 @@ export const monitorConnections = () => {
   if (!pool) return;
 
   setInterval(() => {
-    console.log(`Database pool status: ${pool.totalCount} total, ${pool.idleCount} idle, ${pool.waitingCount} waiting`);
+    if (pool) {
+      console.log(`Database pool status: ${pool.totalCount} total, ${pool.idleCount} idle, ${pool.waitingCount} waiting`);
+    }
   }, 300000); // Log every 5 minutes
 };
