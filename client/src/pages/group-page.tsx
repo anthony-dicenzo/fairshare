@@ -16,7 +16,7 @@ import { BalancesMatrix } from "@/components/groups/balances-matrix";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { Link } from "wouter";
 import { GroupInvite } from "@/components/groups/group-invite";
-import { ActionButtons } from "@/components/dashboard/action-buttons";
+
 import { apiRequest, getAuthHeaders } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
@@ -138,18 +138,24 @@ export default function GroupPage() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    error: expensesError,
   } = useInfiniteQuery<ExpensePaginatedResponse>({
     queryKey: [`/api/groups/${groupIdStr}/expenses`],
     queryFn: async ({ queryKey, pageParam }) => {
+      console.log("Starting expense fetch for URL:", queryKey[0]);
       const paramPage = pageParam as number || 0;
       const url = `${queryKey[0]}?limit=${EXPENSES_PER_PAGE}&offset=${paramPage * EXPENSES_PER_PAGE}`;
       
       // Use the same authentication method as other queries
       const authHeaders = getAuthHeaders();
+      console.log("Using auth headers for expense fetch:", Object.keys(authHeaders));
+      
       let response = await fetch(url, {
         headers: authHeaders,
         credentials: "include",
       });
+      
+      console.log("Initial expense fetch response:", response.status);
       
       // If unauthorized, try backup authentication
       if (response.status === 401) {
@@ -174,6 +180,7 @@ export default function GroupPage() {
                   headers: getAuthHeaders(),
                   credentials: "include",
                 });
+                console.log("Retry expense fetch response:", response.status);
               } else {
                 console.log("Backup auth failed with status:", backupRes.status);
               }
@@ -185,10 +192,12 @@ export default function GroupPage() {
       }
       
       if (!response.ok) {
+        console.error("Expense fetch failed with status:", response.status);
         throw new Error(`Failed to fetch expenses: ${response.status}`);
       }
       
       const data = await response.json();
+      console.log("Expense fetch successful, data received:", data);
       return data as ExpensePaginatedResponse;
     },
     getNextPageParam: (lastPage, allPages) => {
@@ -199,6 +208,16 @@ export default function GroupPage() {
     staleTime: 0 // Always refetch on component mount
   });
   
+  // Log query states for debugging
+  console.log("Expense query states:", {
+    isLoading: isLoadingExpenses,
+    hasData: !!expensesData,
+    error: expensesError,
+    groupId,
+    group: !!group,
+    enabled: groupId > 0 && !!group
+  });
+
   // Flatten the paged data for easier use in the component
   const expenses = useMemo(() => {
     if (!expensesData || !expensesData.pages) {
@@ -543,19 +562,7 @@ export default function GroupPage() {
             >
               <Settings className="h-4 w-4 text-fairshare-primary" />
             </Button>
-            {/* Only show action buttons on non-mobile screens */}
-            <div className="hidden sm:block">
-              <ActionButtons 
-                onAddExpense={() => setShowExpenseModal(true)}
-                onAddPayment={() => setShowPaymentModal(true)}
-                compact 
-                showExpenseNotification={showExpenseNotification}
-                onDismissExpenseNotification={() => {
-                  setShowExpenseNotification(false);
-                  localStorage.removeItem(`fairshare_expense_notification_${groupId}`);
-                }}
-              />
-            </div>
+
           </div>
         </div>
 
