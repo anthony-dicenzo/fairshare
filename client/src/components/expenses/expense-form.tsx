@@ -21,7 +21,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, getAuthHeaders } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Group } from "@shared/schema";
 import { ShoppingBag } from "lucide-react";
@@ -76,9 +76,52 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
   // Track custom percentages for percentage splits
   const [customPercentages, setCustomPercentages] = useState<Record<number, number>>({});
 
-  // Get groups data
-  const { data: groupsData } = useQuery<{ groups: Group[], totalCount: number, hasMore: boolean }>({
+  // Get groups data with proper authentication
+  const { data: groupsData, isLoading: isLoadingGroups } = useQuery<{ groups: Group[], totalCount: number, hasMore: boolean }>({
     queryKey: ["/api/groups"],
+    queryFn: async () => {
+      const authHeaders = getAuthHeaders();
+      let response = await fetch("/api/groups", {
+        headers: authHeaders,
+        credentials: "include",
+      });
+      
+      // If unauthorized, try backup authentication
+      if (response.status === 401) {
+        try {
+          const authData = localStorage.getItem("fairshare_auth_state");
+          if (authData) {
+            const parsed = JSON.parse(authData);
+            if (parsed.userId && parsed.sessionId) {
+              const backupRes = await fetch(`/api/users/${parsed.userId}`, {
+                headers: {
+                  "X-Session-Backup": parsed.sessionId
+                },
+                credentials: "include"
+              });
+              
+              if (backupRes.ok) {
+                // Retry the original request
+                response = await fetch("/api/groups", {
+                  headers: getAuthHeaders(),
+                  credentials: "include",
+                });
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Backup auth failed:", e);
+        }
+      }
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch groups: ${response.status}`);
+      }
+      
+      return response.json();
+    },
+    enabled: open && !!user, // Only fetch when modal is open and user is available
+    staleTime: 0, // Always fetch fresh data
   });
 
   // Extract groups from the response
