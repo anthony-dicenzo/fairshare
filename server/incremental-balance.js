@@ -3,7 +3,7 @@
  * instead of recalculating everything from scratch
  */
 
-import { db } from './storage.js';
+import { db } from './db.js';
 import { userBalances } from '../shared/schema.js';
 import { eq, sql } from 'drizzle-orm';
 
@@ -46,12 +46,12 @@ async function updateBalancesOnExpenseCreate(groupId, expenseData, participants)
       if (Math.abs(change) < 0.01) return; // Skip negligible changes
 
       await db.execute(sql`
-        INSERT INTO balance_cache (group_id, user_id, balance, updated_at)
+        INSERT INTO user_balances (group_id, user_id, balance_amount, last_updated)
         VALUES (${groupId}, ${userId}, ${change.toString()}, CURRENT_TIMESTAMP)
         ON CONFLICT (group_id, user_id)
         DO UPDATE SET 
-          balance = (COALESCE(balance_cache.balance::decimal, 0) + ${change})::text,
-          updated_at = CURRENT_TIMESTAMP
+          balance_amount = (COALESCE(user_balances.balance_amount::decimal, 0) + ${change})::text,
+          last_updated = CURRENT_TIMESTAMP
       `);
     });
 
@@ -100,12 +100,12 @@ async function updateBalancesOnExpenseDelete(groupId, expenseData, participants)
       if (Math.abs(change) < 0.01) return;
 
       await db.execute(sql`
-        INSERT INTO balance_cache (group_id, user_id, balance, updated_at)
+        INSERT INTO user_balances (group_id, user_id, balance_amount, last_updated)
         VALUES (${groupId}, ${userId}, ${change.toString()}, CURRENT_TIMESTAMP)
         ON CONFLICT (group_id, user_id)
         DO UPDATE SET 
-          balance = (COALESCE(balance_cache.balance::decimal, 0) + ${change})::text,
-          updated_at = CURRENT_TIMESTAMP
+          balance_amount = (COALESCE(user_balances.balance_amount::decimal, 0) + ${change})::text,
+          last_updated = CURRENT_TIMESTAMP
       `);
     });
 
