@@ -10,6 +10,15 @@ import {
   insertGroupMemberSchema
 } from "@shared/schema";
 import { z } from "zod";
+import { 
+  getCachedExpenses, 
+  setCachedExpenses, 
+  getCachedBalances, 
+  setCachedBalances,
+  invalidateAllGroupData,
+  invalidateExpenseCache 
+} from "./cache.js";
+import { scheduleBalanceUpdate } from "./queue.js";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check endpoint (no authentication required)
@@ -811,15 +820,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Continue anyway since the expense was created
       }
       
-      try {
-        // Update cached balances for this group
-        console.log(`Updating balances for group ${groupId}`);
-        await storage.updateAllBalancesInGroup(groupId);
-        console.log("Balances updated successfully");
-      } catch (balanceErr) {
-        console.error("Failed to update balances, but expense was created:", balanceErr);
-        // Continue anyway since the expense was created
-      }
+      // Invalidate cache for immediate UI updates
+      await invalidateAllGroupData(groupId);
+      
+      // Schedule background balance update (non-blocking)
+      scheduleBalanceUpdate(groupId, 500);
       
       console.log("Expense creation completed successfully");
       res.status(201).json(expense);
