@@ -1679,18 +1679,21 @@ export class DatabaseStorage implements IStorage {
     // Get all members in the group
     const members = await this.getGroupMembers(groupId);
     
-    // Calculate balance for each member
-    const balances = [];
-    for (const member of members) {
-      const balance = await this.getUserBalanceInGroup(member.userId, groupId);
-      balances.push({
+    // Get cached balances from user_balances table (updated by incremental system)
+    const cachedBalances = await db
+      .select()
+      .from(userBalances)
+      .where(eq(userBalances.groupId, groupId));
+    
+    // Map to required output format
+    return members.map(member => {
+      const cachedBalance = cachedBalances.find(b => b.userId === member.userId);
+      return {
         userId: member.userId,
         user: member.user,
-        balance
-      });
-    }
-    
-    return balances;
+        balance: cachedBalance ? Number(cachedBalance.balanceAmount) : 0
+      };
+    });
   }
 }
 
