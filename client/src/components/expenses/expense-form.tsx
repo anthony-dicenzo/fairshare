@@ -126,15 +126,6 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
 
   // Extract groups from the response
   const groups = groupsData?.groups || [];
-  
-  // Debug logging to understand what's happening
-  console.log("ExpenseForm - Groups query state:", {
-    isLoadingGroups,
-    groupsData,
-    groupsLength: groups.length,
-    open,
-    user: !!user
-  });
 
   // Get members for the selected group
   const [selectedGroupId, setSelectedGroupId] = useState<string>(groupId?.toString() || "");
@@ -231,7 +222,7 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
       const res = await apiRequest("POST", "/api/expenses", data);
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: "Expense created",
         description: "Your expense has been created successfully.",
@@ -239,24 +230,27 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
       onOpenChange(false);
       form.reset();
       
-      // Invalidate queries
+      // First, explicitly refresh the balances to ensure they're updated
+      if (selectedGroupId) {
+        try {
+          await apiRequest('POST', `/api/groups/${selectedGroupId}/refresh-balances`);
+        } catch (error) {
+          console.error('Failed to refresh balances:', error);
+        }
+      }
+      
+      // Invalidate queries to ensure fresh data is fetched
       queryClient.invalidateQueries({ queryKey: ["/api/balances"] });
       queryClient.invalidateQueries({ queryKey: ["/api/activity"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/groups"] }); // Invalidate the groups list to update balances
+      queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
       
       // Make sure to properly invalidate all group-related queries
       if (selectedGroupId) {
         const groupIdStr = selectedGroupId;
-        // Invalidate the specific group queries
         queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/expenses`] });
         queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/balances`] });
         queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/activity`] });
-        queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}`] }); // Invalidate the specific group details
-        
-        // Also invalidate the more general query patterns used in group-page.tsx
-        queryClient.invalidateQueries({ queryKey: ["/api/groups", groupIdStr, "expenses"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/groups", groupIdStr, "balances"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/groups", groupIdStr, "activity"] });
+        queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}`] });
       }
     },
     onError: (error) => {
