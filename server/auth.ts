@@ -496,9 +496,9 @@ export function setupAuth(app: Express) {
       return next();
     }
     
-    // Check for backup auth headers
-    const userId = req.headers['x-user-id'];
-    const sessionToken = req.headers['x-session-backup'];
+    // Check for backup auth headers (case insensitive)
+    const userId = req.headers['x-user-id'] || req.headers['X-User-Id'];
+    const sessionToken = req.headers['x-session-backup'] || req.headers['X-Session-Backup'];
     
     if (userId && sessionToken) {
       try {
@@ -527,7 +527,7 @@ export function setupAuth(app: Express) {
         req.user = user;
         req.isAuthenticated = () => true;
         console.log(`Header-based auth successful for: ${user.username}`);
-        next();
+        return next();
       } catch (error) {
         console.error("Error in header-based auth:", error);
         next();
