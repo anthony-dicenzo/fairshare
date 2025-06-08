@@ -19,6 +19,7 @@ import {
   invalidateExpenseCache 
 } from "./cache.js";
 import { scheduleBalanceUpdate } from "./queue.js";
+import { updateGroupBalancesFast } from "./fast-balance-update.js";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check endpoint (no authentication required)
@@ -830,14 +831,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Invalidate cache for immediate UI updates
       await invalidateAllGroupData(groupId);
       
-      // Execute balance recalculation in background (non-blocking)
-      setImmediate(async () => {
+      // Schedule balance recalculation (truly non-blocking)
+      process.nextTick(async () => {
         try {
-          console.log("Executing background balance recalculation for group", groupId);
+          console.log("Executing optimized balance recalculation for group", groupId);
           await storage.updateAllBalancesInGroup(groupId);
-          console.log("Background balance recalculation completed for group", groupId);
+          console.log("Optimized balance recalculation completed for group", groupId);
         } catch (balanceErr) {
-          console.error("Background balance recalculation failed:", balanceErr);
+          console.error("Optimized balance recalculation failed:", balanceErr);
         }
       });
       
