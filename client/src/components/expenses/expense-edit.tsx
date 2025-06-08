@@ -304,25 +304,109 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
     },
   });
 
-  // Delete expense mutation
+  // Delete expense mutation with optimistic UI updates
   const deleteExpenseMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("DELETE", `/api/expenses/${expenseId}`);
       return res.json();
     },
-    onSuccess: async () => {
+    onMutate: async () => {
+      // Cancel any outgoing refetches
+      const groupIdStr = groupId.toString();
+      await queryClient.cancelQueries({ queryKey: [`/api/groups/${groupIdStr}/expenses`] });
+      await queryClient.cancelQueries({ queryKey: [`/api/groups/${groupIdStr}/balances`] });
+      await queryClient.cancelQueries({ queryKey: ["/api/groups"] });
+
+      // Snapshot the previous values
+      const previousExpenses = queryClient.getQueryData([`/api/groups/${groupIdStr}/expenses`]);
+      const previousBalances = queryClient.getQueryData([`/api/groups/${groupIdStr}/balances`]);
+      const previousGroups = queryClient.getQueryData(["/api/groups"]);
+
+      // Optimistically remove the expense from the list
+      queryClient.setQueryData([`/api/groups/${groupIdStr}/expenses`], (old: any) => {
+        if (!old || !old.expenses) return old;
+        
+        return {
+          ...old,
+          expenses: old.expenses.filter((exp: any) => exp.id !== expenseId),
+          totalCount: Math.max(0, (old.totalCount || 0) - 1),
+        };
+      });
+
+      // Optimistically update balances by reversing the expense effect
+      if (expense && expenseParticipants) {
+        queryClient.setQueryData([`/api/groups/${groupIdStr}/balances`], (old: any) => {
+          if (!old || !Array.isArray(old)) return old;
+          
+          return old.map((balance: any) => {
+            if (balance.userId === user?.id) {
+              // Calculate the reverse of what this expense contributed to balance
+              const userParticipant = Array.isArray(expenseParticipants) 
+                ? expenseParticipants.find((p: any) => p.userId === user?.id)
+                : null;
+              const amountOwed = userParticipant ? parseFloat(userParticipant.amountOwed) : 0;
+              
+              // Reverse the balance change from this expense
+              let balanceChange = 0;
+              if (expense && (expense as any).paidBy === user?.id) {
+                // User paid, so they lose the amount others owed them
+                const totalAmount = parseFloat((expense as any).totalAmount || "0");
+                balanceChange = -(totalAmount - amountOwed);
+              } else if (userParticipant) {
+                // User owed money, so removing expense increases their balance
+                balanceChange = amountOwed;
+              }
+              
+              return {
+                ...balance,
+                balance: (parseFloat(balance.balance) + balanceChange).toString(),
+                isOptimistic: true,
+              };
+            }
+            return balance;
+          });
+        });
+      }
+
+      // Return context for rollback
+      return { previousExpenses, previousBalances, previousGroups, groupIdStr };
+    },
+    onSuccess: async (data, variables, context) => {
       toast({
         title: "Expense deleted",
         description: "Your expense has been deleted successfully.",
       });
-      // Reset the form and close modal
       form.reset();
       onOpenChange(false);
       
-      // Invalidate all relevant queries
-      await invalidateQueries();
+      // Refresh data from server to get accurate values
+      if (context?.groupIdStr) {
+        queryClient.invalidateQueries({ queryKey: [`/api/groups/${context.groupIdStr}/expenses`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/groups/${context.groupIdStr}/balances`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/groups/${context.groupIdStr}/activity`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/groups/${context.groupIdStr}`] });
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/balances"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
+      
+      // Background balance refresh for accuracy
+      apiRequest('POST', `/api/groups/${groupId}/refresh-balances`).catch(error => {
+        console.error('Background balance refresh failed:', error);
+      });
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      // Rollback optimistic updates
+      if (context?.previousExpenses) {
+        queryClient.setQueryData([`/api/groups/${context.groupIdStr}/expenses`], context.previousExpenses);
+      }
+      if (context?.previousBalances) {
+        queryClient.setQueryData([`/api/groups/${context.groupIdStr}/balances`], context.previousBalances);
+      }
+      if (context?.previousGroups) {
+        queryClient.setQueryData(["/api/groups"], context.previousGroups);
+      }
+      
       toast({
         title: "Failed to delete expense",
         description: error.message,
@@ -808,7 +892,7 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
                   disabled={!canEdit || deleteExpenseMutation.isPending}
                 >
                   <Trash className="h-4 w-4" />
-                  Delete Expense
+                  {deleteExpenseMutation.isPending ? "Deleting..." : "Delete Expense"}
                 </Button>
               }
             />

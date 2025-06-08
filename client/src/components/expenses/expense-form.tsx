@@ -208,7 +208,7 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
     setCustomPercentages(newPercentages);
   };
 
-  // Create expense mutation
+  // Create expense mutation with optimistic UI updates
   const createExpenseMutation = useMutation({
     mutationFn: async (data: {
       title: string;
@@ -222,7 +222,72 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
       const res = await apiRequest("POST", "/api/expenses", data);
       return res.json();
     },
-    onSuccess: async (data) => {
+    onMutate: async (newExpense) => {
+      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+      const groupIdStr = newExpense.groupId.toString();
+      await queryClient.cancelQueries({ queryKey: [`/api/groups/${groupIdStr}/expenses`] });
+      await queryClient.cancelQueries({ queryKey: [`/api/groups/${groupIdStr}/balances`] });
+      await queryClient.cancelQueries({ queryKey: ["/api/groups"] });
+
+      // Snapshot the previous values
+      const previousExpenses = queryClient.getQueryData([`/api/groups/${groupIdStr}/expenses`]);
+      const previousBalances = queryClient.getQueryData([`/api/groups/${groupIdStr}/balances`]);
+      const previousGroups = queryClient.getQueryData(["/api/groups"]);
+
+      // Optimistically update the expenses list
+      queryClient.setQueryData([`/api/groups/${groupIdStr}/expenses`], (old: any) => {
+        if (!old) return old;
+        
+        // Create a temporary expense object for immediate display
+        const tempExpense = {
+          id: Date.now(), // Temporary ID
+          groupId: newExpense.groupId,
+          title: newExpense.title,
+          totalAmount: newExpense.totalAmount.toString(),
+          paidBy: newExpense.paidBy,
+          date: newExpense.date,
+          notes: newExpense.notes || "",
+          createdAt: new Date().toISOString(),
+          isOptimistic: true, // Flag to identify optimistic updates
+        };
+
+        return {
+          ...old,
+          expenses: [tempExpense, ...(old.expenses || [])],
+          totalCount: (old.totalCount || 0) + 1,
+        };
+      });
+
+      // Optimistically update balances if it affects the current user
+      if (newExpense.participants.some(p => p.userId === user?.id)) {
+        queryClient.setQueryData([`/api/groups/${groupIdStr}/balances`], (old: any) => {
+          if (!old || !Array.isArray(old)) return old;
+          
+          return old.map((balance: any) => {
+            if (balance.userId === user?.id) {
+              const userParticipant = newExpense.participants.find(p => p.userId === user?.id);
+              const amountOwed = userParticipant?.amountOwed || 0;
+              
+              // If user paid, they are owed money; if user owes, subtract from balance
+              const balanceChange = newExpense.paidBy === user?.id 
+                ? (newExpense.totalAmount - amountOwed) // User paid, others owe them
+                : -amountOwed; // User owes this amount
+              
+              return {
+                ...balance,
+                balance: (parseFloat(balance.balance) + balanceChange).toString(),
+                isOptimistic: true,
+              };
+            }
+            return balance;
+          });
+        });
+      }
+
+      // Return context with previous values for rollback
+      return { previousExpenses, previousBalances, previousGroups, groupIdStr };
+    },
+    onSuccess: async (data, variables, context) => {
       toast({
         title: "Expense created",
         description: "Your expense has been created successfully.",
@@ -230,25 +295,36 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
       onOpenChange(false);
       form.reset();
       
-      // Immediately invalidate queries for instant UI updates
+      // Refresh data from server to get accurate values
+      if (context?.groupIdStr) {
+        queryClient.invalidateQueries({ queryKey: [`/api/groups/${context.groupIdStr}/expenses`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/groups/${context.groupIdStr}/balances`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/groups/${context.groupIdStr}/activity`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/groups/${context.groupIdStr}`] });
+      }
+      
       queryClient.invalidateQueries({ queryKey: ["/api/balances"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/activity"] });
       queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
       
+      // Background balance refresh for accuracy
       if (selectedGroupId) {
-        const groupIdStr = selectedGroupId;
-        queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/expenses`] });
-        queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/balances`] });
-        queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/activity`] });
-        queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}`] });
-        
-        // Background balance refresh for accuracy (non-blocking)
         apiRequest('POST', `/api/groups/${selectedGroupId}/refresh-balances`).catch(error => {
           console.error('Background balance refresh failed:', error);
         });
       }
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      // Rollback optimistic updates
+      if (context?.previousExpenses) {
+        queryClient.setQueryData([`/api/groups/${context.groupIdStr}/expenses`], context.previousExpenses);
+      }
+      if (context?.previousBalances) {
+        queryClient.setQueryData([`/api/groups/${context.groupIdStr}/balances`], context.previousBalances);
+      }
+      if (context?.previousGroups) {
+        queryClient.setQueryData(["/api/groups"], context.previousGroups);
+      }
+      
       toast({
         title: "Failed to create expense",
         description: error.message,
@@ -742,7 +818,7 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
 
             <Button 
               type="submit"
-              className="w-full h-10 mt-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+              className="w-full h-10 mt-2 bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-2"
               disabled={
                 createExpenseMutation.isPending || 
                 (form.getValues("splitMethod") === "percentage" && 
