@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatISO } from "date-fns";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, getAuthHeaders } from "@/lib/queryClient";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -82,6 +82,16 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
     queryKey: [`/api/expenses/${expenseId}`],
     enabled: open && expenseId > 0,
     staleTime: 0, // Always fetch fresh data from the server
+    queryFn: async () => {
+      const response = await fetch(`/api/expenses/${expenseId}`, {
+        headers: getAuthHeaders(),
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch expense: ${response.status}`);
+      }
+      return response.json();
+    },
   });
 
   // Fetch expense participants
@@ -89,6 +99,16 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
     queryKey: [`/api/expenses/${expenseId}/participants`],
     enabled: open && expenseId > 0,
     staleTime: 0, // Always fetch fresh data from the server
+    queryFn: async () => {
+      const response = await fetch(`/api/expenses/${expenseId}/participants`, {
+        headers: getAuthHeaders(),
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch participants: ${response.status}`);
+      }
+      return response.json();
+    },
   });
 
   // Fetch group members for the dropdown
@@ -96,6 +116,16 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
     queryKey: [`/api/groups/${groupId}/members`],
     enabled: !!groupId && open,
     staleTime: 0, // Always fetch fresh data
+    queryFn: async () => {
+      const response = await fetch(`/api/groups/${groupId}/members`, {
+        headers: getAuthHeaders(),
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch group members: ${response.status}`);
+      }
+      return response.json();
+    },
   });
 
   const form = useForm<ExpenseEditValues>({
