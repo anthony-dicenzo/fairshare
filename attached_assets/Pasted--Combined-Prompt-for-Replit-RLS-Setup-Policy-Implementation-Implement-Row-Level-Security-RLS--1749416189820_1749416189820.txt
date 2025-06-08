@@ -1,0 +1,166 @@
+🟩 Combined Prompt for Replit: RLS Setup & Policy Implementation
+
+Implement Row Level Security (RLS) for our Supabase/Postgres database as follows:
+
+1. Verify Environment Variables
+Ensure SUPABASE_URL, SUPABASE_ANON_KEY, and DATABASE_URL are present in .env.secrets and are available to the server and shell environment.
+2. Connect to the Database
+Open the Replit shell.
+Connect to our Supabase/Postgres instance using the following command:
+psql $DATABASE_URL
+(Or use the Supabase CLI if installed: supabase db connect)
+3. Enable RLS for All Tables
+For each of these tables, enable Row Level Security:
+
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE groups ENABLE ROW LEVEL SECURITY;
+ALTER TABLE group_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE group_invites ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE activity_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_balances_in_group ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_balances_between_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE session ENABLE ROW LEVEL SECURITY;
+ALTER TABLE expense_participants ENABLE ROW LEVEL SECURITY;
+ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
+4. Define RLS Policies for Each Table
+Implement the following CREATE POLICY statements for row-level access:
+
+users
+
+CREATE POLICY "select_own_user"
+  ON users FOR SELECT
+  USING (id = auth.uid());
+
+CREATE POLICY "update_own_user"
+  ON users FOR UPDATE
+  USING (id = auth.uid());
+groups
+
+CREATE POLICY "select_group_for_member"
+  ON groups FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM group_members gm
+      WHERE gm.group_id = groups.id
+        AND gm.user_id = auth.uid()
+        AND gm.archived = FALSE
+    )
+  );
+group_members
+
+CREATE POLICY "select_own_group_membership"
+  ON group_members FOR SELECT
+  USING (user_id = auth.uid());
+
+CREATE POLICY "select_group_members_for_member"
+  ON group_members FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM group_members gm2
+      WHERE gm2.group_id = group_members.group_id
+        AND gm2.user_id = auth.uid()
+        AND gm2.archived = FALSE
+    )
+  );
+group_invites
+
+CREATE POLICY "select_invites_for_member"
+  ON group_invites FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM group_members gm
+      WHERE gm.group_id = group_invites.group_id
+        AND gm.user_id = auth.uid()
+        AND gm.archived = FALSE
+    )
+    OR created_by = auth.uid()
+  );
+payments
+
+CREATE POLICY "select_payments_for_member"
+  ON payments FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM group_members gm
+      WHERE gm.group_id = payments.group_id
+        AND gm.user_id = auth.uid()
+        AND gm.archived = FALSE
+    )
+  );
+expenses
+
+CREATE POLICY "select_expenses_for_member"
+  ON expenses FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM group_members gm
+      WHERE gm.group_id = expenses.group_id
+        AND gm.user_id = auth.uid()
+        AND gm.archived = FALSE
+    )
+  );
+expense_participants
+
+CREATE POLICY "select_expense_participants_for_member"
+  ON expense_participants FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM expenses e
+      JOIN group_members gm ON gm.group_id = e.group_id
+      WHERE e.id = expense_participants.expense_id
+        AND gm.user_id = auth.uid()
+        AND gm.archived = FALSE
+    )
+  );
+activity_log
+
+CREATE POLICY "select_activity_for_member"
+  ON activity_log FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM group_members gm
+      WHERE gm.group_id = activity_log.group_id
+        AND gm.user_id = auth.uid()
+        AND gm.archived = FALSE
+    )
+  );
+user_balances_in_group
+
+CREATE POLICY "select_balances_in_group_for_member"
+  ON user_balances_in_group FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM group_members gm
+      WHERE gm.group_id = user_balances_in_group.group_id
+        AND gm.user_id = auth.uid()
+        AND gm.archived = FALSE
+    )
+  );
+user_balances_between_users
+
+CREATE POLICY "select_between_users_for_member"
+  ON user_balances_between_users FOR SELECT
+  USING (
+    (from_user_id = auth.uid() OR to_user_id = auth.uid())
+    AND EXISTS (
+      SELECT 1 FROM group_members gm
+      WHERE gm.group_id = user_balances_between_users.group_id
+        AND gm.user_id = auth.uid()
+        AND gm.archived = FALSE
+    )
+  );
+session
+
+CREATE POLICY "select_own_session"
+  ON session FOR SELECT
+  USING (s$.user_id = auth.uid());
+(Adjust the column as needed for your schema.)
+
+5. Test the Policies
+Using the Supabase SQL Editor or psql, simulate queries as different users by setting the user context (with JWT/user id).
+Confirm that each user can only access data they are authorized to see.
+6. Document and Automate
+Save all these commands in a migration or setup script for reproducibility.
+Document which policies apply to which tables for future development and review.
+If you need additional INSERT/UPDATE/DELETE policies, or want a template for those, ask for further expansion.
