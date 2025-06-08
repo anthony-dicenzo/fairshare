@@ -500,6 +500,16 @@ export function setupAuth(app: Express) {
     const userId = req.headers['x-user-id'] || req.headers['X-User-Id'];
     const sessionToken = req.headers['x-session-backup'] || req.headers['X-Session-Backup'];
     
+    // Debug logging for DELETE requests
+    if (req.method === 'DELETE') {
+      console.log(`DELETE request authentication debug:`, {
+        userId,
+        sessionToken: sessionToken ? 'present' : 'missing',
+        url: req.url,
+        headers: Object.keys(req.headers)
+      });
+    }
+    
     if (userId && sessionToken) {
       try {
         console.log(`Attempting header-based auth for user ID: ${userId}`);
@@ -533,6 +543,9 @@ export function setupAuth(app: Express) {
         next();
       }
     } else {
+      if (req.method === 'DELETE') {
+        console.log(`DELETE request missing auth headers - userId: ${userId}, sessionToken: ${sessionToken ? 'present' : 'missing'}`);
+      }
       next();
     }
   });

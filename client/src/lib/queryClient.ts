@@ -51,12 +51,30 @@ export async function apiRequest(
     headers["Content-Type"] = "application/json";
   }
 
+  // Debug logging for DELETE requests
+  if (method === 'DELETE') {
+    console.log('DELETE request debug:', {
+      url,
+      headers: Object.keys(headers),
+      authHeaders
+    });
+  }
+
   const res = await fetch(url, {
     method,
     headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
+
+  // Additional debug for DELETE responses
+  if (method === 'DELETE') {
+    console.log('DELETE response:', {
+      status: res.status,
+      ok: res.ok,
+      headers: Object.fromEntries(res.headers.entries())
+    });
+  }
 
   await throwIfResNotOk(res);
   return res;
