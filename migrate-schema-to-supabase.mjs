@@ -3,7 +3,12 @@ import pg from 'pg';
 const { Pool } = pg;
 
 // Supabase connection string
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.smrsiolztcggakkgtyab:WCRjkMkrg7vDYahc@aws-0-ca-central-1.pooler.supabase.com:6543/postgres';
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+  console.error('❌ DATABASE_URL environment variable is required');
+  process.exit(1);
+}
 
 async function migrateSchema() {
   console.log('Migrating schema to Supabase...');

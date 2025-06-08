@@ -2,8 +2,13 @@
 import pg from 'pg';
 const { Pool } = pg;
 
-// Hardcoded connection string for testing
-const connectionString = 'postgresql://postgres.smrsiolztcggakkgtyab:WCRjkMkrg7vDYahc@aws-0-ca-central-1.pooler.supabase.com:6543/postgres';
+// Get connection string from environment variables
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+  console.error('❌ DATABASE_URL environment variable is required');
+  process.exit(1);
+}
 
 async function testConnection() {
   console.log('Testing connection to Supabase database...');

@@ -189,8 +189,8 @@ async function consolidateEnvFiles() {
 # Created: ${new Date().toISOString()}
 
 # Supabase API URL and key
-SUPABASE_URL=https://smrsiolztcggakkgtyab.supabase.co
-SUPABASE_ANON_KEY=${process.env.SUPABASE_ANON_KEY || 'NOT_SET'}
+SUPABASE_URL=\${SUPABASE_URL}
+SUPABASE_ANON_KEY=\${SUPABASE_ANON_KEY}
 
 # Direct database connection string for Supabase
 DATABASE_URL=\${DATABASE_URL}
@@ -215,7 +215,7 @@ DATABASE_URL=\${DATABASE_URL}
     console.log('✅ Updated .env.local file');
     
     // Update .env.database with just the DATABASE_URL
-    fs.writeFileSync('.env.database', 'DATABASE_URL=postgresql://postgres:WCRjkMkrg7vDYahc@aws-0-ca-central-1.pooler.supabase.com:6543/postgres\n');
+    fs.writeFileSync('.env.database', `DATABASE_URL=\${DATABASE_URL}\n`);
     console.log('✅ Updated .env.database file');
     
   } catch (error) {
