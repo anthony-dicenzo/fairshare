@@ -19,7 +19,7 @@ import {
   invalidateExpenseCache 
 } from "./cache.js";
 import { scheduleBalanceUpdate } from "./queue.js";
-import { updateGroupBalancesFast } from "./fast-balance-update.js";
+import { updateBalancesOnExpenseCreate, updateBalancesOnExpenseDelete } from "./incremental-balance.js";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check endpoint (no authentication required)
@@ -831,16 +831,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Invalidate cache for immediate UI updates
       await invalidateAllGroupData(groupId);
       
-      // Schedule balance recalculation (truly non-blocking)
-      process.nextTick(async () => {
-        try {
-          console.log("Executing optimized balance recalculation for group", groupId);
-          await storage.updateAllBalancesInGroup(groupId);
-          console.log("Optimized balance recalculation completed for group", groupId);
-        } catch (balanceErr) {
-          console.error("Optimized balance recalculation failed:", balanceErr);
-        }
-      });
+      // Apply incremental balance update (immediate)
+      try {
+        await updateBalancesOnExpenseCreate(groupId, {
+          paidBy: expense.paidBy,
+          totalAmount: expense.totalAmount
+        }, req.body.participants || []);
+        console.log("Incremental balance update completed for group", groupId);
+      } catch (balanceErr) {
+        console.error("Incremental balance update failed:", balanceErr);
+      }
       
       console.log("Expense creation completed successfully");
       res.status(201).json(expense);
@@ -1035,16 +1035,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Invalidate cache for immediate UI updates
       await invalidateAllGroupData(groupId);
       
-      // Execute balance recalculation in background (non-blocking)
-      setImmediate(async () => {
-        try {
-          console.log("Executing background balance recalculation for group", groupId);
-          await storage.updateAllBalancesInGroup(groupId);
-          console.log("Background balance recalculation completed for group", groupId);
-        } catch (balanceErr) {
-          console.error("Background balance recalculation failed:", balanceErr);
-        }
-      });
+      // Apply incremental balance update for deletion (immediate)
+      try {
+        const participants = await storage.getExpenseParticipants(expenseId);
+        await updateBalancesOnExpenseDelete(groupId, expense, participants);
+        console.log("Incremental balance update (deletion) completed for group", groupId);
+      } catch (balanceErr) {
+        console.error("Incremental balance update (deletion) failed:", balanceErr);
+      }
       
       res.status(200).json({ message: "Expense deleted successfully" });
     } catch (error) {
