@@ -830,21 +830,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Invalidate cache for immediate UI updates
       await invalidateAllGroupData(groupId);
       
-      // Execute immediate balance recalculation
-      try {
-        console.log("Executing immediate balance recalculation for group", groupId);
-        await storage.updateAllBalancesInGroup(groupId);
-        console.log("Balance recalculation completed for group", groupId);
-      } catch (balanceErr) {
-        console.error("Balance recalculation failed:", balanceErr);
-        // Try queue as fallback
+      // Execute balance recalculation in background (non-blocking)
+      setImmediate(async () => {
         try {
-          console.log("Attempting queue-based balance update as fallback");
-          await scheduleBalanceUpdate(groupId, 500);
-        } catch (queueErr) {
-          console.error("Queue fallback also failed:", queueErr);
+          console.log("Executing background balance recalculation for group", groupId);
+          await storage.updateAllBalancesInGroup(groupId);
+          console.log("Background balance recalculation completed for group", groupId);
+        } catch (balanceErr) {
+          console.error("Background balance recalculation failed:", balanceErr);
         }
-      }
+      });
       
       console.log("Expense creation completed successfully");
       res.status(201).json(expense);
@@ -1039,21 +1034,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Invalidate cache for immediate UI updates
       await invalidateAllGroupData(groupId);
       
-      // Execute immediate balance recalculation
-      try {
-        console.log("Executing immediate balance recalculation for group", groupId);
-        await storage.updateAllBalancesInGroup(groupId);
-        console.log("Balance recalculation completed for group", groupId);
-      } catch (balanceErr) {
-        console.error("Balance recalculation failed:", balanceErr);
-        // Try queue as fallback
+      // Execute balance recalculation in background (non-blocking)
+      setImmediate(async () => {
         try {
-          console.log("Attempting queue-based balance update as fallback");
-          await scheduleBalanceUpdate(groupId, 500);
-        } catch (queueErr) {
-          console.error("Queue fallback also failed:", queueErr);
+          console.log("Executing background balance recalculation for group", groupId);
+          await storage.updateAllBalancesInGroup(groupId);
+          console.log("Background balance recalculation completed for group", groupId);
+        } catch (balanceErr) {
+          console.error("Background balance recalculation failed:", balanceErr);
         }
-      }
+      });
       
       res.status(200).json({ message: "Expense deleted successfully" });
     } catch (error) {
