@@ -1039,8 +1039,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Invalidate cache for immediate UI updates
       await invalidateAllGroupData(groupId);
       
-      // Schedule background balance update (non-blocking)
-      scheduleBalanceUpdate(groupId, 500);
+      // Execute immediate balance recalculation
+      try {
+        console.log("Executing immediate balance recalculation for group", groupId);
+        await storage.updateAllBalancesInGroup(groupId);
+        console.log("Balance recalculation completed for group", groupId);
+      } catch (balanceErr) {
+        console.error("Balance recalculation failed:", balanceErr);
+        // Try queue as fallback
+        try {
+          console.log("Attempting queue-based balance update as fallback");
+          await scheduleBalanceUpdate(groupId, 500);
+        } catch (queueErr) {
+          console.error("Queue fallback also failed:", queueErr);
+        }
+      }
       
       res.status(200).json({ message: "Expense deleted successfully" });
     } catch (error) {
