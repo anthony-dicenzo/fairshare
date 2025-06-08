@@ -73,25 +73,43 @@ export async function getCachedGroupData(groupId, userId) {
 export async function setCachedGroupData(groupId, userId, data, ttl = 300) {
   try {
     const cacheKey = generateCacheKey('group', groupId, 'user', userId);
-    await redis.setex(cacheKey, ttl, JSON.stringify(data));
+    
+    if (redis) {
+      await redis.setex(cacheKey, ttl, JSON.stringify(data));
+    } else {
+      // Memory cache fallback
+      memoryCache.set(cacheKey, data);
+      cacheExpirations.set(cacheKey, Date.now() + (ttl * 1000));
+    }
   } catch (error) {
-    console.error('Cache write error:', error);
+    // Fallback to memory cache
+    const cacheKey = generateCacheKey('group', groupId, 'user', userId);
+    memoryCache.set(cacheKey, data);
+    cacheExpirations.set(cacheKey, Date.now() + (ttl * 1000));
   }
 }
 
-// Balance caching
+// Balance caching with fallback
 export async function getCachedBalances(groupId) {
   try {
     const cacheKey = generateCacheKey('balances', groupId);
-    const cached = await redis.get(cacheKey);
     
-    if (cached) {
-      return JSON.parse(cached);
+    if (redis) {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    } else {
+      // Memory cache fallback
+      const now = Date.now();
+      const expiration = cacheExpirations.get(cacheKey);
+      if (expiration && now < expiration) {
+        return memoryCache.get(cacheKey);
+      }
     }
     
     return null;
   } catch (error) {
-    console.error('Balance cache read error:', error);
     return null;
   }
 }
@@ -99,9 +117,19 @@ export async function getCachedBalances(groupId) {
 export async function setCachedBalances(groupId, balances, ttl = 300) {
   try {
     const cacheKey = generateCacheKey('balances', groupId);
-    await redis.setex(cacheKey, ttl, JSON.stringify(balances));
+    
+    if (redis) {
+      await redis.setex(cacheKey, ttl, JSON.stringify(balances));
+    } else {
+      // Memory cache fallback
+      memoryCache.set(cacheKey, balances);
+      cacheExpirations.set(cacheKey, Date.now() + (ttl * 1000));
+    }
   } catch (error) {
-    console.error('Balance cache write error:', error);
+    // Fallback to memory cache
+    const cacheKey = generateCacheKey('balances', groupId);
+    memoryCache.set(cacheKey, balances);
+    cacheExpirations.set(cacheKey, Date.now() + (ttl * 1000));
   }
 }
 
@@ -131,40 +159,98 @@ export async function setCachedExpenses(groupId, expenses, page = 1, limit = 20,
   }
 }
 
-// Cache invalidation
+// Cache invalidation with fallback
 export async function invalidateGroupCache(groupId, userId = null) {
   try {
-    const pattern = userId 
-      ? generateCacheKey('group', groupId, 'user', userId)
-      : generateCacheKey('group', groupId, '*');
-    
-    const keys = await redis.keys(pattern);
-    if (keys.length > 0) {
-      await redis.del(...keys);
+    if (redis) {
+      const pattern = userId 
+        ? generateCacheKey('group', groupId, 'user', userId)
+        : generateCacheKey('group', groupId, '*');
+      
+      const keys = await redis.keys(pattern);
+      if (keys.length > 0) {
+        await redis.del(...keys);
+      }
+    } else {
+      // Clear from memory cache
+      if (userId) {
+        const cacheKey = generateCacheKey('group', groupId, 'user', userId);
+        memoryCache.delete(cacheKey);
+        cacheExpirations.delete(cacheKey);
+      } else {
+        const prefix = generateCacheKey('group', groupId);
+        for (const [key] of memoryCache.entries()) {
+          if (key.startsWith(prefix)) {
+            memoryCache.delete(key);
+            cacheExpirations.delete(key);
+          }
+        }
+      }
     }
   } catch (error) {
-    console.error('Cache invalidation error:', error);
+    // Fallback: clear from memory cache
+    if (userId) {
+      const cacheKey = generateCacheKey('group', groupId, 'user', userId);
+      memoryCache.delete(cacheKey);
+      cacheExpirations.delete(cacheKey);
+    } else {
+      const prefix = generateCacheKey('group', groupId);
+      for (const [key] of memoryCache.entries()) {
+        if (key.startsWith(prefix)) {
+          memoryCache.delete(key);
+          cacheExpirations.delete(key);
+        }
+      }
+    }
   }
 }
 
 export async function invalidateBalanceCache(groupId) {
   try {
     const cacheKey = generateCacheKey('balances', groupId);
-    await redis.del(cacheKey);
+    
+    if (redis) {
+      await redis.del(cacheKey);
+    } else {
+      // Clear from memory cache
+      memoryCache.delete(cacheKey);
+      cacheExpirations.delete(cacheKey);
+    }
   } catch (error) {
-    console.error('Balance cache invalidation error:', error);
+    // Fallback: clear from memory cache
+    const cacheKey = generateCacheKey('balances', groupId);
+    memoryCache.delete(cacheKey);
+    cacheExpirations.delete(cacheKey);
   }
 }
 
 export async function invalidateExpenseCache(groupId) {
   try {
-    const pattern = generateCacheKey('expenses', groupId, '*');
-    const keys = await redis.keys(pattern);
-    if (keys.length > 0) {
-      await redis.del(...keys);
+    if (redis) {
+      const pattern = generateCacheKey('expenses', groupId, '*');
+      const keys = await redis.keys(pattern);
+      if (keys.length > 0) {
+        await redis.del(...keys);
+      }
+    } else {
+      // Clear from memory cache
+      const prefix = generateCacheKey('expenses', groupId);
+      for (const [key] of memoryCache.entries()) {
+        if (key.startsWith(prefix)) {
+          memoryCache.delete(key);
+          cacheExpirations.delete(key);
+        }
+      }
     }
   } catch (error) {
-    console.error('Expense cache invalidation error:', error);
+    // Fallback: clear from memory cache
+    const prefix = generateCacheKey('expenses', groupId);
+    for (const [key] of memoryCache.entries()) {
+      if (key.startsWith(prefix)) {
+        memoryCache.delete(key);
+        cacheExpirations.delete(key);
+      }
+    }
   }
 }
 
