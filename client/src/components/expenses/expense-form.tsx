@@ -126,6 +126,15 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
 
   // Extract groups from the response
   const groups = groupsData?.groups || [];
+  
+  // Debug logging to understand what's happening
+  console.log("ExpenseForm - Groups query state:", {
+    isLoadingGroups,
+    groupsData,
+    groupsLength: groups.length,
+    open,
+    user: !!user
+  });
 
   // Get members for the selected group
   const [selectedGroupId, setSelectedGroupId] = useState<string>(groupId?.toString() || "");
