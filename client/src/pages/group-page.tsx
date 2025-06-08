@@ -17,7 +17,7 @@ import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { Link } from "wouter";
 import { GroupInvite } from "@/components/groups/group-invite";
 import { ActionButtons } from "@/components/dashboard/action-buttons";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, getAuthHeaders } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -140,9 +140,21 @@ export default function GroupPage() {
     isFetchingNextPage,
   } = useInfiniteQuery<ExpensePaginatedResponse>({
     queryKey: [`/api/groups/${groupIdStr}/expenses`],
-    queryFn: async ({ pageParam }) => {
+    queryFn: async ({ queryKey, pageParam }) => {
       const paramPage = pageParam as number || 0;
-      const response = await fetch(`/api/groups/${groupIdStr}/expenses?limit=${EXPENSES_PER_PAGE}&offset=${paramPage * EXPENSES_PER_PAGE}`);
+      const url = `${queryKey[0]}?limit=${EXPENSES_PER_PAGE}&offset=${paramPage * EXPENSES_PER_PAGE}`;
+      
+      // Use the same authentication method as other queries
+      const authHeaders = getAuthHeaders();
+      const response = await fetch(url, {
+        headers: authHeaders,
+        credentials: "include",
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch expenses: ${response.status}`);
+      }
+      
       const data = await response.json();
       return data as ExpensePaginatedResponse;
     },
