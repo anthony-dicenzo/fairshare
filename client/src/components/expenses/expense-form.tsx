@@ -223,16 +223,14 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
       return res.json();
     },
     onMutate: async (newExpense) => {
-      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+      // Cancel only specific queries (avoid canceling the main groups list)
       const groupIdStr = newExpense.groupId.toString();
       await queryClient.cancelQueries({ queryKey: [`/api/groups/${groupIdStr}/expenses`] });
       await queryClient.cancelQueries({ queryKey: [`/api/groups/${groupIdStr}/balances`] });
-      await queryClient.cancelQueries({ queryKey: ["/api/groups"] });
 
-      // Snapshot the previous values
+      // Snapshot the previous values (don't snapshot groups to preserve dropdown data)
       const previousExpenses = queryClient.getQueryData([`/api/groups/${groupIdStr}/expenses`]);
       const previousBalances = queryClient.getQueryData([`/api/groups/${groupIdStr}/balances`]);
-      const previousGroups = queryClient.getQueryData(["/api/groups"]);
 
       // Optimistically update the expenses list
       queryClient.setQueryData([`/api/groups/${groupIdStr}/expenses`], (old: any) => {
@@ -285,7 +283,7 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
       }
 
       // Return context with previous values for rollback
-      return { previousExpenses, previousBalances, previousGroups, groupIdStr };
+      return { previousExpenses, previousBalances, groupIdStr };
     },
     onSuccess: async (data, variables, context) => {
       toast({
@@ -304,7 +302,6 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
       }
       
       queryClient.invalidateQueries({ queryKey: ["/api/balances"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
       
       // Background balance refresh for accuracy
       if (selectedGroupId) {
@@ -320,9 +317,6 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
       }
       if (context?.previousBalances) {
         queryClient.setQueryData([`/api/groups/${context.groupIdStr}/balances`], context.previousBalances);
-      }
-      if (context?.previousGroups) {
-        queryClient.setQueryData(["/api/groups"], context.previousGroups);
       }
       
       toast({

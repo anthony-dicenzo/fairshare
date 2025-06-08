@@ -311,16 +311,14 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
       return res.json();
     },
     onMutate: async () => {
-      // Cancel any outgoing refetches
+      // Cancel only specific queries (avoid canceling the main groups list)
       const groupIdStr = groupId.toString();
       await queryClient.cancelQueries({ queryKey: [`/api/groups/${groupIdStr}/expenses`] });
       await queryClient.cancelQueries({ queryKey: [`/api/groups/${groupIdStr}/balances`] });
-      await queryClient.cancelQueries({ queryKey: ["/api/groups"] });
 
-      // Snapshot the previous values
+      // Snapshot the previous values (don't snapshot groups to preserve dropdown data)
       const previousExpenses = queryClient.getQueryData([`/api/groups/${groupIdStr}/expenses`]);
       const previousBalances = queryClient.getQueryData([`/api/groups/${groupIdStr}/balances`]);
-      const previousGroups = queryClient.getQueryData(["/api/groups"]);
 
       // Optimistically remove the expense from the list
       queryClient.setQueryData([`/api/groups/${groupIdStr}/expenses`], (old: any) => {
@@ -369,7 +367,7 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
       }
 
       // Return context for rollback
-      return { previousExpenses, previousBalances, previousGroups, groupIdStr };
+      return { previousExpenses, previousBalances, groupIdStr };
     },
     onSuccess: async (data, variables, context) => {
       toast({
@@ -388,7 +386,6 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
       }
       
       queryClient.invalidateQueries({ queryKey: ["/api/balances"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
       
       // Background balance refresh for accuracy
       apiRequest('POST', `/api/groups/${groupId}/refresh-balances`).catch(error => {
@@ -402,9 +399,6 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
       }
       if (context?.previousBalances) {
         queryClient.setQueryData([`/api/groups/${context.groupIdStr}/balances`], context.previousBalances);
-      }
-      if (context?.previousGroups) {
-        queryClient.setQueryData(["/api/groups"], context.previousGroups);
       }
       
       toast({
