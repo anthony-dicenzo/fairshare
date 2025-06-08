@@ -35,8 +35,13 @@ app.use(securityHeaders);
 app.use(sanitizeInput);
 app.use(dbHealthCheck);
 
-// Apply rate limiting to API routes
-app.use('/api/', apiLimiter);
+// Apply rate limiting to API routes (exclude health endpoint)
+app.use('/api/', (req, res, next) => {
+  if (req.path === '/api/health') {
+    return next();
+  }
+  return apiLimiter(req, res, next);
+});
 app.use('/api/login', authLimiter);
 app.use('/api/register', authLimiter);
 app.use('/api/google-auth', authLimiter);
