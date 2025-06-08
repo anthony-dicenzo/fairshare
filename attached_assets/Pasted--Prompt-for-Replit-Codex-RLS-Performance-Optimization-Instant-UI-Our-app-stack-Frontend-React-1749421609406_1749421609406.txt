@@ -1,0 +1,80 @@
+ Prompt for Replit/Codex: RLS Performance Optimization & Instant UI
+
+Our app stack:
+
+Frontend: React + TypeScript + TanStack Query
+Backend: Express.js + PostgreSQL + Drizzle ORM
+Auth: Firebase Auth (session-based)
+State: Optimistic UI already in place
+Goal:
+Our RLS (Row Level Security) policies on Postgres have added 200-500ms latency per query. This is noticeable on expense create/delete, balance updates, and activity log refresh. Despite optimistic updates, users see UI lags and slow balance updates.
+We need you to optimize the entire stack for instant, seamless UX with secure, efficient backend queries.
+
+1. Database-Level Optimizations
+Add indexes for all major RLS filter patterns:
+Group membership checks
+Expense lookups by group/user
+Balance/participant queries
+Example:
+CREATE INDEX CONCURRENTLY idx_expenses_group_id_created_at ON expenses(group_id, created_at);
+CREATE INDEX CONCURRENTLY idx_group_members_user_group ON group_members(user_id, group_id, role);
+CREATE INDEX CONCURRENTLY idx_expense_participants_balance ON expense_participants(user_id, amount_owed);
+Optimize RLS policies:
+Use function-based policies for reusable access checks:
+CREATE OR REPLACE FUNCTION user_can_access_group(group_id_param int)
+RETURNS boolean AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM group_members 
+    WHERE group_id = group_id_param 
+    AND user_id = current_setting('app.current_user_id')::int
+  );
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+Update all RLS policies to use the function for efficient permission checks.
+2. Application-Level Caching
+Integrate Redis (or similar) as a cache layer for group data and balances.
+Cache frequently-read group/expense/balance data per user for 5 minutes.
+Invalidate or refresh cache on mutations.
+Sample (Node.js):
+const cacheKey = `group:${groupId}:user:${userId}`;
+await redis.setex(cacheKey, 300, JSON.stringify(data));
+3. Background Processing
+Offload balance recalculation to background workers.
+When an expense changes, enqueue a balance calculation job (using BullMQ, BeeQueue, or similar).
+Frontend receives immediate optimistic update; backend updates cache when done.
+4. Database Connection Pooling
+Ensure pooling is enabled and tuned:
+Drizzle ORM: set max, min, and timeout settings for optimal concurrency.
+Example:
+poolConfig: {
+  max: 20,
+  min: 5,
+  idle: 30000,
+  acquire: 60000,
+}
+5. Query Optimization & Batching
+Batch related inserts/updates (e.g., expense + participants) into one transaction.
+Load only recent/necessary data in main group/expense/activity endpoints.
+Use parallel queries for initial page loads (Promise.all pattern).
+6. Frontend Enhancements
+Virtual scroll large lists (expenses, activities).
+Debounce search/filter in large expense lists.
+Optimistic UI is required for expense, activity, and balance. Revert on API error.
+Show sync/progress indicators for background updates.
+7. Monitoring & Analysis
+Enable Postgres slow query logging and analyze with pg_stat_statements.
+Surface any queries >100ms and refactor/index as needed.
+Example:
+ALTER SYSTEM SET log_min_duration_statement = 100;
+SELECT * FROM pg_stat_statements WHERE mean_time > 100 ORDER BY mean_time DESC;
+Implementation Order
+Immediate: Indexes, RLS function, connection pooling, virtual scroll, cache layer.
+Short term: Background balance computation, query batching, cache invalidation.
+Medium term: Deep query analysis, advanced RLS policy optimization.
+Outcome:
+
+All major UI actions feel instant.
+Backend queries reduced to sub-100ms for all common access patterns.
+Security via RLS is maintained, but perceived speed matches top-tier native apps.
+Use this prompt to guide Replit/Codex in coding, reviewing, and shipping these enhancements. If you hit a specific bottleneck, run EXPLAIN ANALYZE on the slow query, paste results here, and we’ll provide further tuning.
