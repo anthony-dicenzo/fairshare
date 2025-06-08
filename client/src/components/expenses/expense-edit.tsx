@@ -331,46 +331,25 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
     },
   });
 
-  // Helper to invalidate all relevant queries
+  // Helper to invalidate all relevant queries with immediate UI updates
   const invalidateQueries = async () => {
-    // Explicit refetch of balances
-    try {
-      // First, explicitly refresh the balances via the balance refresh API endpoint
-      await apiRequest('POST', `/api/groups/${groupId}/refresh-balances`);
-      console.log('Explicitly refreshed group balances');
-    } catch (error) {
-      console.error('Failed to explicitly refresh balances:', error);
-    }
-    
-    // Invalidate the specific expense queries
+    // Immediately invalidate queries for instant UI updates
     queryClient.invalidateQueries({ queryKey: [`/api/expenses/${expenseId}`] });
     queryClient.invalidateQueries({ queryKey: [`/api/expenses/${expenseId}/participants`] });
-    
-    // Invalidate general balances and activity queries - with exact key structure to ensure match
     queryClient.invalidateQueries({ queryKey: ["/api/balances"] });
     queryClient.invalidateQueries({ queryKey: ["/api/activity"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/activity", "expenses"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/groups"] }); // Invalidate the groups list
+    queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
     
-    // Group specific queries
     const groupIdStr = groupId.toString();
-    queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}`] }); // Invalidate group details
+    queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}`] });
     queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/expenses`] });
     queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/balances`] });
     queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/activity`] });
     
-    // Also invalidate the more general query patterns
-    queryClient.invalidateQueries({ queryKey: ["/api/groups", groupIdStr, "expenses"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/groups", groupIdStr, "balances"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/groups", groupIdStr, "activity"] });
-    
-    // Force a complete cache reset for all queries
-    queryClient.invalidateQueries();
-    
-    // After a short delay, force another refresh of the group balances
-    setTimeout(() => {
-      queryClient.refetchQueries({ queryKey: [`/api/groups/${groupIdStr}/balances`] });
-    }, 300);
+    // Background balance refresh for accuracy (non-blocking)
+    apiRequest('POST', `/api/groups/${groupId}/refresh-balances`).catch(error => {
+      console.error('Background balance refresh failed:', error);
+    });
   };
 
   const handleSubmit = form.handleSubmit((values) => {

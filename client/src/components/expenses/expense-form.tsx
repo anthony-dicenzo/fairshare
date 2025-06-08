@@ -222,7 +222,7 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
       const res = await apiRequest("POST", "/api/expenses", data);
       return res.json();
     },
-    onSuccess: async () => {
+    onSuccess: async (data) => {
       toast({
         title: "Expense created",
         description: "Your expense has been created successfully.",
@@ -230,27 +230,22 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
       onOpenChange(false);
       form.reset();
       
-      // First, explicitly refresh the balances to ensure they're updated
-      if (selectedGroupId) {
-        try {
-          await apiRequest('POST', `/api/groups/${selectedGroupId}/refresh-balances`);
-        } catch (error) {
-          console.error('Failed to refresh balances:', error);
-        }
-      }
-      
-      // Invalidate queries to ensure fresh data is fetched
+      // Immediately invalidate queries for instant UI updates
       queryClient.invalidateQueries({ queryKey: ["/api/balances"] });
       queryClient.invalidateQueries({ queryKey: ["/api/activity"] });
       queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
       
-      // Make sure to properly invalidate all group-related queries
       if (selectedGroupId) {
         const groupIdStr = selectedGroupId;
         queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/expenses`] });
         queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/balances`] });
         queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/activity`] });
         queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}`] });
+        
+        // Background balance refresh for accuracy (non-blocking)
+        apiRequest('POST', `/api/groups/${selectedGroupId}/refresh-balances`).catch(error => {
+          console.error('Background balance refresh failed:', error);
+        });
       }
     },
     onError: (error) => {
