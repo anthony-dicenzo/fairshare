@@ -831,15 +831,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Invalidate cache for immediate UI updates
       await invalidateAllGroupData(groupId);
       
-      // Apply incremental balance update (immediate)
+      // Recalculate balances using reliable method
       try {
-        await updateBalancesOnExpenseCreate(groupId, {
-          paidBy: expense.paidBy,
-          totalAmount: expense.totalAmount
-        }, req.body.participants || []);
-        console.log("Incremental balance update completed for group", groupId);
+        await storage.updateAllBalancesInGroup(groupId);
+        console.log("Balance recalculation completed for group", groupId);
       } catch (balanceErr) {
-        console.error("Incremental balance update failed:", balanceErr);
+        console.error("Balance recalculation failed:", balanceErr);
       }
       
       console.log("Expense creation completed successfully");
@@ -1034,6 +1031,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Invalidate cache for immediate UI updates
       await invalidateAllGroupData(groupId);
+      
+      // Recalculate balances using reliable method
+      try {
+        await storage.updateAllBalancesInGroup(groupId);
+        console.log("Balance recalculation completed for group", groupId);
+      } catch (balanceErr) {
+        console.error("Balance recalculation failed:", balanceErr);
+      }
       
       res.status(200).json({ message: "Expense deleted successfully" });
     } catch (error) {
