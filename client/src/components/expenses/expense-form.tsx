@@ -80,19 +80,21 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
   const { data: groupsData, isLoading: isLoadingGroups } = useQuery<{ groups: Group[], totalCount: number, hasMore: boolean }>({
     queryKey: ["/api/groups"],
     queryFn: async () => {
-      const authHeaders = getAuthHeaders();
-      let response = await fetch("/api/groups", {
-        headers: authHeaders,
+      // Use the apiRequest function from queryClient which handles auth consistently
+      const response = await fetch("/api/groups", {
+        headers: getAuthHeaders(),
         credentials: "include",
       });
       
-      // If unauthorized, try backup authentication
+      // If unauthorized, try the backup authentication method
       if (response.status === 401) {
+        console.log("Groups query unauthorized, trying backup auth...");
         try {
           const authData = localStorage.getItem("fairshare_auth_state");
           if (authData) {
             const parsed = JSON.parse(authData);
             if (parsed.userId && parsed.sessionId) {
+              // First establish backup authentication
               const backupRes = await fetch(`/api/users/${parsed.userId}`, {
                 headers: {
                   "X-Session-Backup": parsed.sessionId
@@ -101,17 +103,27 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
               });
               
               if (backupRes.ok) {
-                // Retry the original request
-                response = await fetch("/api/groups", {
+                console.log("Backup auth successful, retrying groups request...");
+                // Wait a moment for session to be established
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                // Retry with fresh headers
+                const retryResponse = await fetch("/api/groups", {
                   headers: getAuthHeaders(),
                   credentials: "include",
                 });
+                
+                if (retryResponse.ok) {
+                  return retryResponse.json();
+                }
               }
             }
           }
         } catch (e) {
           console.error("Backup auth failed:", e);
         }
+        
+        throw new Error(`Authentication failed: ${response.status}`);
       }
       
       if (!response.ok) {
@@ -120,8 +132,16 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
       
       return response.json();
     },
-    enabled: open && !!user, // Only fetch when modal is open and user is available
-    staleTime: 0, // Always fetch fresh data
+    enabled: open && !!user,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes to reduce auth issues
+    retry: (failureCount, error) => {
+      // Retry auth errors up to 2 times
+      if (error.message.includes('Authentication failed') && failureCount < 2) {
+        return true;
+      }
+      return failureCount < 1;
+    },
+    retryDelay: 1000, // Wait 1 second between retries
   });
 
   // Extract groups from the response
