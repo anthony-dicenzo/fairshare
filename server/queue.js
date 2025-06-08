@@ -69,7 +69,11 @@ balanceQueue.process('updateGroupBalances', async (job) => {
 export async function scheduleBalanceUpdate(groupId, delay = 1000) {
   try {
     // Remove any existing jobs for this group to prevent duplicates
-    await balanceQueue.clean(0, 'waiting');
+    try {
+      await balanceQueue.clean(0, 'waiting');
+    } catch (cleanError) {
+      console.warn('Queue clean failed, continuing with balance update:', cleanError.message);
+    }
     
     // Schedule new balance calculation
     await balanceQueue.add('updateGroupBalances', { groupId }, {
@@ -82,6 +86,15 @@ export async function scheduleBalanceUpdate(groupId, delay = 1000) {
     console.log(`📋 Scheduled balance update for group ${groupId} (delay: ${delay}ms)`);
   } catch (error) {
     console.error('Failed to schedule balance update:', error);
+    // Fallback: attempt direct balance update
+    try {
+      console.log(`🔄 Attempting direct balance update for group ${groupId}`);
+      const { storage } = await import('./storage.js');
+      await storage.updateAllBalancesInGroup(groupId);
+      console.log(`✅ Direct balance update completed for group ${groupId}`);
+    } catch (fallbackError) {
+      console.error('Direct balance update also failed:', fallbackError);
+    }
   }
 }
 
