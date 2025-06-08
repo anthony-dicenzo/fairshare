@@ -790,17 +790,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add participants
       const participants = req.body.participants || [];
       console.log(`Adding ${participants.length} participants to expense`);
+      console.log('Raw participants data:', JSON.stringify(participants));
       
       for (const participant of participants) {
         try {
+          console.log('Processing participant:', JSON.stringify(participant));
+          const amount = participant.amount || participant.amountOwed;
+          console.log('Extracted amount:', amount);
+          
           const participantData = {
             expenseId: expense.id,
             userId: participant.userId,
-            amountOwed: (participant.amount || participant.amountOwed).toString()
+            amountOwed: amount ? amount.toString() : "0"
           };
-          console.log(`Adding participant data:`, participantData);
+          console.log(`Final participant data:`, JSON.stringify(participantData));
           await storage.addExpenseParticipant(participantData);
-          console.log(`Added participant ${participant.userId} with amount ${participantData.amountOwed}`);
+          console.log(`Successfully added participant ${participant.userId} with amount ${participantData.amountOwed}`);
         } catch (err) {
           console.error(`Error adding participant ${participant.userId}:`, err);
           // Continue with other participants
@@ -825,8 +830,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Invalidate cache for immediate UI updates
       await invalidateAllGroupData(groupId);
       
-      // Schedule background balance update (non-blocking)
-      scheduleBalanceUpdate(groupId, 500);
+      // Execute immediate balance recalculation
+      try {
+        console.log("Executing immediate balance recalculation for group", groupId);
+        await storage.updateAllBalancesInGroup(groupId);
+        console.log("Balance recalculation completed for group", groupId);
+      } catch (balanceErr) {
+        console.error("Balance recalculation failed:", balanceErr);
+        // Try queue as fallback
+        try {
+          console.log("Attempting queue-based balance update as fallback");
+          await scheduleBalanceUpdate(groupId, 500);
+        } catch (queueErr) {
+          console.error("Queue fallback also failed:", queueErr);
+        }
+      }
       
       console.log("Expense creation completed successfully");
       res.status(201).json(expense);
