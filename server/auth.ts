@@ -24,10 +24,23 @@ async function hashPassword(password: string) {
 }
 
 async function comparePasswords(supplied: string, stored: string) {
-  const [hashed, salt] = stored.split(".");
-  const hashedBuf = Buffer.from(hashed, "hex");
-  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-  return timingSafeEqual(hashedBuf, suppliedBuf);
+  // Handle both old (bcrypt-style) and new (scrypt) password formats
+  if (stored.includes(".") && stored.length > 100) {
+    // New scrypt format: hash.salt
+    const [hashed, salt] = stored.split(".");
+    const hashedBuf = Buffer.from(hashed, "hex");
+    const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+    return timingSafeEqual(hashedBuf, suppliedBuf);
+  } else {
+    // Legacy format - try bcrypt comparison
+    const bcrypt = require('bcrypt');
+    try {
+      return await bcrypt.compare(supplied, stored);
+    } catch (error) {
+      console.error("Legacy password comparison failed:", error);
+      return false;
+    }
+  }
 }
 
 export function setupAuth(app: Express) {
