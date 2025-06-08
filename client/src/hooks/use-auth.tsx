@@ -166,7 +166,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Clear all existing cache first to ensure no data leakage between users
         queryClient.clear();
         
-        const res = await fetch("/api/login", {
+        const res = await fetch("/api/auth/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(credentials),
@@ -251,7 +251,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Clear all existing cache first to avoid leaking data from previous users
       queryClient.clear();
       
-      const res = await apiRequest("POST", "/api/register", userData);
+      const res = await apiRequest("POST", "/api/auth/register", userData);
       return await res.json();
     },
     onSuccess: (user) => {
