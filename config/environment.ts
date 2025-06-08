@@ -43,7 +43,7 @@ try {
   validateEnvironment();
   console.log('✅ Environment variables validated successfully');
 } catch (error) {
-  console.error('❌ Environment validation failed:', error.message);
+  console.error('❌ Environment validation failed:', error instanceof Error ? error.message : String(error));
   console.error('Please check your environment variables and try again');
   process.exit(1);
 }

@@ -31,7 +31,11 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 export function setupAuth(app: Express) {
-  const sessionSecret = process.env.SESSION_SECRET || 'fairshare-session-secret';
+  const sessionSecret = process.env.SESSION_SECRET || 'temp-session-secret-change-in-production';
+  
+  if (sessionSecret === 'temp-session-secret-change-in-production') {
+    console.warn('⚠️ WARNING: Using default session secret. Set SESSION_SECRET environment variable for production.');
+  }
   
   // Configure session with improved mobile compatibility
   const sessionSettings: session.SessionOptions = {

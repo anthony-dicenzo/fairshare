@@ -193,7 +193,7 @@ SUPABASE_URL=https://smrsiolztcggakkgtyab.supabase.co
 SUPABASE_ANON_KEY=${process.env.SUPABASE_ANON_KEY || 'NOT_SET'}
 
 # Direct database connection string for Supabase
-DATABASE_URL=postgresql://postgres:WCRjkMkrg7vDYahc@aws-0-ca-central-1.pooler.supabase.com:6543/postgres
+DATABASE_URL=\${DATABASE_URL}
 
 # Disable the old Neon database connection
 # NEON_DATABASE_URL=postgresql://neondb_owner:npg_leBjyQx9G5tb@ep-black-sunset-a4pj1sbl.us-east-1.aws.neon.tech/neondb?sslmode=require

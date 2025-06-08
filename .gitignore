@@ -6,9 +6,10 @@ vite.config.ts.*
 *.tar.gz
 
 # Environment files with sensitive credentials
-.env
 .env.local
 .env.database
 .env.secrets
 .env.temp
+.env.backup.*
 *.env
+!.env.example

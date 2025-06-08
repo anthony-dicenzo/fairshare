@@ -3,20 +3,14 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from "@shared/schema";
 import { Pool } from 'pg';
-import dotenv from 'dotenv';
+import { config } from '../config/environment';
 
-// Load environment variables from all available .env files
-dotenv.config();
-dotenv.config({ path: '.env.secrets' });
-dotenv.config({ path: '.env.database' });
-dotenv.config({ path: '.env.local' });
+// Get Supabase credentials from secure configuration
+const supabaseUrl = config.supabase.url;
+const supabaseKey = config.supabase.anonKey;
 
-// Get Supabase credentials from environment variables
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
-
-// Use DATABASE_URL from environment variables
-const connectionString = process.env.DATABASE_URL;
+// Use DATABASE_URL from secure configuration
+const connectionString = config.database.url;
 
 if (!connectionString) {
   throw new Error('DATABASE_URL environment variable is required');

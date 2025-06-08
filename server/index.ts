@@ -3,9 +3,9 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initializeBalanceCache } from "./init-balance-cache";
 
-// Debug environment variables
-console.log('DEBUG - Environment variables:');
-console.log(`DATABASE_URL: ${process.env.DATABASE_URL?.substring(0, 15)}...`); // Show just the beginning for security
+// Environment validation
+import { config } from '../config/environment';
+console.log('✅ Server starting with validated environment configuration');
 
 const app = express();
 app.use(express.json());
