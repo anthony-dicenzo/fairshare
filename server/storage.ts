@@ -126,10 +126,20 @@ export class DatabaseStorage implements IStorage {
   sessionStore: any; // Using any to avoid SessionStore type issues
   
   constructor() {
-    // Use in-memory store for sessions during migration
-    console.log('Using in-memory store for session during Supabase migration');
-    this.sessionStore = new session.MemoryStore();
-    console.log('Memory session store initialized successfully');
+    // Initialize PostgreSQL session store for proper session persistence
+    const PgSession = ConnectPgSimple(session);
+    
+    if (pool) {
+      this.sessionStore = new PgSession({
+        pool: pool,
+        tableName: 'session',
+        createTableIfMissing: true,
+      });
+      console.log('PostgreSQL session store initialized successfully');
+    } else {
+      console.warn('Pool not available, falling back to memory store');
+      this.sessionStore = new session.MemoryStore();
+    }
   }
   
   // Method to clear all balances for a group - for admin use only
