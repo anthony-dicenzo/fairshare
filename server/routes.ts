@@ -1016,8 +1016,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Delete the expense
       await storage.deleteExpense(expenseId);
       
-      // Update cached balances
-      await storage.updateAllBalancesInGroup(groupId);
+      // Invalidate cache for immediate UI updates
+      await invalidateAllGroupData(groupId);
+      
+      // Schedule background balance update (non-blocking)
+      scheduleBalanceUpdate(groupId, 500);
       
       res.status(200).json({ message: "Expense deleted successfully" });
     } catch (error) {

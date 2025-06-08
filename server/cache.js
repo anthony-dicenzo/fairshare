@@ -1,41 +1,71 @@
 import Redis from 'ioredis';
 
-// Initialize Redis connection
-const redis = new Redis({
-  host: process.env.REDIS_HOST || 'localhost',
-  port: process.env.REDIS_PORT || 6379,
-  password: process.env.REDIS_PASSWORD,
-  retryDelayOnFailover: 100,
-  enableReadyCheck: false,
-  maxRetriesPerRequest: 3,
-});
+// Initialize Redis connection with fallback to in-memory cache
+let redis = null;
+const memoryCache = new Map();
+const cacheExpirations = new Map();
 
-redis.on('error', (error) => {
-  console.error('Redis connection error:', error);
-});
+try {
+  redis = new Redis({
+    host: process.env.REDIS_HOST || 'localhost',
+    port: process.env.REDIS_PORT || 6379,
+    password: process.env.REDIS_PASSWORD,
+    retryDelayOnFailover: 100,
+    enableReadyCheck: false,
+    maxRetriesPerRequest: 1,
+    lazyConnect: true,
+  });
 
-redis.on('connect', () => {
-  console.log('✅ Redis connected successfully');
-});
+  redis.on('error', (error) => {
+    console.log('Using in-memory cache as Redis fallback');
+    redis = null;
+  });
+
+  redis.on('connect', () => {
+    console.log('✅ Redis connected successfully');
+  });
+} catch (error) {
+  console.log('Using in-memory cache (Redis unavailable)');
+  redis = null;
+}
+
+// Memory cache cleanup
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, expiration] of cacheExpirations.entries()) {
+    if (now > expiration) {
+      memoryCache.delete(key);
+      cacheExpirations.delete(key);
+    }
+  }
+}, 60000); // Clean up every minute
 
 // Cache key generators
 export function generateCacheKey(type, ...identifiers) {
   return `fairshare:${type}:${identifiers.join(':')}`;
 }
 
-// Group data caching
+// Group data caching with fallback
 export async function getCachedGroupData(groupId, userId) {
   try {
     const cacheKey = generateCacheKey('group', groupId, 'user', userId);
-    const cached = await redis.get(cacheKey);
     
-    if (cached) {
-      return JSON.parse(cached);
+    if (redis) {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    } else {
+      // Memory cache fallback
+      const now = Date.now();
+      const expiration = cacheExpirations.get(cacheKey);
+      if (expiration && now < expiration) {
+        return memoryCache.get(cacheKey);
+      }
     }
     
     return null;
   } catch (error) {
-    console.error('Cache read error:', error);
     return null;
   }
 }
