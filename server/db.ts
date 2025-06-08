@@ -74,3 +74,15 @@ try {
 }
 
 export const pool = poolInstance;
+
+// Function to set RLS context for current user
+export async function setRLSContext(userId: number) {
+  if (!db) return;
+  
+  try {
+    await db.execute(`SET app.current_user_id = '${userId}'`);
+    console.log(`RLS context set for user ${userId}`);
+  } catch (error) {
+    console.error('Failed to set RLS context:', error);
+  }
+}

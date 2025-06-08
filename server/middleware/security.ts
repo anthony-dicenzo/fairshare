@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import rateLimit from 'express-rate-limit';
+import { setRLSContext } from '../db';
 
 // Rate limiting middleware for API endpoints
 export const apiLimiter = rateLimit({
@@ -119,6 +120,36 @@ export const validateApiKey = (req: Request, res: Response, next: NextFunction) 
       return res.status(401).json({
         error: 'Invalid or missing API key'
       });
+    }
+  }
+  
+  next();
+};
+
+// RLS context middleware - sets current user context for Row Level Security
+export const setRLSUserContext = async (req: Request, res: Response, next: NextFunction) => {
+  // Extract user ID from various authentication methods
+  let userId: number | null = null;
+  
+  // Check for authenticated user in session
+  if (req.user && req.user.id) {
+    userId = req.user.id;
+  }
+  
+  // Check for header-based authentication
+  if (!userId && req.headers['x-user-id']) {
+    const headerUserId = parseInt(req.headers['x-user-id'] as string);
+    if (!isNaN(headerUserId)) {
+      userId = headerUserId;
+    }
+  }
+  
+  // Set RLS context if user is authenticated
+  if (userId) {
+    try {
+      await setRLSContext(userId);
+    } catch (error) {
+      console.error('Failed to set RLS context for user', userId, ':', error);
     }
   }
   

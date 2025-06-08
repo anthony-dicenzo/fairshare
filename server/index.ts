@@ -3,7 +3,7 @@ import helmet from "helmet";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initializeBalanceCache } from "./init-balance-cache";
-import { securityHeaders, sanitizeInput, apiLimiter, authLimiter } from "./middleware/security";
+import { securityHeaders, sanitizeInput, apiLimiter, authLimiter, setRLSUserContext } from "./middleware/security";
 import { dbHealthCheck, monitorConnections } from "./middleware/database";
 
 // Environment validation
@@ -42,6 +42,10 @@ app.use('/api/', (req, res, next) => {
   }
   return apiLimiter(req, res, next);
 });
+
+// Apply RLS context middleware to all API routes
+app.use('/api/', setRLSUserContext);
+
 app.use('/api/login', authLimiter);
 app.use('/api/register', authLimiter);
 app.use('/api/google-auth', authLimiter);
