@@ -793,12 +793,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       for (const participant of participants) {
         try {
-          await storage.addExpenseParticipant({
+          const participantData = {
             expenseId: expense.id,
             userId: participant.userId,
-            amountOwed: participant.amountOwed
-          });
-          console.log(`Added participant ${participant.userId} with amount ${participant.amountOwed}`);
+            amountOwed: (participant.amount || participant.amountOwed).toString()
+          };
+          console.log(`Adding participant data:`, participantData);
+          await storage.addExpenseParticipant(participantData);
+          console.log(`Added participant ${participant.userId} with amount ${participantData.amountOwed}`);
         } catch (err) {
           console.error(`Error adding participant ${participant.userId}:`, err);
           // Continue with other participants
