@@ -295,22 +295,66 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
     },
   });
 
-  // Delete expense mutation
+  // Delete expense mutation with optimistic updates
   const deleteExpenseMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("DELETE", `/api/expenses/${expenseId}`);
       return res.json();
     },
-    onSuccess: async () => {
+    onMutate: async () => {
+      // Cancel queries to prevent race conditions
+      const groupIdStr = groupId.toString();
+      await queryClient.cancelQueries({ queryKey: [`/api/groups/${groupIdStr}/expenses`] });
+      await queryClient.cancelQueries({ queryKey: [`/api/groups/${groupIdStr}/balances`] });
+
+      // Snapshot previous values for rollback
+      const previousExpenses = queryClient.getQueryData([`/api/groups/${groupIdStr}/expenses`]);
+      const previousBalances = queryClient.getQueryData([`/api/groups/${groupIdStr}/balances`]);
+
+      // Optimistically remove expense from list
+      queryClient.setQueryData([`/api/groups/${groupIdStr}/expenses`], (old: any) => {
+        if (!old || !old.expenses) return old;
+        return {
+          ...old,
+          expenses: old.expenses.filter((exp: any) => exp.id !== expenseId),
+          totalCount: Math.max(0, (old.totalCount || 0) - 1),
+        };
+      });
+
+      return { previousExpenses, previousBalances, groupIdStr };
+    },
+    onSuccess: async (data, variables, context) => {
       toast({
         title: "Expense deleted",
         description: "Your expense has been deleted successfully.",
       });
       
       onOpenChange(false);
-      await invalidateQueries();
+      
+      // Immediately refresh all related data for instant UI updates
+      if (context?.groupIdStr) {
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: [`/api/groups/${context.groupIdStr}/expenses`] }),
+          queryClient.invalidateQueries({ queryKey: [`/api/groups/${context.groupIdStr}/balances`] }),
+          queryClient.invalidateQueries({ queryKey: [`/api/groups/${context.groupIdStr}/activity`] }),
+          queryClient.invalidateQueries({ queryKey: [`/api/groups/${context.groupIdStr}`] })
+        ]);
+        
+        // Force immediate refetch of balances
+        await queryClient.refetchQueries({ queryKey: [`/api/groups/${context.groupIdStr}/balances`] });
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/balances"] });
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      // Rollback optimistic updates
+      if (context?.previousExpenses) {
+        queryClient.setQueryData([`/api/groups/${context.groupIdStr}/expenses`], context.previousExpenses);
+      }
+      if (context?.previousBalances) {
+        queryClient.setQueryData([`/api/groups/${context.groupIdStr}/balances`], context.previousBalances);
+      }
+      
       toast({
         title: "Failed to delete expense",
         description: error.message,

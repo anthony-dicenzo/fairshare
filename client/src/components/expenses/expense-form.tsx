@@ -293,22 +293,20 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
       onOpenChange(false);
       form.reset();
       
-      // Refresh data from server to get accurate values
+      // Immediately refresh all related data for instant UI updates
       if (context?.groupIdStr) {
-        queryClient.invalidateQueries({ queryKey: [`/api/groups/${context.groupIdStr}/expenses`] });
-        queryClient.invalidateQueries({ queryKey: [`/api/groups/${context.groupIdStr}/balances`] });
-        queryClient.invalidateQueries({ queryKey: [`/api/groups/${context.groupIdStr}/activity`] });
-        queryClient.invalidateQueries({ queryKey: [`/api/groups/${context.groupIdStr}`] });
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: [`/api/groups/${context.groupIdStr}/expenses`] }),
+          queryClient.invalidateQueries({ queryKey: [`/api/groups/${context.groupIdStr}/balances`] }),
+          queryClient.invalidateQueries({ queryKey: [`/api/groups/${context.groupIdStr}/activity`] }),
+          queryClient.invalidateQueries({ queryKey: [`/api/groups/${context.groupIdStr}`] })
+        ]);
+        
+        // Force immediate refetch of balances
+        await queryClient.refetchQueries({ queryKey: [`/api/groups/${context.groupIdStr}/balances`] });
       }
       
       queryClient.invalidateQueries({ queryKey: ["/api/balances"] });
-      
-      // Background balance refresh for accuracy
-      if (selectedGroupId) {
-        apiRequest('POST', `/api/groups/${selectedGroupId}/refresh-balances`).catch(error => {
-          console.error('Background balance refresh failed:', error);
-        });
-      }
     },
     onError: (error, variables, context) => {
       // Rollback optimistic updates
