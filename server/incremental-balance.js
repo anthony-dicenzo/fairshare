@@ -3,7 +3,7 @@
  * instead of recalculating everything from scratch
  */
 
-import { db } from './db.js';
+import { db } from './db.ts';
 import { userBalances } from '../shared/schema.js';
 import { eq, sql } from 'drizzle-orm';
 
