@@ -142,30 +142,23 @@ export default function GroupPage() {
   } = useInfiniteQuery<ExpensePaginatedResponse>({
     queryKey: [`/api/groups/${groupIdStr}/expenses`],
     queryFn: async ({ queryKey, pageParam }) => {
-      console.log("Starting expense fetch for URL:", queryKey[0]);
       const paramPage = pageParam as number || 0;
       const url = `${queryKey[0]}?limit=${EXPENSES_PER_PAGE}&offset=${paramPage * EXPENSES_PER_PAGE}`;
       
       // Use the same authentication method as other queries
       const authHeaders = getAuthHeaders();
-      console.log("Using auth headers for expense fetch:", Object.keys(authHeaders));
-      
       let response = await fetch(url, {
         headers: authHeaders,
         credentials: "include",
       });
       
-      console.log("Initial expense fetch response:", response.status);
-      
       // If unauthorized, try backup authentication
       if (response.status === 401) {
-        console.log("Expense fetch unauthorized, attempting backup auth...");
         try {
           const authData = localStorage.getItem("fairshare_auth_state");
           if (authData) {
             const parsed = JSON.parse(authData);
             if (parsed.userId && parsed.sessionId) {
-              console.log("Trying backup auth with user ID:", parsed.userId);
               const backupRes = await fetch(`/api/users/${parsed.userId}`, {
                 headers: {
                   "X-Session-Backup": parsed.sessionId
@@ -174,15 +167,11 @@ export default function GroupPage() {
               });
               
               if (backupRes.ok) {
-                console.log("Backup auth successful, retrying expense request");
                 // Retry the original request
                 response = await fetch(url, {
                   headers: getAuthHeaders(),
                   credentials: "include",
                 });
-                console.log("Retry expense fetch response:", response.status);
-              } else {
-                console.log("Backup auth failed with status:", backupRes.status);
               }
             }
           }
@@ -192,12 +181,10 @@ export default function GroupPage() {
       }
       
       if (!response.ok) {
-        console.error("Expense fetch failed with status:", response.status);
         throw new Error(`Failed to fetch expenses: ${response.status}`);
       }
       
       const data = await response.json();
-      console.log("Expense fetch successful, data received:", data);
       return data as ExpensePaginatedResponse;
     },
     getNextPageParam: (lastPage, allPages) => {
@@ -208,31 +195,13 @@ export default function GroupPage() {
     staleTime: 0 // Always refetch on component mount
   });
   
-  // Log query states for debugging
-  console.log("Expense query states:", {
-    isLoading: isLoadingExpenses,
-    hasData: !!expensesData,
-    error: expensesError,
-    groupId,
-    group: !!group,
-    enabled: groupId > 0 && !!group
-  });
-
   // Flatten the paged data for easier use in the component
   const expenses = useMemo(() => {
     if (!expensesData || !expensesData.pages) {
-      console.log("No expense data or pages available");
       return [];
     }
     
-    console.log("Processing expense pages:", expensesData.pages.length);
-    const allExpenses = expensesData.pages.flatMap(page => {
-      console.log("Page data:", page);
-      return page.expenses || [];
-    });
-    
-    console.log("Total flattened expenses:", allExpenses.length);
-    return allExpenses;
+    return expensesData.pages.flatMap(page => page.expenses || []);
   }, [expensesData]);
   
   // Function to load more expenses when user scrolls
