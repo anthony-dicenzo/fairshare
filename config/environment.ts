@@ -9,7 +9,8 @@ function validateEnvironment() {
   const required = [
     'DATABASE_URL',
     'SUPABASE_URL', 
-    'SUPABASE_ANON_KEY'
+    'SUPABASE_ANON_KEY',
+    'SESSION_SECRET'
   ];
 
   const missing = required.filter(key => !process.env[key]);
@@ -29,7 +30,7 @@ export const config = {
     anonKey: process.env.SUPABASE_ANON_KEY!,
   },
   session: {
-    secret: process.env.SESSION_SECRET || 'temp-session-secret-change-in-production',
+    secret: process.env.SESSION_SECRET!,
   },
   firebase: {
     apiKey: process.env.VITE_FIREBASE_API_KEY,

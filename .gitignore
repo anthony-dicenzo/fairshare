@@ -13,3 +13,14 @@ vite.config.ts.*
 .env.backup.*
 *.env
 !.env.example
+
+# Session and authentication files
+cookies.txt
+*.cookie
+
+# Migration backups with sensitive data
+migration_backup_secured/
+*.csv
+
+# Test credentials and sensitive test data
+test-credentials.txt

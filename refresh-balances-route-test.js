@@ -4,10 +4,10 @@ import fetch from 'node-fetch';
 const BASE_URL = 'http://localhost:5000';
 let authCookies = '';
 
-// Data for our test user
+// Data for our test user - use environment variables for security
 const loginData = {
-  username: 'adicenzo',
-  password: 'password123'
+  username: process.env.TEST_USERNAME || 'test_user',
+  password: process.env.TEST_PASSWORD || 'test_password'
 };
 
 // Function to login and get session cookie

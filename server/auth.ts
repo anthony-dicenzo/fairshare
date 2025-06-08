@@ -31,10 +31,11 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 export function setupAuth(app: Express) {
-  const sessionSecret = process.env.SESSION_SECRET || 'temp-session-secret-change-in-production';
+  const sessionSecret = process.env.SESSION_SECRET;
   
-  if (sessionSecret === 'temp-session-secret-change-in-production') {
-    console.warn('⚠️ WARNING: Using default session secret. Set SESSION_SECRET environment variable for production.');
+  if (!sessionSecret) {
+    console.error('❌ SESSION_SECRET environment variable is required for secure sessions');
+    throw new Error('SESSION_SECRET must be set in environment variables');
   }
   
   // Configure session with improved mobile compatibility

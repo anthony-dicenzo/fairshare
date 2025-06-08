@@ -10,8 +10,8 @@ async function updateGroupBalances(groupId) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        username: 'adicenzo',
-        password: 'password123'
+        username: process.env.TEST_USERNAME || 'test_user',
+        password: process.env.TEST_PASSWORD || 'test_password'
       }),
     });
     
