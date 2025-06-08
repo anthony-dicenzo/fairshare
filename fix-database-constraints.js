@@ -9,14 +9,17 @@ dotenv.config({ path: '.env.secrets' });
 dotenv.config({ path: '.env.database' });
 dotenv.config({ path: '.env.local' });
 
-// Hardcoded connection string as fallback
-const FALLBACK_CONNECTION = 'postgresql://postgres:WCRjkMkrg7vDYahc@aws-0-ca-central-1.pooler.supabase.com:6543/postgres';
+// No fallback connection - require environment variable
+if (!process.env.DATABASE_URL) {
+  console.error('❌ DATABASE_URL environment variable is required');
+  process.exit(1);
+}
 
 async function fixDatabaseConstraints() {
   console.log('Starting database constraint fixes...');
   
-  // Get connection string from environment or use fallback
-  const connectionString = process.env.DATABASE_URL || FALLBACK_CONNECTION;
+  // Get connection string from environment only
+  const connectionString = process.env.DATABASE_URL;
   console.log('Using database URL starting with:', connectionString.substring(0, 30) + '...');
   
   // Create a PostgreSQL pool with longer timeout

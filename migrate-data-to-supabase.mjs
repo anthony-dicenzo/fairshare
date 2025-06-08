@@ -3,7 +3,12 @@ import pg from 'pg';
 const { Pool } = pg;
 
 // Supabase connection string
-const targetConnectionString = process.env.DATABASE_URL || 'postgresql://postgres.smrsiolztcggakkgtyab:WCRjkMkrg7vDYahc@aws-0-ca-central-1.pooler.supabase.com:6543/postgres';
+const targetConnectionString = process.env.DATABASE_URL;
+
+if (!targetConnectionString) {
+  console.error('❌ DATABASE_URL environment variable is required');
+  process.exit(1);
+}
 
 // To migrate data, please provide your source database credentials
 // We can only use the target database for now as we don't have source credentials

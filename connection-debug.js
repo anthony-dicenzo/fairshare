@@ -58,8 +58,8 @@ async function testDatabaseConnections() {
   console.log('\nTESTING DATABASE CONNECTIONS:');
   console.log('-----------------------------');
   
-  // Supabase connection string
-  const supabaseConnectionString = 'postgresql://postgres:WCRjkMkrg7vDYahc@aws-0-ca-central-1.pooler.supabase.com:6543/postgres';
+  // Get connection string from environment variables only
+  const supabaseConnectionString = process.env.DATABASE_URL;
   
   // Connection strings to test
   const connectionStrings = [
@@ -190,7 +190,7 @@ async function consolidateEnvFiles() {
 
 # Supabase API URL and key
 SUPABASE_URL=https://smrsiolztcggakkgtyab.supabase.co
-SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtcnNpb2x6dGNnZ2Fra2d0eWFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0ODA2MjEsImV4cCI6MjA2MjA1NjYyMX0.2Cr3iYDNyaXUNtrYRX0OOI4mnG6od5fY7CYcLU-NCSg
+SUPABASE_ANON_KEY=${process.env.SUPABASE_ANON_KEY || 'NOT_SET'}
 
 # Direct database connection string for Supabase
 DATABASE_URL=postgresql://postgres:WCRjkMkrg7vDYahc@aws-0-ca-central-1.pooler.supabase.com:6543/postgres
