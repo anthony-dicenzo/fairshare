@@ -1035,15 +1035,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Invalidate cache for immediate UI updates
       await invalidateAllGroupData(groupId);
       
-      // Apply incremental balance update for deletion (immediate)
-      try {
-        const participants = await storage.getExpenseParticipants(expenseId);
-        await updateBalancesOnExpenseDelete(groupId, expense, participants);
-        console.log("Incremental balance update (deletion) completed for group", groupId);
-      } catch (balanceErr) {
-        console.error("Incremental balance update (deletion) failed:", balanceErr);
-      }
-      
       res.status(200).json({ message: "Expense deleted successfully" });
     } catch (error) {
       console.error("Error deleting expense:", error);
