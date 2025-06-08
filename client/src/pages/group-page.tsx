@@ -146,10 +146,43 @@ export default function GroupPage() {
       
       // Use the same authentication method as other queries
       const authHeaders = getAuthHeaders();
-      const response = await fetch(url, {
+      let response = await fetch(url, {
         headers: authHeaders,
         credentials: "include",
       });
+      
+      // If unauthorized, try backup authentication
+      if (response.status === 401) {
+        console.log("Expense fetch unauthorized, attempting backup auth...");
+        try {
+          const authData = localStorage.getItem("fairshare_auth_state");
+          if (authData) {
+            const parsed = JSON.parse(authData);
+            if (parsed.userId && parsed.sessionId) {
+              console.log("Trying backup auth with user ID:", parsed.userId);
+              const backupRes = await fetch(`/api/users/${parsed.userId}`, {
+                headers: {
+                  "X-Session-Backup": parsed.sessionId
+                },
+                credentials: "include"
+              });
+              
+              if (backupRes.ok) {
+                console.log("Backup auth successful, retrying expense request");
+                // Retry the original request
+                response = await fetch(url, {
+                  headers: getAuthHeaders(),
+                  credentials: "include",
+                });
+              } else {
+                console.log("Backup auth failed with status:", backupRes.status);
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Backup auth failed:", e);
+        }
+      }
       
       if (!response.ok) {
         throw new Error(`Failed to fetch expenses: ${response.status}`);
@@ -168,8 +201,19 @@ export default function GroupPage() {
   
   // Flatten the paged data for easier use in the component
   const expenses = useMemo(() => {
-    if (!expensesData) return [];
-    return expensesData.pages.flatMap(page => page.expenses || []);
+    if (!expensesData || !expensesData.pages) {
+      console.log("No expense data or pages available");
+      return [];
+    }
+    
+    console.log("Processing expense pages:", expensesData.pages.length);
+    const allExpenses = expensesData.pages.flatMap(page => {
+      console.log("Page data:", page);
+      return page.expenses || [];
+    });
+    
+    console.log("Total flattened expenses:", allExpenses.length);
+    return allExpenses;
   }, [expensesData]);
   
   // Function to load more expenses when user scrolls
