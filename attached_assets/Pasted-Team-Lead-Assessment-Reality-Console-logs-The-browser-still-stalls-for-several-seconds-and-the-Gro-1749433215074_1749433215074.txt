@@ -1,0 +1,74 @@
+Team-Lead Assessment
+Reality ≠ Console logs
+The browser still stalls for several seconds and the Groups page renders nothing.
+Internal timers that read “0.4 ms” measure only the row_json loop in Node – not the TLS handshake, network, React render, or failing data-binding.
+Contract between API ⇄ UI is broken
+UI expects [{ id, name, icon, balance, lastExpenseAt …}].
+Ultra-fast endpoint now returns a raw JSON string (row_json) per row. React’s .map() tries to read g.id, finds undefined, and silently mounts an empty list → blank page.
+Benchmarks are not apples-to-apples
+Autocannon is hitting ?ultraFast=true&limit=10, not the route the browser calls.
+It reuses the same keep-alive socket; first-connection RTT is hidden.
+You’re piping response to /dev/null; gzip + chunked streams get bypassed.
+Home page still does a 1 MB JS bundle – first paint waits for the bundle, then fails on missing data.
+🟩 What To Do Before Any More Optimisation
+
+1 ️⃣ Restore a single, typed contract
+/api/groups (no flags) must return exactly:
+
+[
+  { "id":1, "name":"House of Anthica", "icon":"🏠", 
+    "balance": "-2117.86", "lastExpenseAt":"2024-06-07T12:34:00Z" }
+]
+Nothing else; no wrapped row_json.
+Update the ultra-fast handler to res.write('[' + rows.join(',') + ']') only if each row_json already contains those keys.
+
+2 ️⃣ Contract tests
+it('GET /api/groups returns valid schema', async () => {
+  const res = await request(app).get('/api/groups').set(hdrs);
+  expect(res.status).toBe(200);
+  res.body.forEach(g=>{
+      expect(g).toHaveProperty('id');
+      expect(g).toHaveProperty('name');
+      expect(g).toHaveProperty('balance');
+  });
+});
+Run in CI.
+
+3 ️⃣ Measure real end-to-end
+Open Chrome DevTools → Network:
+
+Cold refresh (Disable cache).
+Record:
+
+Asset	Transfer (ms)	Size
+/api/groups	___	___
+JS bundle	___	___
+First Contentful Paint	___	
+Attach screenshot to PR.
+
+4 ️⃣ Fix blank UI
+Groups page renders nothing because props are undefined.
+Add a defensive render:
+
+if (!groups.length) return <Skeleton text="Loading groups…" />;
+5 ️⃣ Only then re-benchmark
+Use autocannon without keep-alive:
+
+autocannon -k false -d 10 -c 5 http://localhost:5000/api/groups
+p95 must be < 120 ms.
+
+6 ️⃣ Checklist before next push
+ Browser cold refresh shows groups in < 1 s.
+ Network tab: /api/groups payload < 2 KB, time < 120 ms.
+ Autocannon no-keep-alive p95 < 120 ms.
+ All Jest contract tests green.
+ No console errors in React dev tools.
+🚦 Developer Prompt (copy-paste)
+
+Revert any code that returns row_json alone.
+Make /api/groups deliver the exact schema expected by the React list (id, name, icon, balance, lastExpenseAt).
+Add the Jest contract test above. Commit.
+Fix Groups page blank rendering: show Skeleton while data loads; verify list renders with real data after fetch.
+Attach Chrome Network screenshot (cold cache) + autocannon -k false p95 log to PR.
+Do not add new flags, views, or raw SQL until the UI renders and benchmarks are posted.
+Any optimisation without these measurements will be rolled back.

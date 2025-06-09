@@ -104,32 +104,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const aboveTheFold = req.query.aboveTheFold === 'true';
       const ultraFast = req.query.ultraFast === 'true';
       
-      // ULTRA-FAST MODE: Stream JSON directly without stringify overhead
-      if (ultraFast) {
-        const tStart = performance.now();
-        console.log(`Processing ultra-fast request with JSON streaming`);
-        
-        const t0 = performance.now();
-        const groups = await storage.getGroupsByUserId(req.user.id, limit || 10, offset);
-        console.log('   ▸ query', (performance.now()-t0).toFixed(1),'ms');
-        
-        const t1 = performance.now();
-        // Stream JSON directly instead of using res.json() to eliminate stringify overhead
-        res.type('application/json');
-        res.write('{"groups":[');
-        
-        groups.forEach((group, i) => {
-          if (i > 0) res.write(',');
-          // Write pre-serialized JSON directly - minimal data for speed
-          res.write(`{"id":${group.id},"name":"${group.name.replace(/"/g, '\\"')}","balance":0}`);
-        });
-        
-        res.write(`],"totalCount":${groups.length},"hasMore":false,"page":0}`);
-        console.log('   ▸ stringify', (performance.now()-t1).toFixed(1),'ms');
-        console.log('   ▸ total', (performance.now()-tStart).toFixed(1),'ms');
-        res.end();
-        return;
-      }
+      // Get total count for pagination
+      const totalCount = await storage.getUserGroupsCount(req.user.id);
       
       // Get basic group data with pagination - this happens for both normal and above-the-fold
       const groups = await storage.getGroupsByUserId(req.user.id, limit, offset);
@@ -200,7 +176,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Always include a consistent response format
       res.json({
         groups: enhancedGroups,
-        totalCount,
+        totalCount: totalCount,
         hasMore: limit ? offset + groups.length < totalCount : false,
         page: limit ? Math.floor(offset / limit) : 0
       });

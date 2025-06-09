@@ -27,7 +27,7 @@ export function GroupsList() {
     groups: (Group & { memberCount?: number })[], 
     totalCount: number 
   }>({
-    queryKey: ["/api/groups", { limit: INITIAL_GROUPS_COUNT, offset: 0, ultraFast: true }],
+    queryKey: ["/api/groups", { limit: INITIAL_GROUPS_COUNT, offset: 0 }],
     staleTime: 30000, // Keep this data fresh for 30 seconds
   });
   
