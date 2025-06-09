@@ -1,41 +1,40 @@
-# Firebase Authentication Fix - Required Actions
+# Firebase Domain Authorization Fix
 
-## Root Cause Identified
-The **Identity Toolkit API** is not enabled in Google Cloud Console, causing all authentication requests to fail with `auth/internal-error`.
+## Problem
+Firebase authentication fails because the browser uses the internal Replit domain instead of the external workspace domain.
 
-## Immediate Action Required
+**Current Issue:**
+- Browser is on: `b00299a8-cf16-482d-a828-34e450b5e513-00-3su5zumoc8bsv.janeway.replit.dev`
+- Firebase expects: `workspace.adicenzo1.repl.co`
 
-### 1. Enable Identity Toolkit API
-1. Go to [Google Cloud Console](https://console.cloud.google.com)
-2. Select project: `fairshare-7f83a`
-3. Navigate to **APIs & Services** → **Library**
-4. Search for "Identity Toolkit API"
-5. Click **ENABLE**
+## Solution
+Add the internal Replit domain to Firebase's authorized domains.
 
-### 2. Enable Additional Required APIs
-Also enable these APIs in the same way:
-- **Firebase Management API**
-- **Identity and Access Management (IAM) API**
+### Step 1: Access Firebase Console
+1. Go to https://console.firebase.google.com
+2. Select your project: **fairshare-7f83a**
 
-### 3. Verify API Key Restrictions
-1. Go to **APIs & Services** → **Credentials**
-2. Find your API key (`AIzaSyDNsYRVOJ0...`)
-3. Click **Edit**
-4. Under **Application restrictions**, ensure:
-   - **HTTP referrers** includes: `workspace.adicenzo1.repl.co/*`
-   - **API restrictions** includes: Identity Toolkit API
+### Step 2: Add Authorized Domain
+1. Navigate to **Authentication** → **Settings** → **Authorized domains**
+2. Click **Add domain**
+3. Add: `b00299a8-cf16-482d-a828-34e450b5e513-00-3su5zumoc8bsv.janeway.replit.dev`
 
-## Current Status
-- ✅ Firebase API Key: Valid format
-- ✅ Google Client ID: Correct project number (816167207113)
-- ✅ Domain Authorization: workspace.adicenzo1.repl.co added
-- ❌ **Identity Toolkit API: NOT ENABLED** ← This is the blocker
+### Step 3: Test Authentication
+After adding the domain, test the Google sign-in button again.
 
-## Expected Result
-Once Identity Toolkit API is enabled:
-- Google Sign-in popup will work without errors
-- Users will be able to authenticate successfully
-- No more `auth/internal-error` or `auth/network-request-failed`
+## Alternative: Access via External Domain
+Instead of using the internal domain, access your app at:
+**https://workspace.adicenzo1.repl.co**
 
-## Testing
-After enabling the APIs, test authentication at: `/google-auth-test`
+This should work since that domain is already authorized in Firebase.
+
+## Current Authorized Domains
+Your Firebase project currently has these domains authorized:
+- localhost
+- fairshare-7f83a.firebaseapp.com
+- fairshare-7f83a.web.app
+- fairshare.my
+- replit.com
+- fair-split-buddy-backup-pre-pwa-changes-adicenzo1.replit.app
+- workspace.adicenzo1.repl.co
+- (Need to add) b00299a8-cf16-482d-a828-34e450b5e513-00-3su5zumoc8bsv.janeway.replit.dev
