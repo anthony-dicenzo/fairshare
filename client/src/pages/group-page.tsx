@@ -330,14 +330,14 @@ export default function GroupPage() {
       // First, try to get from React Query cache (seeded by groups list)
       const cachedBalances = queryClient.getQueryData(['balance', groupId]);
       console.log('initialData cachedBalances:', cachedBalances);
-      if (cachedBalances) {
+      if (cachedBalances && Array.isArray(cachedBalances)) {
         return cachedBalances;
       }
       
       // Fallback to navigation state if available (already in array format)
       const preload = typeof window !== 'undefined' ? (window.history.state as any)?.preload : undefined;
       console.log('initialData preload:', preload);
-      if (preload) {
+      if (preload && Array.isArray(preload)) {
         return preload;
       }
       

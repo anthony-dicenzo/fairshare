@@ -36,7 +36,7 @@ export function GroupDetail({ group, members = [], balances = [], expenses = [],
   if (!user || !group) return null;
 
   // Get the user's balance from the API data
-  const apiUserBalance = balances?.find(b => b?.userId === user.id)?.balance || 0;
+  const apiUserBalance = balances?.find(b => b?.userId === user.id)?.balance;
   
   // Calculate totals
   const totalExpenseAmount = expenses.reduce((sum, expense) => sum + Number(expense.totalAmount || 0), 0);
