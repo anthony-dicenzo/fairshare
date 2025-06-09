@@ -246,11 +246,11 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
       // Cancel only specific queries (avoid canceling the main groups list)
       const groupIdStr = newExpense.groupId.toString();
       await queryClient.cancelQueries({ queryKey: [`/api/groups/${groupIdStr}/expenses`] });
-      await queryClient.cancelQueries({ queryKey: [`/api/groups/${groupIdStr}/balances`] });
+      await queryClient.cancelQueries({ queryKey: ['balance', newExpense.groupId] });
 
       // Snapshot the previous values (don't snapshot groups to preserve dropdown data)
       const previousExpenses = queryClient.getQueryData([`/api/groups/${groupIdStr}/expenses`]);
-      const previousBalances = queryClient.getQueryData([`/api/groups/${groupIdStr}/balances`]);
+      const previousBalances = queryClient.getQueryData(['balance', newExpense.groupId]);
 
       // Optimistically update the expenses list
       queryClient.setQueryData([`/api/groups/${groupIdStr}/expenses`], (old: any) => {
@@ -278,7 +278,7 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
 
       // Optimistically update balances if it affects the current user
       if (newExpense.participants.some(p => p.userId === user?.id)) {
-        queryClient.setQueryData([`/api/groups/${groupIdStr}/balances`], (old: any) => {
+        queryClient.setQueryData(['balance', newExpense.groupId], (old: any) => {
           if (!old || !Array.isArray(old)) return old;
           
           return old.map((balance: any) => {
@@ -315,15 +315,16 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
       
       // Immediately refresh all related data for instant UI updates
       if (context?.groupIdStr) {
+        const groupId = parseInt(context.groupIdStr);
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: [`/api/groups/${context.groupIdStr}/expenses`] }),
-          queryClient.invalidateQueries({ queryKey: [`/api/groups/${context.groupIdStr}/balances`] }),
+          queryClient.invalidateQueries({ queryKey: ['balance', groupId] }),
           queryClient.invalidateQueries({ queryKey: [`/api/groups/${context.groupIdStr}/activity`] }),
           queryClient.invalidateQueries({ queryKey: [`/api/groups/${context.groupIdStr}`] })
         ]);
         
         // Force immediate refetch of balances
-        await queryClient.refetchQueries({ queryKey: [`/api/groups/${context.groupIdStr}/balances`] });
+        await queryClient.refetchQueries({ queryKey: ['balance', groupId] });
       }
       
       queryClient.invalidateQueries({ queryKey: ["/api/balances"] });
@@ -333,8 +334,9 @@ export function ExpenseForm({ open, onOpenChange, groupId }: ExpenseFormProps) {
       if (context?.previousExpenses) {
         queryClient.setQueryData([`/api/groups/${context.groupIdStr}/expenses`], context.previousExpenses);
       }
-      if (context?.previousBalances) {
-        queryClient.setQueryData([`/api/groups/${context.groupIdStr}/balances`], context.previousBalances);
+      if (context?.previousBalances && context?.groupIdStr) {
+        const groupId = parseInt(context.groupIdStr);
+        queryClient.setQueryData(['balance', groupId], context.previousBalances);
       }
       
       toast({
