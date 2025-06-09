@@ -56,6 +56,7 @@ export function GroupsList() {
 
   // Seed balance cache when groups with balance data are loaded using unified format
   useEffect(() => {
+    console.log('CACHE SEED: initialData check', { hasInitialData: !!initialData?.groups, userId: user?.id, groupsCount: initialData?.groups?.length });
     if (initialData?.groups && user?.id) {
       initialData.groups.forEach(group => {
         if (group.balance !== undefined) {
@@ -64,6 +65,7 @@ export function GroupsList() {
             balance: group.balance,
             user: { id: user.id, name: user.name || "User" }
           }];
+          console.log('CACHE SEED: Setting cache for group', group.id, 'with balance array:', balanceArray);
           queryClient.setQueryData(['balance', group.id], balanceArray);
         }
       });

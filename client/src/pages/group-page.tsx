@@ -38,6 +38,11 @@ export default function GroupPage() {
   // Create a safe string representation for the query key
   const groupIdStr = groupId > 0 ? groupId.toString() : "";
   
+  // DIAGNOSIS: Check cache and navigation state
+  console.log('cache-hit', queryClient.getQueryData(['balance', groupId]));
+  console.log('initialData', typeof window !== 'undefined' ? (window.history.state as any)?.preload : undefined);
+  console.log('groupId for cache key:', groupId);
+  
   // Modal state
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -279,17 +284,21 @@ export default function GroupPage() {
     gcTime: 300000, // Keep in cache for 5 minutes
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
+    retry: false, // Don't retry failed requests
     // Use cached data or navigation state as initial value for instant display
     initialData: () => {
       // First, try to get from React Query cache (seeded by groups list)
       const cachedBalances = queryClient.getQueryData(['balance', groupId]);
+      console.log('initialData cachedBalances:', cachedBalances);
       if (cachedBalances) {
         return cachedBalances;
       }
       
       // Fallback to navigation state if available (already in array format)
-      if (typeof window !== 'undefined' && (window.history.state as any)?.preload) {
-        return (window.history.state as any).preload;
+      const preload = typeof window !== 'undefined' ? (window.history.state as any)?.preload : undefined;
+      console.log('initialData preload:', preload);
+      if (preload) {
+        return preload;
       }
       
       // No initial data available
