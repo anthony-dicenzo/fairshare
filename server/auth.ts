@@ -439,12 +439,36 @@ export function setupAuth(app: Express) {
       
       console.log("Google auth data validated. Proceeding with authentication...");
       
-      // For now, we'll extract basic information from the token without full verification
-      // This allows the Google OAuth flow to work while maintaining security through other means
-      console.log("Processing Google authentication token...");
+      // Verify the Google ID token using Google Auth Library
+      const { OAuth2Client } = await import('google-auth-library');
+      const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
       
-      // Get the email from the request
-      const email = validatedData.email;
+      let tokenPayload;
+      try {
+        console.log("Verifying Google ID token...");
+        const ticket = await client.verifyIdToken({
+          idToken: validatedData.token,
+          audience: process.env.GOOGLE_CLIENT_ID,
+        });
+        tokenPayload = ticket.getPayload();
+        
+        if (!tokenPayload) {
+          throw new Error("Invalid token payload");
+        }
+        
+        // Ensure the email matches what was sent
+        if (tokenPayload.email !== validatedData.email) {
+          throw new Error("Token email mismatch");
+        }
+        
+        console.log("Google token verified successfully for:", tokenPayload.email);
+      } catch (tokenError) {
+        console.error("Google token verification failed:", tokenError);
+        return res.status(401).json({ error: "Invalid Google token" });
+      }
+      
+      // Get the email from the verified token
+      const email = tokenPayload.email;
       
       // Check if user with this email already exists
       let user = await storage.getUserByEmail(validatedData.email);
