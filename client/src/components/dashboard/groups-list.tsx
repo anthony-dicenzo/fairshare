@@ -54,38 +54,34 @@ export function GroupsList() {
     staleTime: 5000, // Keep this data fresh for 5 seconds
   });
 
-  // Seed balance cache when groups with balance data are loaded using unified format
+  // Unified cache seeding function
+  const seedBalanceCache = (groups: any[], source: string) => {
+    if (!groups || !user?.id) return;
+    
+    console.log('CACHE SEED:', source, 'checking', groups.length, 'groups for user', user.id);
+    groups.forEach(group => {
+      if (group.balance !== undefined) {
+        const balanceArray = [{ 
+          userId: user.id,
+          balance: group.balance,
+          user: { id: user.id, name: user.name || "User" }
+        }];
+        console.log('CACHE SEED:', source, 'setting cache for group', group.id, 'balance:', group.balance);
+        queryClient.setQueryData(['balance', group.id], balanceArray);
+      } else {
+        console.log('CACHE SEED:', source, 'group', group.id, 'has no balance data');
+      }
+    });
+  };
+
+  // Seed cache for initial data (above-the-fold)
   useEffect(() => {
-    console.log('CACHE SEED: initialData check', { hasInitialData: !!initialData?.groups, userId: user?.id, groupsCount: initialData?.groups?.length });
-    if (initialData?.groups && user?.id) {
-      initialData.groups.forEach(group => {
-        if (group.balance !== undefined) {
-          const balanceArray = [{ 
-            userId: user.id,
-            balance: group.balance,
-            user: { id: user.id, name: user.name || "User" }
-          }];
-          console.log('CACHE SEED: Setting cache for group', group.id, 'with balance array:', balanceArray);
-          queryClient.setQueryData(['balance', group.id], balanceArray);
-        }
-      });
-    }
+    seedBalanceCache(initialData?.groups || [], 'initialData');
   }, [initialData, user?.id]);
 
-  // Also seed cache for full data when it loads using unified format
+  // Seed cache for full data when it loads  
   useEffect(() => {
-    if (fullData?.groups && user?.id) {
-      fullData.groups.forEach(group => {
-        if (group.balance !== undefined) {
-          const balanceArray = [{ 
-            userId: user.id,
-            balance: group.balance,
-            user: { id: user.id, name: user.name || "User" }
-          }];
-          queryClient.setQueryData(['balance', group.id], balanceArray);
-        }
-      });
-    }
+    seedBalanceCache(fullData?.groups || [], 'fullData');
   }, [fullData, user?.id]);
   
   // Get the total count from either query
