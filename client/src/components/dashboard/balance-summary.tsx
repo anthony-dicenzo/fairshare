@@ -15,6 +15,8 @@ interface Balance {
 export function BalanceSummary() {
   const { data: balances, isLoading } = useQuery<Balance>({
     queryKey: ["/api/balances"],
+    staleTime: 30_000,  // Cache for 30 seconds - balance queries fast within navigation
+    gcTime: 60_000,     // Keep in cache for 1 minute
   });
 
   if (isLoading) {
