@@ -25,7 +25,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
+import { DirectGoogleAuth } from "@/components/auth/direct-google-auth";
 
 // Login schema for step 1 (username/email only)
 const loginStep1Schema = z.object({
@@ -180,7 +180,7 @@ export default function AuthPage() {
                     </div>
 
                     {/* Google Sign-in Button */}
-                    <GoogleSignInButton className="mb-6" />
+                    <DirectGoogleAuth className="mb-6" />
 
                     {/* Register option */}
                     <div className="text-center">
@@ -375,7 +375,7 @@ export default function AuthPage() {
                 </div>
 
                 {/* Google Sign-in Button */}
-                <GoogleSignInButton className="mb-6" />
+                <DirectGoogleAuth className="mb-6" />
 
                 {/* Login option */}
                 <div className="text-center">
