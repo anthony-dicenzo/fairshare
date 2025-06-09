@@ -46,10 +46,7 @@ try {
   
   // Add login hint and select account prompt
   googleProvider.setCustomParameters({
-    prompt: 'select_account',
-    // Add additional parameters that might help with redirects
-    // Specify a redirect URI in case it helps with certain environments
-    redirect_uri: window.location.origin + '/auth'
+    prompt: 'select_account'
   });
   
   // Log success
