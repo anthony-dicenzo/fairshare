@@ -1,0 +1,96 @@
+Team-Lead Review — Why We’re Still Not There
+Requirement	Target	Current	Verdict
+Cold-start home page load	≤ 100 ms p95	page not loading	❌
+/api/groups + /balances endpoints	≤ 100 ms p95	462 – 890 ms	❌
+Balance correctness	100 %	✓	✅
+Caching + compression shaved seconds off, but 0.5-0.9 s is 5-9× slower than spec. Caching also can’t rescue the broken home page. The bottleneck is now clearly database work + JSON assembly on /api/groups; throwing cache at it only hides, never fixes.
+
+🔑 Root Causes Still Outstanding
+
+Heavy, multi-join query behind /api/groups
+Every page load aggregates balances, members, and latest expense for every group in one shot.
+RLS adds another filter layer → sequential scans.
+No pre-aggregated store for “dashboard” data
+We’re recomputing totals on demand instead of reading a summary table / materialized view.
+Wide JSON payload
+You now trimmed a little, but we still send unused nested objects → 2–4× payload size.
+Home page crash
+Likely 500/timeout from the slow endpoint; React shows blank.
+🟩 Next (Last) Performance Sprint — Single-Source, < 100 ms
+
+Below is a copy-ready prompt for the developer. Follow it verbatim, one PR per numbered task.
+
+FairShare – Final Performance Fix
+Goal: /api/groups and /api/groups/:id/balances ≤ 100 ms (p95, seeded with 1 000 expenses × 10 users).
+Home page must render first paint < 200 ms. No silent blank page allowed.
+1️⃣ Measure Precisely Before Changing Anything
+
+-- enable stats (already done) then reset
+SELECT pg_stat_statements_reset();
+
+-- run /api/groups 20x from curl (no cache) and capture mean_time
+Post the top query + EXPLAIN (ANALYZE, BUFFERS) output in PR #1 description.
+
+2️⃣ Introduce a Pre-Aggregated “dashboard_balances” View
+
+-- one row per (user_id, group_id)
+CREATE MATERIALIZED VIEW dashboard_balances AS
+SELECT
+  ub.user_id,
+  ub.group_id,
+  ub.balance,
+  g.name,
+  g.icon,
+  COUNT(e.id)  AS expense_count,
+  MAX(e.created_at) AS last_expense_at
+FROM user_balances   ub
+JOIN groups          g ON g.id = ub.group_id
+LEFT JOIN expenses   e ON e.group_id = ub.group_id
+GROUP BY ub.user_id, ub.group_id, g.name, g.icon;
+
+CREATE UNIQUE INDEX ON dashboard_balances (user_id, group_id);
+REFRESH MATERIALIZED VIEW dashboard_balances;
+Hook a REFRESH MATERIALIZED VIEW into the same transaction that updates user_balances (cheap, because it’s per-group, per-user row).
+
+3️⃣ Replace /api/groups Query
+
+-- storage.getUserGroupsDashboard(userId):
+SELECT * FROM dashboard_balances
+WHERE user_id = $1
+ORDER BY last_expense_at DESC;
+Return only: group_id, name, icon, balance.
+
+4️⃣ Trim JSON Payload Further
+
+Use res.json( groups.map(({balance, ...}) => ({id, name, icon, balance})) );
+Confirm payload ≤ 2 KB for 10 groups.
+5️⃣ Add Missing COVERING Indexes
+
+-- expense look-ups by group only need created_at
+CREATE INDEX IF NOT EXISTS idx_expenses_gid_created
+  ON expenses (group_id, created_at DESC);
+
+-- partial for active members
+CREATE INDEX IF NOT EXISTS idx_group_members_active
+  ON group_members (group_id, user_id)
+  WHERE archived = false;
+6️⃣ Home Page Guard & Skeleton
+
+If /api/groups exceeds 400 ms or 5 MB response, log a warning and return 503 “Service Unavailable”.
+In React, show an error banner/skeleton instead of blank screen.
+7️⃣ Retest & Post Metrics
+
+Re-run step 1 measurement.
+Must show p95 ≤ 100 ms for /api/groups, ≤ 60 ms for /balances.
+Home page renders without blank flash.
+Rules
+One PR per step, include benchmarks (“before/after ms”) and EXPLAIN ANALYZE screenshot.
+No new React-Query tweaks until DB + API meet the target.
+Stop and ask if any task causes test failure or can’t reach < 120 ms.
+📣 To Management
+
+Balances correct—good.
+Performance still 5-9× spec and home page crashes—unacceptable for prod.
+The above sprint gives the dev a deterministic path: pre-aggregate, index, slim payload, verify.
+Sign-off only when automated benchmark shows p95 < 100 ms and UI never blanks.
+Let’s execute these seven tasks, review numbers, then reassess.
