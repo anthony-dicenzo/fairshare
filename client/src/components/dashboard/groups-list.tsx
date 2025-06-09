@@ -54,31 +54,33 @@ export function GroupsList() {
     staleTime: 5000, // Keep this data fresh for 5 seconds
   });
 
-  // Seed balance cache when groups with balance data are loaded
+  // Seed balance cache when groups with balance data are loaded using unified format
   useEffect(() => {
     if (initialData?.groups && user?.id) {
       initialData.groups.forEach(group => {
         if (group.balance !== undefined) {
-          queryClient.setQueryData([`/api/groups/${group.id}/balances`], [{ 
+          const balanceArray = [{ 
             userId: user.id,
             balance: group.balance,
-            user: { id: user.id, name: user.name }
-          }]);
+            user: { id: user.id, name: user.name || "User" }
+          }];
+          queryClient.setQueryData(['balance', group.id], balanceArray);
         }
       });
     }
   }, [initialData, user?.id]);
 
-  // Also seed cache for full data when it loads
+  // Also seed cache for full data when it loads using unified format
   useEffect(() => {
     if (fullData?.groups && user?.id) {
       fullData.groups.forEach(group => {
         if (group.balance !== undefined) {
-          queryClient.setQueryData([`/api/groups/${group.id}/balances`], [{ 
+          const balanceArray = [{ 
             userId: user.id,
             balance: group.balance,
-            user: { id: user.id, name: user.name }
-          }]);
+            user: { id: user.id, name: user.name || "User" }
+          }];
+          queryClient.setQueryData(['balance', group.id], balanceArray);
         }
       });
     }
@@ -167,10 +169,21 @@ export function GroupsList() {
               <div 
                 key={group.id} 
                 className="hover:bg-accent transition-colors cursor-pointer" 
-                onClick={() => setLocation(`/group/${group.id}`, { 
-                  replace: false,
-                  state: { preloadedBalance: 'balance' in group ? (group as any).balance : undefined }
-                })}
+                onClick={() => {
+                  // Transform balance to array format for unified state passing
+                  const preloadArray = ('balance' in group && (group as any).balance !== undefined && user?.id) 
+                    ? [{ 
+                        userId: user.id,
+                        balance: (group as any).balance,
+                        user: { id: user.id, name: user.name || "User" }
+                      }] 
+                    : undefined;
+                  
+                  setLocation(`/group/${group.id}`, { 
+                    replace: false,
+                    state: { preload: preloadArray }
+                  });
+                }}
                 onMouseEnter={() => {
                   // Prefetch group balance on hover for instant loading
                   queryClient.prefetchQuery({

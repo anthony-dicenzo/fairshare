@@ -272,7 +272,7 @@ export default function GroupPage() {
     isLoading: isLoadingBalances,
     refetch: refetchBalances 
   } = useQuery({
-    queryKey: [`/api/groups/${groupIdStr}/balances`],
+    queryKey: ['balance', groupId],
     enabled: groupId > 0 && !!group,
     staleTime: 30000, // Keep data fresh for 30 seconds, same as groups list
     gcTime: 300000, // Keep in cache for 5 minutes
@@ -281,18 +281,14 @@ export default function GroupPage() {
     // Use cached data or navigation state as initial value for instant display
     initialData: () => {
       // First, try to get from React Query cache (seeded by groups list)
-      const cachedBalances = queryClient.getQueryData([`/api/groups/${groupIdStr}/balances`]);
+      const cachedBalances = queryClient.getQueryData(['balance', groupId]);
       if (cachedBalances) {
         return cachedBalances;
       }
       
-      // Fallback to navigation state if available and user is authenticated
-      if (preloadedBalance !== undefined && user?.id) {
-        return [{ 
-          userId: user.id,
-          balance: preloadedBalance,
-          user: { id: user.id, name: user.name || "User" }
-        }];
+      // Fallback to navigation state if available (already in array format)
+      if (location.state?.preload) {
+        return location.state.preload;
       }
       
       // No initial data available
