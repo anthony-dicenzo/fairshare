@@ -44,10 +44,14 @@ try {
   // Initialize Google Auth Provider
   googleProvider = new GoogleAuthProvider();
   
-  // Add login hint and select account prompt
+  // Add OAuth client ID and login parameters
   googleProvider.setCustomParameters({
     prompt: 'select_account'
   });
+  
+  // Add OAuth scopes
+  googleProvider.addScope('email');
+  googleProvider.addScope('profile');
   
   // Log success
   console.log("Firebase initialized successfully");
