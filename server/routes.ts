@@ -104,24 +104,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const aboveTheFold = req.query.aboveTheFold === 'true';
       const ultraFast = req.query.ultraFast === 'true';
       
-      // Get total count early for ultra-fast mode
-      const totalCount = await storage.getUserGroupsCount(req.user.id);
-      
-      // ULTRA-FAST MODE: Direct SQL query for sub-100ms performance
+      // ULTRA-FAST MODE: Single query for sub-100ms performance
       if (ultraFast) {
         console.log(`Processing ultra-fast request with direct SQL query`);
         
         // Use raw SQL with minimal overhead for maximum speed
         const result = await db!.execute(sql`
-          SELECT json_agg(
-            json_build_object(
-              'id', group_id,
-              'name', name,
-              'balance', my_balance,
-              'lastExpenseAt', last_expense_at,
-              'recentCount', recent_expense_count
-            ) ORDER BY last_expense_at DESC NULLS LAST
-          ) as groups_json
+          SELECT json_agg(row_json ORDER BY last_expense_at DESC NULLS LAST) as groups_json
           FROM dashboard_groups 
           WHERE user_id = ${req.user.id}
           ${limit ? sql`LIMIT ${limit}` : sql``}
@@ -131,17 +120,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Direct JSON response with minimal processing
         const rows = (result as any).rows || [];
         const groupsJson = rows[0]?.groups_json || [];
+        const groupCount = groupsJson?.length || 0;
         
         res.setHeader('Content-Type', 'application/json');
         res.setHeader('Cache-Control', 'no-cache');
         res.end(JSON.stringify({
           groups: groupsJson,
-          totalCount,
-          hasMore: limit ? offset + (groupsJson?.length || 0) < totalCount : false,
-          page: limit ? Math.floor(offset / limit) : 0
+          totalCount: groupCount,
+          hasMore: false,
+          page: 0
         }));
         return;
       }
+      
+      // Get total count for normal mode
+      const totalCount = await storage.getUserGroupsCount(req.user.id);
       
       // Get basic group data with pagination - this happens for both normal and above-the-fold
       const groups = await storage.getGroupsByUserId(req.user.id, limit, offset);
