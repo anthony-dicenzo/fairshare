@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { db } from "./db";
+import { db, pool } from "./db";
 import { setupAuth } from "./auth";
 import { sql } from "drizzle-orm";
 import { 
@@ -107,39 +107,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get total count early for ultra-fast mode
       const totalCount = await storage.getUserGroupsCount(req.user.id);
       
-      // ULTRA-FAST MODE: Raw PostgreSQL query for sub-100ms performance
+      // ULTRA-FAST MODE: Direct SQL query for sub-100ms performance
       if (ultraFast) {
-        console.log(`Processing ultra-fast request with raw PostgreSQL query`);
+        console.log(`Processing ultra-fast request with direct SQL query`);
         
-        // Direct pool query bypassing ORM overhead entirely
-        const client = await pool!.connect();
-        try {
-          const queryText = `
-            SELECT json_agg(row_json ORDER BY last_expense_at DESC NULLS LAST) as groups_json
-            FROM dashboard_groups 
-            WHERE user_id = $1
-            ${limit ? `LIMIT ${limit}` : ''}
-            ${offset > 0 ? `OFFSET ${offset}` : ''}
-          `;
-          
-          const queryParams = [req.user.id];
-          const result = await client.query(queryText, queryParams);
-          
-          // Direct JSON response - no additional processing
-          const groupsJson = result.rows[0]?.groups_json || [];
-          
-          res.setHeader('Content-Type', 'application/json');
-          res.setHeader('Cache-Control', 'no-cache');
-          res.end(JSON.stringify({
-            groups: groupsJson,
-            totalCount,
-            hasMore: limit ? offset + (groupsJson?.length || 0) < totalCount : false,
-            page: limit ? Math.floor(offset / limit) : 0
-          }));
-          return;
-        } finally {
-          client.release();
-        }
+        // Use raw SQL with minimal overhead for maximum speed
+        const result = await db!.execute(sql`
+          SELECT json_agg(
+            json_build_object(
+              'id', group_id,
+              'name', name,
+              'balance', my_balance,
+              'lastExpenseAt', last_expense_at,
+              'recentCount', recent_expense_count
+            ) ORDER BY last_expense_at DESC NULLS LAST
+          ) as groups_json
+          FROM dashboard_groups 
+          WHERE user_id = ${req.user.id}
+          ${limit ? sql`LIMIT ${limit}` : sql``}
+          ${offset > 0 ? sql`OFFSET ${offset}` : sql``}
+        `);
+        
+        // Direct JSON response with minimal processing
+        const rows = (result as any).rows || [];
+        const groupsJson = rows[0]?.groups_json || [];
+        
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.end(JSON.stringify({
+          groups: groupsJson,
+          totalCount,
+          hasMore: limit ? offset + (groupsJson?.length || 0) < totalCount : false,
+          page: limit ? Math.floor(offset / limit) : 0
+        }));
+        return;
       }
       
       // Get basic group data with pagination - this happens for both normal and above-the-fold
