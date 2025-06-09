@@ -118,6 +118,10 @@ export interface IStorage {
     amount: number;
     direction: 'owes' | 'owed';
   }[]>;
+  
+  // Performance optimized batch queries
+  getMultipleGroupBalances(userId: number, groupIds: number[]): Promise<{ groupId: number; balance: number }[]>;
+  getMultipleGroupMemberCounts(groupIds: number[]): Promise<{ groupId: number; count: number }[]>;
   getUserCachedTotalBalance(userId: number): Promise<{
     totalOwed: number;
     totalOwes: number;
@@ -1579,6 +1583,58 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
+  // PERFORMANCE OPTIMIZED: Batch query for multiple group balances
+  async getMultipleGroupBalances(userId: number, groupIds: number[]): Promise<{ groupId: number; balance: number }[]> {
+    if (!this.db) throw new Error("Database not initialized");
+    
+    try {
+      const results = await this.db
+        .select({
+          groupId: userBalances.groupId,
+          balance: userBalances.balanceAmount,
+        })
+        .from(userBalances)
+        .where(
+          and(
+            eq(userBalances.userId, userId),
+            inArray(userBalances.groupId, groupIds)
+          )
+        );
+      
+      return results.map(r => ({
+        groupId: r.groupId,
+        balance: parseFloat(r.balance)
+      }));
+    } catch (error) {
+      console.error("Error fetching multiple group balances:", error);
+      return groupIds.map(id => ({ groupId: id, balance: 0 }));
+    }
+  }
+
+  // PERFORMANCE OPTIMIZED: Batch query for multiple group member counts
+  async getMultipleGroupMemberCounts(groupIds: number[]): Promise<{ groupId: number; count: number }[]> {
+    if (!this.db) throw new Error("Database not initialized");
+    
+    try {
+      const results = await this.db
+        .select({
+          groupId: groupMembers.groupId,
+          count: sql<number>`COUNT(*)::int`
+        })
+        .from(groupMembers)
+        .where(inArray(groupMembers.groupId, groupIds))
+        .groupBy(groupMembers.groupId);
+      
+      return results.map(r => ({
+        groupId: r.groupId,
+        count: r.count
+      }));
+    } catch (error) {
+      console.error("Error fetching multiple group member counts:", error);
+      return groupIds.map(id => ({ groupId: id, count: 0 }));
+    }
+  }
+
   async getUserBalanceInGroup(userId: number, groupId: number): Promise<number> {
     console.log(`Calculating balance for user ${userId} in group ${groupId}`);
     

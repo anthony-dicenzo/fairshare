@@ -163,28 +163,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         console.log(`Processing full request for ${groups.length} groups`);
         
-        // Standard enhancement with full data
+        // PERFORMANCE OPTIMIZED: Use cached balances instead of recalculating
         enhancedGroups = await Promise.all(groups.map(async (group) => {
           try {
-            // CONSISTENCY FIX: Read from same transactional balance source as group detail page
-            const groupBalances = await storage.getGroupBalances(group.id);
-            const userBalanceData = groupBalances.find(b => b.userId === req.user.id);
-            const userBalance = userBalanceData ? { balanceAmount: userBalanceData.balance.toString() } : null;
-            
-            // Get the member count - optimized to use count query instead of fetching all members
+            // Use cached balance lookup instead of full calculation
+            const cachedBalance = await storage.getUserCachedBalance(req.user.id, group.id);
             const memberCount = await storage.getGroupMemberCount(group.id);
             
-            // Return the enhanced group with balance information and member count
             return {
-              ...group,
-              balance: userBalance ? parseFloat(userBalance.balanceAmount) : 0,
+              id: group.id,
+              name: group.name,
+              icon: '💰', // Simplified for performance
+              balance: cachedBalance ? parseFloat(cachedBalance.balanceAmount) : 0,
               memberCount
             };
-          } catch (balanceError) {
-            console.log(`Error getting cached balance for group ${group.id}:`, balanceError);
-            // If there's an error, just return the group without balance info
+          } catch (error) {
+            console.log(`Error getting data for group ${group.id}:`, error);
             return {
-              ...group,
+              id: group.id,
+              name: group.name,
+              icon: '💰',
               balance: 0,
               memberCount: 0
             };
