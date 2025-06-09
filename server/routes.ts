@@ -783,39 +783,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Validating expense data");
       const validatedExpense = insertExpenseSchema.parse(expenseData);
       
-      // Create the expense
-      console.log("Creating expense in database");
-      const expense = await storage.createExpense(validatedExpense);
-      console.log(`Created expense with ID: ${expense.id}`);
-      
-      // Add participants
+      // Prepare participants data
       const participants = req.body.participants || [];
-      console.log(`Adding ${participants.length} participants to expense`);
-      console.log('Raw participants data:', JSON.stringify(participants));
+      console.log(`Processing ${participants.length} participants`);
       
-      for (const participant of participants) {
-        try {
-          console.log('Processing participant:', JSON.stringify(participant));
-          const amount = participant.amount || participant.amountOwed;
-          console.log('Extracted amount:', amount);
-          
-          const participantData = {
-            expenseId: expense.id,
-            userId: participant.userId,
-            amountOwed: amount ? amount.toString() : "0"
-          };
-          console.log(`Final participant data:`, JSON.stringify(participantData));
-          await storage.addExpenseParticipant(participantData);
-          console.log(`Successfully added participant ${participant.userId} with amount ${participantData.amountOwed}`);
-        } catch (err) {
-          console.error(`Error adding participant ${participant.userId}:`, err);
-          // Continue with other participants
-        }
-      }
+      const processedParticipants = participants.map(participant => ({
+        userId: participant.userId,
+        amountOwed: (participant.amount || participant.amountOwed || 0).toString()
+      }));
       
+      // Create expense with participants and update balances in single transaction
+      console.log("Creating expense with transactional balance updates");
+      const expense = await storage.createExpenseWithBalances(validatedExpense, processedParticipants);
+      console.log(`Created expense with ID: ${expense.id} and updated balances atomically`);
+      
+      // Log activity (separate from transaction for logging resilience)
       try {
-        // Log activity
-        console.log("Logging activity for new expense");
         await storage.logActivity({
           groupId,
           userId: req.user.id,
@@ -825,19 +808,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Activity logged successfully");
       } catch (activityErr) {
         console.error("Failed to log activity, but expense was created:", activityErr);
-        // Continue anyway since the expense was created
       }
       
       // Invalidate cache for immediate UI updates
       await invalidateAllGroupData(groupId);
-      
-      // Recalculate balances using reliable method
-      try {
-        await storage.updateAllBalancesInGroup(groupId);
-        console.log("Balance recalculation completed for group", groupId);
-      } catch (balanceErr) {
-        console.error("Balance recalculation failed:", balanceErr);
-      }
       
       console.log("Expense creation completed successfully");
       res.status(201).json(expense);
@@ -1026,19 +1000,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const groupId = expense.groupId;
       
-      // Delete the expense
-      await storage.deleteExpense(expenseId);
+      // Delete expense with transactional balance updates
+      await storage.deleteExpenseWithBalances(expenseId);
+      console.log("Expense deleted with transactional balance updates");
       
       // Invalidate cache for immediate UI updates
       await invalidateAllGroupData(groupId);
-      
-      // Recalculate balances using reliable method
-      try {
-        await storage.updateAllBalancesInGroup(groupId);
-        console.log("Balance recalculation completed for group", groupId);
-      } catch (balanceErr) {
-        console.error("Balance recalculation failed:", balanceErr);
-      }
       
       res.status(200).json({ message: "Expense deleted successfully" });
     } catch (error) {

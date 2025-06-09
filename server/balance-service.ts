@@ -97,7 +97,7 @@ export function calculatePaymentBalanceChanges(data: PaymentBalanceData): Balanc
  */
 export async function applyBalanceChanges(
   changes: BalanceChange[], 
-  transaction = db
+  transaction: any = db
 ): Promise<void> {
   if (!transaction) {
     throw new Error('Database transaction required');

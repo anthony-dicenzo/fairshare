@@ -54,11 +54,13 @@ export interface IStorage {
   
   // Expense operations
   createExpense(expense: InsertExpense): Promise<Expense>;
+  createExpenseWithBalances(expense: InsertExpense, participants: Array<{ userId: number; amountOwed: string; }>): Promise<Expense>;
   getExpensesByGroupId(groupId: number, limit?: number, offset?: number): Promise<Expense[]>;
   getExpensesCountByGroupId(groupId: number): Promise<number>;
   getExpenseById(id: number): Promise<Expense | undefined>;
   updateExpense(expenseId: number, updates: Partial<Expense>): Promise<Expense>;
   deleteExpense(expenseId: number): Promise<boolean>;
+  deleteExpenseWithBalances(expenseId: number): Promise<boolean>;
   addExpenseParticipant(participant: InsertExpenseParticipant): Promise<ExpenseParticipant>;
   getExpenseParticipants(expenseId: number): Promise<ExpenseParticipant[]>;
   deleteExpenseParticipants(expenseId: number): Promise<boolean>;
@@ -1093,15 +1095,48 @@ export class DatabaseStorage implements IStorage {
       throw new Error('Database not available');
     }
 
-    // Use database transaction for atomic balance updates
-    return await db.transaction(async (tx) => {
-      // Create the expense
-      const result = await tx.insert(expenses).values(expenseData).returning();
-      const expense = result[0];
+    // Simple expense creation - balance updates handled separately with participants
+    const result = await db.insert(expenses).values(expenseData).returning();
+    return result[0];
+  }
 
-      // Note: Balance updates will be handled after participants are added in the routes layer
-      // This ensures we have complete participant data for accurate balance calculations
-      
+  /**
+   * Create expense with participants and update balances in a single transaction
+   */
+  async createExpenseWithBalances(
+    expenseData: InsertExpense, 
+    participants: Array<{ userId: number; amountOwed: string; }>
+  ): Promise<Expense> {
+    if (!db) {
+      throw new Error('Database not available');
+    }
+
+    return await db.transaction(async (tx) => {
+      // 1. Create the expense
+      const expenseResult = await tx.insert(expenses).values(expenseData).returning();
+      const expense = expenseResult[0];
+
+      // 2. Add participants
+      for (const participant of participants) {
+        await tx.insert(expenseParticipants).values({
+          expenseId: expense.id,
+          userId: participant.userId,
+          amountOwed: participant.amountOwed
+        });
+      }
+
+      // 3. Calculate and apply balance changes
+      const balanceData: ExpenseBalanceData = {
+        expenseId: expense.id,
+        groupId: expense.groupId,
+        paidBy: expense.paidBy,
+        totalAmount: expense.totalAmount,
+        participants
+      };
+
+      const balanceChanges = calculateExpenseBalanceChanges(balanceData);
+      await applyBalanceChanges(balanceChanges, tx);
+
       return expense;
     });
   }
@@ -1227,6 +1262,66 @@ export class DatabaseStorage implements IStorage {
       console.error(`Error in deleteExpense: ${error}`);
       throw error;
     }
+  }
+
+  /**
+   * Delete expense with transactional balance updates
+   */
+  async deleteExpenseWithBalances(expenseId: number): Promise<boolean> {
+    if (!db) {
+      throw new Error('Database not available');
+    }
+
+    return await db.transaction(async (tx) => {
+      // 1. Get expense and participant data before deletion
+      const expense = await tx
+        .select()
+        .from(expenses)
+        .where(eq(expenses.id, expenseId))
+        .limit(1);
+
+      if (expense.length === 0) {
+        throw new Error('Expense not found');
+      }
+
+      const participants = await tx
+        .select()
+        .from(expenseParticipants)
+        .where(eq(expenseParticipants.expenseId, expenseId));
+
+      // 2. Calculate reverse balance changes
+      const balanceData: ExpenseBalanceData = {
+        expenseId: expense[0].id,
+        groupId: expense[0].groupId,
+        paidBy: expense[0].paidBy,
+        totalAmount: expense[0].totalAmount,
+        participants: participants.map(p => ({
+          userId: p.userId,
+          amountOwed: p.amountOwed
+        }))
+      };
+
+      const reverseChanges = reverseExpenseBalanceChanges(balanceData);
+      await applyBalanceChanges(reverseChanges, tx);
+
+      // 3. Delete activity logs
+      await tx
+        .delete(activityLog)
+        .where(eq(activityLog.expenseId, expenseId));
+
+      // 4. Delete participants
+      await tx
+        .delete(expenseParticipants)
+        .where(eq(expenseParticipants.expenseId, expenseId));
+
+      // 5. Delete expense
+      const result = await tx
+        .delete(expenses)
+        .where(eq(expenses.id, expenseId))
+        .returning();
+
+      return result.length > 0;
+    });
   }
   
   async createPayment(paymentData: InsertPayment): Promise<Payment> {
