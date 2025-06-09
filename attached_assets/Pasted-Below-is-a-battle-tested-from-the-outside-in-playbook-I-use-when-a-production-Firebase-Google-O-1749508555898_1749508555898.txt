@@ -1,0 +1,101 @@
+Below is a battle-tested, “from the outside-in” playbook I use when a production Firebase ⇄ Google-OAuth flow suddenly breaks. Follow it in order; stop as soon as the sign-in succeeds.
+
+0 Print this checklist and start a log
+
+Create a scratch doc called auth-debug-YYYY-MM-DD.md and record:
+
+time/date of every test run
+URL you launched (copy-paste from address bar)
+exact error e.code, e.message, e.customData
+A written log keeps you from chasing your tail and lets you roll back confidently.
+
+1 Snapshot the suspects (Δ introduced last 24 h)
+
+Δ in last 24 h	How to capture a snapshot
+🔐 API key reset	Firebase Project settings → General → copy the new Web API Key into your log
+🌐 Domains added/removed	Auth → Settings → Authorized domains → export the list (screenshot or CSV)
+🔧 Code/commit changes	Tag the last-known-good commit (git tag auth-OK-2024-06-08) and the current head (auth-BROKEN-2024-06-09)
+⚙️ RLS / backend rules	Copy firestore.rules, storage.rules, or Supabase SQL to the log
+⚙️ Google OAuth client ID added	In the Google provider modal copy the Web client ID now displayed
+Now you can always get back to the “good” state.
+
+2 Console sanity sweep (takes 3 min)
+
+Provider ↔ client match
+Auth → Sign-in method → Google → scroll down.
+Web client ID must exactly match the one under Project settings → General → Your apps → Web.
+Click Save even if you changed nothing – this forces Firebase to re-sync with Google Cloud.
+Authorized domains
+Your list shows a mix of:
+fairshare-7f83a.firebaseapp.com (default)
+fairshare-7f83a.web.app (default)
+multiple Replit sub-domains
+fairshare.my (custom)
+Action: open your deployed site in a new Chrome tab, copy everything between https:// and the next /, and confirm it is in the list verbatim. If not, Add domain → Save.
+Check for API-key restrictions
+In Google Cloud Console → APIs & Services → Credentials select the new Web API Key. Under Key restrictions choose None while debugging. A wrongly-restricted key yields auth/internal-error.
+3 Client-side quick test (10 lines, no framework)
+
+Create bare.html inside the repl and paste:
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: 'YOUR_NEW_KEY',
+    authDomain: 'fairshare-7f83a.firebaseapp.com',
+    projectId: 'fairshare-7f83a',
+    appId: 'APP_ID',
+  };
+  firebase.initializeApp(firebaseConfig);
+  const provider = new firebase.auth.GoogleAuthProvider();
+  document.addEventListener('click', async () => {
+    try { await firebase.auth().signInWithPopup(provider); alert('✅ success'); }
+    catch (e) { console.error(e); alert(e.code); }
+  });
+</script>
+Click anywhere to sign in
+Run → open in a new window (not the preview iframe).
+
+Result	Interpretation
+Popup shows Google chooser → sign-in succeeds	React/Vite env variables or iframe preview are the culprit; continue to Step 5
+auth/operation-not-allowed	Provider toggle disabled – repeat Step 2-1
+auth/internal-error	Domain or key mismatch – repeat Step 2 & 3
+4 Network-level confirmation (if still broken)
+
+Open browser DevTools → Network → filter oauth2.
+You should see a request to:
+https://accounts.google.com/o/oauth2/v2/auth?...&redirect_uri=https://fairshare-7f83a.firebaseapp.com/__/auth/handler
+
+If redirect_uri ≠ *.firebaseapp.com/__/auth/handler, your authDomain was edited in code – revert it.
+If the request 302-redirects back to Google with origin_mismatch or disallowed_useragent, your current host is not in Authorized domains.
+5 Patch the actual app
+
+Update env/secrets in Replit
+Secrets → paste the new VITE_FIREBASE_API_KEY, commit & redeploy.
+Use redirect inside the preview pane
+When debugging in the Replit iframe call:
+await signInWithRedirect(auth, provider);
+then handle getRedirectResult in a useEffect that runs once.
+Purge caches & service-workers
+Application tab → Service Workers → Unregister.
+Hard-refresh (CMD + SHIFT + R) to stop old JS bundles from calling the dead API key.
+6 Rollback experiment
+
+If you’re still stuck:
+
+Experiment	Expected
+Switch back to yesterday’s commit with the old API key	If sign-in works, the key reset is the only issue → propagate new key correctly
+Create a brand-new Firebase project (takes 90 sec)	If sign-in works instantly, console settings in the original project are mis-aligned
+7 Once fixed—lock it down again
+
+Remove any temporary “None” API-key restriction by allowing only:
+HTTP referrers → fairshare.my, fairshare-7f83a.web.app, your fixed Replit deployment URL.
+Delete stray Replit sub-domains from Authorized domains to avoid future phantom failures.
+Add a health-check route (/auth/ping) that runs signInWithCustomToken every deploy so you know immediately when auth breaks again.
+Why this plan works
+We check the minimum viable surface first (provider toggle + domains).
+A one-page sandbox isolates code errors from console mis-configs.
+Network tab reveals the real OAuth error Google sends (Firebase collapses many into internal-error).
+Rollback/new-project tests let you prove which single change broke the flow.
+Work through the list, note each outcome in your log, and you’ll nail the root cause without guess-and-check fatigue. Ping me with the first step that doesn’t behave as expected and we’ll zoom in there.

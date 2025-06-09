@@ -113,6 +113,9 @@ app.use((req, res, next) => {
   next();
 });
 
+// Serve static files (including bare.html test)
+app.use(express.static('.'));
+
 (async () => {
   const server = await registerRoutes(app);
 
