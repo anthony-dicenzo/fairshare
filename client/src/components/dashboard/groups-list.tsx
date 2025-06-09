@@ -76,11 +76,23 @@ export function GroupsList() {
 
   // Seed cache for initial data (above-the-fold)
   useEffect(() => {
+    console.log('CLIENT: useEffect triggered for initialData', { 
+      hasInitialData: !!initialData, 
+      groupsLength: initialData?.groups?.length, 
+      userId: user?.id,
+      groups: initialData?.groups?.map(g => ({ id: g.id, name: g.name, balance: g.balance }))
+    });
     seedBalanceCache(initialData?.groups || [], 'initialData');
   }, [initialData, user?.id]);
 
   // Seed cache for full data when it loads  
   useEffect(() => {
+    console.log('CLIENT: useEffect triggered for fullData', { 
+      hasFullData: !!fullData, 
+      groupsLength: fullData?.groups?.length, 
+      userId: user?.id,
+      groups: fullData?.groups?.map(g => ({ id: g.id, name: g.name, balance: g.balance }))
+    });
     seedBalanceCache(fullData?.groups || [], 'fullData');
   }, [fullData, user?.id]);
   
