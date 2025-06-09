@@ -162,29 +162,13 @@ export function GroupsList() {
                         </p>
                       </div>
                     </div>
-                    {/* Only show balance if it's available (not available in ultra-fast loading) */}
-                    {'balance' in group ? (
-                      <div className="text-right ml-2 flex-shrink-0">
-                        <p className={`text-xs sm:text-sm font-medium ${
-                          (group as any).balance > 0 
-                            ? "text-emerald-500 dark:text-emerald-400" 
-                            : "text-rose-500 dark:text-rose-400"
-                        }`}>
-                          {(group as any).balance > 0 ? "+" : ""}${Math.abs((group as any).balance).toFixed(2)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {(group as any).balance > 0 ? "You are owed" : "You owe"}
-                        </p>
-                      </div>
-                    ) : (
-                      /* Show a loading placeholder when we have minimal data without balances */
-                      <div className="text-right ml-2 flex-shrink-0">
-                        <div className="animate-pulse">
-                          <div className="h-4 w-12 bg-gray-200 rounded mb-1"></div>
-                          <div className="h-3 w-10 bg-gray-200 rounded"></div>
-                        </div>
-                      </div>
-                    )}
+                    <div className="text-right ml-2 flex-shrink-0">
+                      <BalancePill 
+                        balance={'balance' in group ? (group as any).balance : undefined}
+                        isLoading={!('balance' in group)}
+                        className="text-xs sm:text-sm font-medium"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

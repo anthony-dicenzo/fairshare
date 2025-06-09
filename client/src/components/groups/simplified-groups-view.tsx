@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { GroupForm } from "@/components/groups/group-form";
 import { Plus } from "lucide-react";
+import { BalancePill } from "@/components/ui/balance-pill";
 
 // Define the number of groups to show initially
 const INITIAL_GROUPS_COUNT = 10;
@@ -160,25 +161,11 @@ export function SimplifiedGroupsView() {
                 </div>
               </div>
               <div className="text-right">
-                {!isSettled && (
-                  <>
-                    <p className="text-xs mb-1">
-                      {userOwes ? (
-                        <span className="text-rose-500">you owe</span>
-                      ) : (
-                        <span className="text-green-600">you're owed</span>
-                      )}
-                    </p>
-                    <p className={`font-medium ${userOwes ? "text-rose-500" : "text-green-600"}`}>
-                      ${Math.abs(balance).toFixed(2)}
-                    </p>
-                  </>
-                )}
-                {isSettled && (
-                  <p className="text-sm text-green-600 font-medium">
-                    $0.00
-                  </p>
-                )}
+                <BalancePill 
+                  balance={balance}
+                  isLoading={false}
+                  className="text-sm font-medium"
+                />
               </div>
             </div>
           );
