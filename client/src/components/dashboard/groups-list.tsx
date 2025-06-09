@@ -40,12 +40,42 @@ export function GroupsList() {
     queryKey: ["/api/groups", { limit: INITIAL_GROUPS_COUNT, offset: 0, aboveTheFold: true }],
     staleTime: 10000, // Keep this data fresh for 10 seconds
   });
+
+  // Seed balance cache when groups with balance data are loaded
+  useEffect(() => {
+    if (initialData?.groups) {
+      initialData.groups.forEach(group => {
+        if (group.balance !== undefined) {
+          queryClient.setQueryData(["/api/groups", group.id, "balances"], [{ 
+            userId: 1, // This will be the current user's balance
+            balance: group.balance,
+            user: { id: 1, name: "User" }
+          }]);
+        }
+      });
+    }
+  }, [initialData]);
+
+  // Also seed cache for full data when it loads
+  useEffect(() => {
+    if (fullData?.groups) {
+      fullData.groups.forEach(group => {
+        if (group.balance !== undefined) {
+          queryClient.setQueryData(["/api/groups", group.id, "balances"], [{ 
+            userId: 1, // This will be the current user's balance
+            balance: group.balance,
+            user: { id: 1, name: "User" }
+          }]);
+        }
+      });
+    }
+  }, [fullData]);
   
   // Get the total count from either query
   const totalCount = initialData?.totalCount || minimalData?.totalCount || 0;
   
   // Step 3: Fetch all loaded groups based on the visibleGroups count (deferred)
-  const { data, isLoading } = useQuery<{ 
+  const { data: fullData, isLoading } = useQuery<{ 
     groups: (Group & { balance?: number; memberCount?: number })[], 
     totalCount: number 
   }>({

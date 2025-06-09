@@ -17,7 +17,7 @@ import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { Link } from "wouter";
 import { GroupInvite } from "@/components/groups/group-invite";
 
-import { apiRequest, getAuthHeaders } from "@/lib/queryClient";
+import { apiRequest, getAuthHeaders, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -266,7 +266,7 @@ export default function GroupPage() {
     setIsLoadingMorePayments(false);
   }, [fetchNextPaymentPage, hasNextPaymentPage, isFetchingNextPaymentPage]);
 
-  // Fetch group balances - keep existing structure but optimize for no-zero flash
+  // Fetch group balances - with instant display using cached data and navigation state
   const { 
     data: balances = [], 
     isLoading: isLoadingBalances,
@@ -274,11 +274,31 @@ export default function GroupPage() {
   } = useQuery({
     queryKey: [`/api/groups/${groupIdStr}/balances`],
     enabled: groupId > 0 && !!group,
-    staleTime: 0,
-    gcTime: 0,
+    staleTime: 30000, // Keep data fresh for 30 seconds, same as groups list
+    gcTime: 300000, // Keep in cache for 5 minutes
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
-    refetchOnReconnect: true
+    refetchOnReconnect: true,
+    // Use cached data or navigation state as initial value for instant display
+    initialData: () => {
+      // First, try to get from React Query cache (seeded by groups list)
+      const cachedBalances = queryClient.getQueryData([`/api/groups/${groupIdStr}/balances`]);
+      if (cachedBalances) {
+        return cachedBalances;
+      }
+      
+      // Fallback to navigation state if available
+      if (preloadedBalance !== undefined) {
+        return [{ 
+          userId: 1, // Current user
+          balance: preloadedBalance,
+          user: { id: 1, name: "User" }
+        }];
+      }
+      
+      // No initial data available
+      return undefined;
+    }
   });
   
   // Set persistent notification when group is newly created

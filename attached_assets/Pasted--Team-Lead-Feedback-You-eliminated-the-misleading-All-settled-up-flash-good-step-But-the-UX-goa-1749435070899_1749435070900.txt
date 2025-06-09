@@ -1,0 +1,52 @@
+🟥 Team-Lead Feedback
+You eliminated the misleading “All settled up” flash—good step.
+But the UX goal is still to show the real number immediately, not a skeleton.
+Splitwise never shows a placeholder when the balance is already known from the list; it simply carries that value into the detail screen.
+
+🔑 What’s Missing
+
+preloadedBalance never reaches React-Query
+We pass balance through Link state, but the balance query on the Group page doesn’t use it as initialData.
+So React-Query starts with undefined → Skeleton, then refetches → real number.
+queryClient cache not shared
+When Groups list is fetched we receive [group, balance], but we don’t seed ['balance', groupId] cache.
+Result: first Group visit always fetches again.
+🟩 Final Fix – Show Balance Instantly
+
+1️⃣ Seed cache when Groups list is loaded
+// after we successfully fetch groups list:
+const { data: groups } = useQuery(['groups'], fetchGroups, {
+  onSuccess: groups => {
+    groups.forEach(g =>
+      queryClient.setQueryData(['balance', g.id], g.balance)
+    );
+  },
+});
+2️⃣ Inject initialData on Group page
+const { state } = useLocation() as { preloadedBalance?: number };
+
+const { data: balance } = useQuery(
+  ['balance', groupId],
+  () => api.getBalance(groupId),
+  {
+    // use pre-seeded cache OR Link state as initial value
+    initialData: () =>
+      queryClient.getQueryData(['balance', groupId]) ??
+      state?.preloadedBalance,
+    staleTime: 30_000,          // same as list
+  }
+);
+3️⃣ BalancePill logic
+if (balance === undefined) return <Skeleton … />;
+return balance === 0
+  ? <span>All settled up</span>
+  : <span>You owe ${Math.abs(balance)}</span>;
+4️⃣ Navigation state remains
+<Link to={`/groups/${g.id}`} state={{ preloadedBalance: g.balance }}>
+  …
+</Link>
+5️⃣ Quick Acceptance Test
+Cold reload Home → balances appear.
+Click a group → exact same balance shows instantly, no skeleton.
+DevTools “Network” shows no /balance call until staleTime expires or an expense is mutated.
+Mutate expense → React-Query invalidates ['balance', groupId]; detail pill updates without page reload.
