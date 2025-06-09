@@ -38,7 +38,7 @@ export function SimplifiedGroupsList({
     groups.forEach(group => {
       if (group.balance !== undefined && group.id) {
         const balanceData = [{ userId: user.id, balance: group.balance }];
-        queryClient.setQueryData([`/api/groups/${group.id}/balances`], balanceData);
+        queryClient.setQueryData(['balance', group.id], balanceData);
         console.log(`CACHE SEED (${source}): Seeded balance for group ${group.id} (${group.name}): ${group.balance}`);
       }
     });
