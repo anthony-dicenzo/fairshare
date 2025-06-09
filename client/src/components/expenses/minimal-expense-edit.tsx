@@ -208,16 +208,14 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
     try {
       const groupIdStr = groupId.toString();
       
-      // NUCLEAR OPTION: Remove all balance cache entries completely
-      queryClient.removeQueries({ predicate: (query) => {
-        const key = query.queryKey[0] as string;
-        return key.includes('balances') || key.includes('balance');
-      }});
-      
-      // Clear all group-specific queries
-      queryClient.removeQueries({ queryKey: [`/api/groups/${groupIdStr}/balances`] });
-      queryClient.removeQueries({ queryKey: [`/api/groups/${groupIdStr}/expenses`] });
-      queryClient.removeQueries({ queryKey: [`/api/expenses/${expenseId}`] });
+      // Use correct cache keys for consistent invalidation
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/expenses`] }),
+        queryClient.invalidateQueries({ queryKey: ['balance', groupId] }),
+        queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/activity`] }),
+        queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}`] }),
+        queryClient.invalidateQueries({ queryKey: [`/api/expenses/${expenseId}`] })
+      ]);
       
       // Force backend to recalculate balances
       await apiRequest('POST', `/api/groups/${groupId}/refresh-balances`);
@@ -292,21 +290,21 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
       });
 
       // Optimistically update balances - reverse the expense effect
-      if (expenseData && user?.id) {
+      if (expense && user?.id) {
         queryClient.setQueryData(['balance', groupId], (old: any) => {
           if (!old || !Array.isArray(old)) return old;
           
           return old.map((balance: any) => {
             if (balance.userId === user?.id) {
               // Find user's participation in this expense
-              const userParticipant = expenseData.participants?.find((p: any) => p.userId === user?.id);
+              const userParticipant = expense.participants?.find((p: any) => p.userId === user?.id);
               if (!userParticipant) return balance;
               
               const amountOwed = parseFloat(userParticipant.amountOwed || "0");
               
               // Reverse the expense effect: if user paid, they lose the credit; if user owed, they gain back the debt
-              const balanceChange = expenseData.paidBy === user?.id 
-                ? -(parseFloat(expenseData.totalAmount) - amountOwed) // User loses credit for paying
+              const balanceChange = expense.paidBy === user?.id 
+                ? -(parseFloat(expense.totalAmount) - amountOwed) // User loses credit for paying
                 : amountOwed; // User gains back what they owed
               
               return {
