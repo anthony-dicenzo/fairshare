@@ -278,7 +278,47 @@ export default function GroupPage() {
     refetch: refetchBalances 
   } = useQuery({
     queryKey: ['balance', groupId],
-    queryFn: () => fetch(`/api/groups/${groupId}/balances`).then(res => res.json()),
+    queryFn: async () => {
+      const authHeaders = getAuthHeaders();
+      let response = await fetch(`/api/groups/${groupId}/balances`, {
+        headers: authHeaders,
+        credentials: "include",
+      });
+      
+      // If unauthorized, try backup authentication
+      if (response.status === 401) {
+        try {
+          const authData = localStorage.getItem("fairshare_auth_state");
+          if (authData) {
+            const parsed = JSON.parse(authData);
+            if (parsed.userId && parsed.sessionId) {
+              const backupRes = await fetch(`/api/users/${parsed.userId}`, {
+                headers: {
+                  "X-Session-Backup": parsed.sessionId
+                },
+                credentials: "include"
+              });
+              
+              if (backupRes.ok) {
+                // Retry the original request
+                response = await fetch(`/api/groups/${groupId}/balances`, {
+                  headers: getAuthHeaders(),
+                  credentials: "include",
+                });
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Backup auth failed:", e);
+        }
+      }
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch balances: ${response.status}`);
+      }
+      
+      return response.json();
+    },
     enabled: groupId > 0 && !!group,
     staleTime: 30000, // Keep data fresh for 30 seconds, same as groups list
     gcTime: 300000, // Keep in cache for 5 minutes
