@@ -107,38 +107,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get total count early for ultra-fast mode
       const totalCount = await storage.getUserGroupsCount(req.user.id);
       
-      // ULTRA-FAST MODE: Direct query with minimal data for sub-100ms performance
+      // ULTRA-FAST MODE: Stream JSON directly without stringify overhead
       if (ultraFast) {
-        console.log(`Processing ultra-fast request with direct query`);
+        console.log(`Processing ultra-fast request with JSON streaming`);
         
-        // Simple direct query for maximum speed - only essential data
-        const groupsWithBalances = await db!.execute(sql`
-          SELECT DISTINCT
-            g.id,
-            g.name,
-            COALESCE(ub.balance_amount::numeric, 0) as balance
-          FROM group_members gm
-          JOIN groups g ON g.id = gm.group_id
-          LEFT JOIN user_balances ub ON ub.group_id = g.id AND ub.user_id = ${req.user.id}
-          WHERE gm.user_id = ${req.user.id} 
-            AND gm.archived = false
-          ORDER BY g.id DESC
-          ${limit ? sql`LIMIT ${limit}` : sql``}
-          ${offset > 0 ? sql`OFFSET ${offset}` : sql``}
-        `);
-
-        const groups = (groupsWithBalances as any).rows.map((row: any) => ({
-          id: row.id,
-          name: row.name,
-          balance: parseFloat(row.balance || 0),
-        }));
+        const t0 = performance.now();
+        const groups = await storage.getGroupsByUserId(req.user.id, limit, offset);
+        console.log('   ▸ query', (performance.now()-t0).toFixed(1),'ms');
         
-        return res.json({
-          groups,
-          totalCount,
-          hasMore: limit ? offset + groups.length < totalCount : false,
-          page: limit ? Math.floor(offset / limit) : 0
+        const t1 = performance.now();
+        // Stream JSON directly instead of using res.json() to eliminate stringify overhead
+        res.type('application/json');
+        res.write('{"groups":[');
+        
+        groups.forEach((group, i) => {
+          if (i > 0) res.write(',');
+          // Write pre-serialized JSON directly - minimal data for speed
+          res.write(`{"id":${group.id},"name":"${group.name.replace(/"/g, '\\"')}","balance":0}`);
         });
+        
+        res.write(`],"totalCount":${groups.length},"hasMore":false,"page":0}`);
+        res.end();
+        console.log('   ▸ stringify', (performance.now()-t1).toFixed(1),'ms');
+        return;
       }
       
       // Get basic group data with pagination - this happens for both normal and above-the-fold

@@ -46,6 +46,16 @@ app.use(securityHeaders);
 app.use(sanitizeInput);
 app.use(dbHealthCheck);
 
+// Performance timing middleware to measure request latency
+app.use((req, res, next) => {
+  res.locals.start = process.hrtime.bigint();
+  res.on('finish', () => {
+    const ms = Number(process.hrtime.bigint() - res.locals.start) / 1e6;
+    console.log(req.path, '→', ms.toFixed(1), 'ms');
+  });
+  next();
+});
+
 // Apply rate limiting to API routes (exclude health endpoint)
 app.use('/api/', (req, res, next) => {
   if (req.path === '/api/health') {
