@@ -1,40 +1,43 @@
-# Firebase Domain Authorization Fix
+# Firebase Authentication Fix - API Key Restrictions
 
-## Problem
-Firebase authentication fails because the browser uses the internal Replit domain instead of the external workspace domain.
+## Root Cause Identified
+The authentication fails due to **API key HTTP referrer restrictions** in Google Cloud Console, not just Firebase domain authorization.
 
-**Current Issue:**
-- Browser is on: `b00299a8-cf16-482d-a828-34e450b5e513-00-3su5zumoc8bsv.janeway.replit.dev`
-- Firebase expects: `workspace.adicenzo1.repl.co`
+**Status:**
+- ✅ Firebase domains are properly configured (internal domain added)
+- ❌ Google Cloud API key restricts the current domain
+- ❌ Browser cannot access Firebase APIs (network errors)
 
-## Solution
-Add the internal Replit domain to Firebase's authorized domains.
+## Critical Fix Required
 
-### Step 1: Access Firebase Console
-1. Go to https://console.firebase.google.com
-2. Select your project: **fairshare-7f83a**
+### Step 1: Access Google Cloud Console
+1. Go to https://console.cloud.google.com
+2. Select project: **fairshare-7f83a**
+3. Navigate to **APIs & Services** → **Credentials**
 
-### Step 2: Add Authorized Domain
-1. Navigate to **Authentication** → **Settings** → **Authorized domains**
-2. Click **Add domain**
-3. Add: `b00299a8-cf16-482d-a828-34e450b5e513-00-3su5zumoc8bsv.janeway.replit.dev`
+### Step 2: Find and Edit Firebase API Key
+1. Look for API key starting with `AIzaSyDNsYRVOJ0...`
+2. Click the **Edit** button (pencil icon)
 
-### Step 3: Test Authentication
-After adding the domain, test the Google sign-in button again.
+### Step 3: Fix API Key Restrictions
+**Current Problem:** The API key likely has "HTTP referrers" restriction that doesn't include the Replit domain.
 
-## Alternative: Access via External Domain
-Instead of using the internal domain, access your app at:
-**https://workspace.adicenzo1.repl.co**
+**Solution Options:**
+1. **Temporarily remove restrictions:** Change "Application restrictions" to "None" 
+2. **Add specific domain:** Add `b00299a8-cf16-482d-a828-34e450b5e513-00-3su5zumoc8bsv.janeway.replit.dev/*` to HTTP referrer list
 
-This should work since that domain is already authorized in Firebase.
+### Step 4: Save and Test
+1. Click **Save**
+2. Wait 5 minutes for changes to propagate
+3. Test Google sign-in again
 
-## Current Authorized Domains
-Your Firebase project currently has these domains authorized:
-- localhost
-- fairshare-7f83a.firebaseapp.com
-- fairshare-7f83a.web.app
-- fairshare.my
-- replit.com
-- fair-split-buddy-backup-pre-pwa-changes-adicenzo1.replit.app
-- workspace.adicenzo1.repl.co
-- (Need to add) b00299a8-cf16-482d-a828-34e450b5e513-00-3su5zumoc8bsv.janeway.replit.dev
+## Alternative Solution
+Access your app at the external domain: **https://workspace.adicenzo1.repl.co**
+
+This domain should already be properly configured in both Firebase and Google Cloud.
+
+## Verification
+If the fix works, you should see:
+- No more `auth/internal-error`
+- Firebase API test passes
+- Google sign-in completes successfully
