@@ -110,16 +110,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Use raw SQL with minimal overhead for maximum speed
         const result = await db!.execute(sql`
-          SELECT json_agg(row_json ORDER BY last_expense_at DESC NULLS LAST) as groups_json
-          FROM dashboard_groups 
-          WHERE user_id = ${req.user.id}
-          ${limit ? sql`LIMIT ${limit}` : sql``}
-          ${offset > 0 ? sql`OFFSET ${offset}` : sql``}
+          SELECT json_agg(
+            json_build_object(
+              'id', group_id,
+              'name', name,
+              'balance', my_balance,
+              'lastExpenseAt', last_expense_at,
+              'recentCount', recent_expense_count
+            ) ORDER BY last_expense_at DESC NULLS LAST
+          ) as groups_json
+          FROM (
+            SELECT * FROM dashboard_groups 
+            WHERE user_id = ${req.user.id}
+            ORDER BY last_expense_at DESC NULLS LAST
+            ${limit ? sql`LIMIT ${limit}` : sql``}
+            ${offset > 0 ? sql`OFFSET ${offset}` : sql``}
+          ) grouped_data
         `);
         
         // Direct JSON response with minimal processing
-        const rows = (result as any).rows || [];
-        const groupsJson = rows[0]?.groups_json || [];
+        const rows = Array.isArray(result) ? result : (result as any).rows || [];
+        const firstRow = rows[0];
+        const groupsJsonString = firstRow?.groups_json;
+        const groupsJson = groupsJsonString ? JSON.parse(groupsJsonString) : [];
         const groupCount = groupsJson?.length || 0;
         
         res.setHeader('Content-Type', 'application/json');
