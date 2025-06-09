@@ -203,58 +203,40 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
     // Only depend on expenseParticipants, not amount - this prevents a circular dependency
   }, [expenseParticipants]);
 
-  // Helper to invalidate queries after updates
+  // Helper to invalidate queries after updates with aggressive cache clearing
   const invalidateQueries = async () => {
     try {
-      // First, explicitly refresh the balances
+      const groupIdStr = groupId.toString();
+      
+      // STEP 1: Clear all relevant cache entries immediately
+      queryClient.removeQueries({ queryKey: [`/api/groups/${groupIdStr}/balances`] });
+      queryClient.removeQueries({ queryKey: ["/api/balances"] });
+      queryClient.removeQueries({ queryKey: [`/api/groups/${groupIdStr}/expenses`] });
+      queryClient.removeQueries({ queryKey: [`/api/expenses/${expenseId}`] });
+      queryClient.removeQueries({ queryKey: [`/api/expenses/${expenseId}/participants`] });
+      
+      // STEP 2: Force invalidation with refetch
+      await queryClient.invalidateQueries({ 
+        queryKey: [`/api/groups/${groupIdStr}/balances`],
+        refetchType: 'active'
+      });
+      
+      // STEP 3: Explicitly refresh balances on backend
       await apiRequest('POST', `/api/groups/${groupId}/refresh-balances`);
       
-      // Invalidate the specific expense queries
-      queryClient.invalidateQueries({ queryKey: [`/api/expenses/${expenseId}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/expenses/${expenseId}/participants`] });
+      // STEP 4: Force refetch with fresh data
+      await queryClient.refetchQueries({ 
+        queryKey: [`/api/groups/${groupIdStr}/balances`],
+        type: 'active'
+      });
       
-      // Invalidate general queries
+      // STEP 5: Invalidate all other related queries
       queryClient.invalidateQueries({ queryKey: ["/api/balances"] });
       queryClient.invalidateQueries({ queryKey: ["/api/activity"] });
       queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
-      
-      // For group-specific queries, ensure proper invalidation
-      const groupIdStr = groupId.toString();
       queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}`] });
-      
-      // For expense deletion specifically, we need to update the group expenses cache
-      // This is important for immediate UI updates
-      if (deleteExpenseMutation.isPending || deleteExpenseMutation.isSuccess) {
-        // When deleting an expense, we need to update the cache directly
-        // Get the current expenses data from the cache
-        const expensesQueryKey = [`/api/groups/${groupIdStr}/expenses`];
-        const previousData = queryClient.getQueryData(expensesQueryKey);
-        
-        if (previousData) {
-          // For infinite queries, we need to update the pages
-          queryClient.setQueryData(expensesQueryKey, (oldData: any) => {
-            if (!oldData || !oldData.pages) return oldData;
-            
-            // Filter out the deleted expense from each page
-            const updatedPages = oldData.pages.map((page: any) => ({
-              ...page,
-              expenses: page.expenses.filter((expense: any) => expense.id !== expenseId)
-            }));
-            
-            return {
-              ...oldData,
-              pages: updatedPages
-            };
-          });
-        }
-      }
-      
-      // Always invalidate the expenses query to ensure data consistency
       queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/expenses`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/balances`] });
       
-      // Force a refetch of all queries for data consistency
-      queryClient.invalidateQueries();
     } catch (error) {
       console.error('Failed to refresh data:', error);
     }
