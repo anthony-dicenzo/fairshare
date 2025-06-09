@@ -28,9 +28,9 @@ export default function GroupPage() {
   const { toast } = useToast();
   
   // Get preloaded balance from navigation state (no-zero flash implementation)
-  const location = useLocation();
-  const navigationState = location[0] && typeof location[0] === 'object' && 'state' in location[0] ? location[0].state : null;
-  const preloadedBalance = navigationState?.preloadedBalance;
+  const [pathname] = useLocation();
+  // Access state via history API since wouter doesn't expose it directly
+  const preloadedBalance = typeof window !== 'undefined' ? window.history.state?.preloadedBalance : undefined;
   
   // Safely extract the group ID from params
   const groupId = params && params.id ? parseInt(params.id) : 0;
@@ -266,7 +266,7 @@ export default function GroupPage() {
     setIsLoadingMorePayments(false);
   }, [fetchNextPaymentPage, hasNextPaymentPage, isFetchingNextPaymentPage]);
 
-  // Fetch group balances with preloaded data to prevent zero flash
+  // Fetch group balances - keep existing structure but optimize for no-zero flash
   const { 
     data: balances = [], 
     isLoading: isLoadingBalances,
@@ -274,7 +274,6 @@ export default function GroupPage() {
   } = useQuery({
     queryKey: [`/api/groups/${groupIdStr}/balances`],
     enabled: groupId > 0 && !!group,
-    initialData: preloadedBalance !== undefined ? [{ userId: user?.id, balance: preloadedBalance }] : undefined,
     staleTime: 0,
     gcTime: 0,
     refetchOnMount: 'always',

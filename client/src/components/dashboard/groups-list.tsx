@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect } from "react";
 import { GroupForm } from "../groups/group-form";
 import { queryClient } from "@/lib/queryClient";
+import { BalancePill } from "@/components/ui/balance-pill";
 
 // Define the number of groups to show initially (above the fold)
 const INITIAL_GROUPS_COUNT = 3;

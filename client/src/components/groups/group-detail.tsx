@@ -2,6 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/use-auth";
 import { Separator } from "@/components/ui/separator";
+import { BalancePill } from "@/components/ui/balance-pill";
 
 type GroupDetailProps = {
   group: {
@@ -70,24 +71,13 @@ export function GroupDetail({ group, members = [], balances = [], expenses = [],
             
             <div className="bg-fairshare-primary/5 rounded-lg p-3">
               <h3 className="text-xs font-medium mb-2 text-fairshare-dark/70">
-                {userBalance > 0 
-                  ? "You Are Owed" 
-                  : userBalance < 0 
-                    ? "You Owe" 
-                    : "Your Balance"}
+                Your Balance
               </h3>
-              <p className={`text-xl font-semibold ${
-                userBalance > 0 
-                  ? "text-emerald-500" 
-                  : userBalance < 0 
-                    ? "text-rose-500" 
-                    : "text-fairshare-primary"
-              }`}>
-                {userBalance > 0 ? "+" : userBalance < 0 ? "-" : ""}${Math.abs(Number(userBalance)).toFixed(2)}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {Math.abs(Number(userBalance)) < 0.01 ? "All settled up" : "Total balance"}
-              </p>
+              <BalancePill 
+                balance={userBalance} 
+                isLoading={false}
+                className="text-xl font-semibold"
+              />
             </div>
           </div>
           
