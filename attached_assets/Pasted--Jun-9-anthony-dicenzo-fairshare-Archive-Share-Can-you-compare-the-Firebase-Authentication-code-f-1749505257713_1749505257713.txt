@@ -1,0 +1,63 @@
+
+Jun 9
+anthony-dicenzo/fairshare
+
+Archive
+
+Share
+
+Can you compare the Firebase Authentication code from 9 days ago to the authentication code pushed to Git yesterday? We're having issues with Firebase Authentication as of yesterday's deployment and we're not sure why.
+Copy
+Notes
+
+The authentication logic changed after 5/31. Notably, commit a37dcbc (June 8) updated client API endpoints from /api/login and /api/register to /api/auth/login and /api/auth/register:
+
+- const res = await fetch("/api/login", { … });
++ const res = await fetch("/api/auth/login", { … });
+
+- const res = await apiRequest("POST", "/api/register", userData);
++ const res = await apiRequest("POST", "/api/auth/register", userData);
+
+Server-side authentication (server/auth.ts) also changed. Older code used a single password format and had fallback defaults:
+
+const [hashed, salt] = stored.split(".");
+const hashedBuf = Buffer.from(hashed, "hex");
+const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+return timingSafeEqual(hashedBuf, suppliedBuf);
+…
+const sessionSecret = process.env.SESSION_SECRET || 'fairshare-session-secret';
+
+Yesterday’s code (commit 2d04eed) added support for legacy bcrypt hashes, enforced that SESSION_SECRET must be set, changed the authentication endpoints to use /api/auth/*, and expanded header-based auth:
+
+async function comparePasswords(supplied: string, stored: string) {
+  // Handle both old (bcrypt-style) and new (scrypt) password formats
+  if (stored.includes(".") && stored.length > 100) {
+    …
+  } else {
+    const bcrypt = require('bcrypt');
+    …
+  }
+}
+
+export function setupAuth(app: Express) {
+  const sessionSecret = process.env.SESSION_SECRET;
+  if (!sessionSecret) {
+    console.error('❌ SESSION_SECRET environment variable is required for secure sessions');
+    throw new Error('SESSION_SECRET must be set in environment variables');
+  }
+  …
+  app.post("/api/auth/register", async (req, res, next) => { … });
+  …
+  app.post("/api/auth/login", (req, res, next) => { … });
+  …
+  app.post("/api/auth/logout", (req, res, next) => { … });
+  …
+  // Check for backup auth headers (case insensitive)
+  const userId = req.headers['x-user-id'] || req.headers['X-User-Id'];
+  const sessionToken = req.headers['x-session-backup'] || req.headers['X-Session-Backup'];
+  …
+  // Set the user directly on the request object and create a custom isAuthenticated method
+  req.user = user;
+  req.isAuthenticated = () => true;
+
+These changes introduced stricter password handling and different endpoint paths. If Firebase authentication began failing after the June 8 commit, ensure clients now request /api/auth/login and /api/auth/register, and verify SESSION_SECRET is properly configured. The new header-based auth behavior and bcrypt fallback may also affect token validation.
