@@ -107,17 +107,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get total count early for ultra-fast mode
       const totalCount = await storage.getUserGroupsCount(req.user.id);
       
-      // ULTRA-FAST MODE: Return groups with minimal data (no balances, no member counts)
-      // This is extremely fast (<100ms) and used for immediate rendering
+      // ULTRA-FAST MODE: Use materialized view for sub-100ms performance
       if (ultraFast) {
-        console.log(`Processing ultra-fast request for up to ${limit || 'all'} groups`);
+        console.log(`Processing ultra-fast request using materialized view`);
         
-        // Get basic group data with pagination - this is very fast as it's a simple SQL query
-        const groups = await storage.getGroupsByUserId(req.user.id, limit, offset);
+        // Query the materialized view directly for maximum speed
+        const dashboardData = await storage.db!.execute(sql`
+          SELECT 
+            group_id as id,
+            name,
+            balance,
+            expense_count,
+            last_expense_at
+          FROM dashboard_balances 
+          WHERE user_id = ${req.user.id}
+          ORDER BY last_expense_at DESC NULLS LAST
+          ${limit ? sql`LIMIT ${limit}` : sql``}
+          ${offset > 0 ? sql`OFFSET ${offset}` : sql``}
+        `);
+
+        const groups = dashboardData.rows.map((row: any) => ({
+          id: row.id,
+          name: row.name,
+          balance: parseFloat(row.balance),
+          expenseCount: row.expense_count,
+          lastExpenseAt: row.last_expense_at,
+        }));
         
-        // Skip all extra processing and return immediately
         return res.json({
-          groups, // Return just the basic group data
+          groups,
           totalCount,
           hasMore: limit ? offset + groups.length < totalCount : false,
           page: limit ? Math.floor(offset / limit) : 0

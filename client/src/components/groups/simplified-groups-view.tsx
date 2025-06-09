@@ -32,13 +32,14 @@ export function SimplifiedGroupsView() {
     })
   });
   
-  // Fetch groups with faster load
+  // Fetch groups with ultra-fast materialized view query
   const { data: groupsData, isLoading } = useQuery<{ 
     groups: (Group & { balance?: number; memberCount?: number })[], 
     totalCount: number 
   }>({
-    queryKey: ["/api/groups", { limit: visibleGroups, offset: 0, includeCounts: true }],
-    staleTime: 10000, // Keep this data fresh for 10 seconds
+    queryKey: ["/api/groups", { limit: visibleGroups, offset: 0, ultraFast: true }],
+    staleTime: 30_000, // Cache for 30 seconds with ultra-fast mode
+    gcTime: 60_000,
   });
   
   // Hide skeleton after data is loaded
