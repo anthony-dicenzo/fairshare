@@ -33,6 +33,9 @@ export default function DomainDebugPage() {
       // Test Firebase Identity Toolkit directly from browser
       const API_KEY = import.meta.env.VITE_FIREBASE_API_KEY;
       
+      // Test 1: Basic API access
+      console.log('Testing Firebase API from current domain:', window.location.origin);
+      
       const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:createAuthUri?key=${API_KEY}`, {
         method: 'POST',
         headers: {
@@ -53,7 +56,13 @@ export default function DomainDebugPage() {
         setTestResult(`✅ Firebase API accessible from browser. Auth URI: ${data.authUri?.substring(0, 50)}...`);
       } else {
         const errorText = await response.text();
-        setTestResult(`❌ Firebase API error: ${response.status} - ${errorText.substring(0, 200)}`);
+        console.log('Firebase API Error Response:', errorText);
+        
+        if (response.status === 403) {
+          setTestResult(`❌ API key restricted for domain ${window.location.hostname}. Check Google Cloud Console API key restrictions.`);
+        } else {
+          setTestResult(`❌ Firebase API error: ${response.status} - ${errorText.substring(0, 200)}`);
+        }
       }
     } catch (error: any) {
       setTestResult(`❌ Network error: ${error.message}`);
