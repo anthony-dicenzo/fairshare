@@ -16,8 +16,15 @@ const app = express();
 // PRODUCTION FIX: Disable ETag generation to prevent 304 responses
 app.set('etag', false);
 
-// Performance optimizations
-app.use(compression());
+// Performance optimizations - aggressive compression for sub-100ms target
+app.use(compression({
+  level: 6,
+  threshold: 1024,
+  filter: (req, res) => {
+    if (req.headers['x-no-compression']) return false;
+    return compression.filter(req, res);
+  }
+}));
 app.use((_, res, next) => { 
   res.set('Connection', 'keep-alive'); 
   next(); 

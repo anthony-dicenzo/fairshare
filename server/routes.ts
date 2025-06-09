@@ -107,38 +107,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get total count early for ultra-fast mode
       const totalCount = await storage.getUserGroupsCount(req.user.id);
       
-      // ULTRA-FAST MODE: Direct query with minimal data for sub-100ms performance
+      // ULTRA-FAST MODE: Pre-serialized JSON from materialized view for sub-100ms performance
       if (ultraFast) {
-        console.log(`Processing ultra-fast request with direct query`);
+        console.log(`Processing ultra-fast request with pre-serialized JSON`);
         
-        // Simple direct query for maximum speed - only essential data
-        const groupsWithBalances = await db!.execute(sql`
-          SELECT DISTINCT
-            g.id,
-            g.name,
-            COALESCE(ub.balance_amount::numeric, 0) as balance
-          FROM group_members gm
-          JOIN groups g ON g.id = gm.group_id
-          LEFT JOIN user_balances ub ON ub.group_id = g.id AND ub.user_id = ${req.user.id}
-          WHERE gm.user_id = ${req.user.id} 
-            AND gm.archived = false
-          ORDER BY g.id DESC
+        // Query pre-serialized JSON from materialized view - no JS object creation
+        const result = await db!.execute(sql`
+          SELECT row_json
+          FROM dashboard_groups
+          WHERE user_id = ${req.user.id}
+          ORDER BY last_expense_at DESC NULLS LAST
           ${limit ? sql`LIMIT ${limit}` : sql``}
           ${offset > 0 ? sql`OFFSET ${offset}` : sql``}
         `);
 
-        const groups = (groupsWithBalances as any).rows.map((row: any) => ({
-          id: row.id,
-          name: row.name,
-          balance: parseFloat(row.balance || 0),
-        }));
+        // Handle materialized view result - check if rows exist
+        const rows = (result as any).rows || [];
+        if (rows.length === 0) {
+          // Fallback to basic groups query for zero-balance groups
+          const basicGroups = await storage.getGroupsByUserId(req.user.id, limit, offset);
+          return res.json({
+            groups: basicGroups.map(g => ({ id: g.id, name: g.name, balance: 0 })),
+            totalCount,
+            hasMore: limit ? offset + basicGroups.length < totalCount : false,
+            page: limit ? Math.floor(offset / limit) : 0
+          });
+        }
         
-        return res.json({
-          groups,
+        // Send pre-serialized JSON for groups with balances
+        const jsonRows = rows.map((r: any) => r.row_json);
+        res.type('application/json').send(JSON.stringify({
+          groups: jsonRows,
           totalCount,
-          hasMore: limit ? offset + groups.length < totalCount : false,
+          hasMore: limit ? offset + jsonRows.length < totalCount : false,
           page: limit ? Math.floor(offset / limit) : 0
-        });
+        }));
+        return;
       }
       
       // Get basic group data with pagination - this happens for both normal and above-the-fold

@@ -1,0 +1,117 @@
+Team-Lead Reality Check
+We’re still 2-3× slower than spec and the home page can occasionally blank. “Production-ready” means:
+
+Cold-start “/api/groups” ≤ 100 ms p95 (seeded dataset, dev laptop).
+Home/dashboard renders on first paint—never stalls or shows blank.
+Add/Delete expense round-trip ≤ 150 ms (DB + API + UI).
+250–300 ms is a huge improvement—but not enough. Below are fresh, practical techniques that will bring us under 100 ms without adding exotic infra. Each is incremental and testable.
+
+1. Query-Sidecuts: Return exactly one short row per group
+
+❌ “SELECT * FROM dashboard_balances …” still widens payloads.
+✅ Push all summarisation into SQL so the wire payload is < 1 KB:
+
+CREATE MATERIALIZED VIEW dashboard_groups AS
+SELECT
+  ub.user_id,
+  ub.group_id,
+  g.name,
+  g.icon,
+  ub.balance          AS my_balance,
+  MAX(e.created_at)   AS last_expense_at,
+  COUNT(*) FILTER (WHERE e.created_at > now() - interval '30 days') AS recent_expense_count
+FROM user_balances   ub
+JOIN groups          g  ON g.id = ub.group_id
+LEFT JOIN expenses   e  ON e.group_id = ub.group_id
+GROUP BY ub.user_id, ub.group_id, g.name, g.icon;
+One SELECT, no JOIN in request path.
+
+2. Hot-patch materialised view instead of full refresh
+
+Every expense mutation already occurs in a transaction. Append one UPDATE to that transaction so the MV stays hot:
+
+UPDATE dashboard_groups
+SET  my_balance = new_balance,
+     last_expense_at = now(),
+     recent_expense_count = recent_expense_count + 1
+WHERE user_id = current_user AND group_id = :gid;
+→ No REFRESH MATERIALIZED VIEW, no invalidation cost. Single row update ≤ 2 ms.
+
+3. Use pgBouncer – transaction pool (5-line docker-compose)
+
+Right now each HTTP call = new Postgres connection (TLS + auth handshake ≈ 40-70 ms).
+Drop in pgBouncer in transaction mode, keep 50 pooled sessions:
+
+services:
+  pgbouncer:
+    image: edoburu/pgbouncer
+    environment:
+      DATABASE_URL: postgres://user:pass@db:5432/app
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 200
+      DEFAULT_POOL_SIZE: 50
+Express ➜ pgBouncer (persistent) ➜ Postgres. Instantly saves ~50 ms per request.
+
+4. Turn on HTTP/2 + gzip once, then stop touching the stack
+
+Use Node’s built-in http2 server (still works with Express via express-http2-workaround). Parallel multiplexing shaves RTT on first page-load.
+
+5. Pre-serialize JSON in SQL (no JS stringify)
+
+For /api/groups you’re still running res.json(bigObj) which stringifies in JS. Serialize in Postgres:
+
+SELECT json_build_object(
+  'id', group_id,
+  'name', name,
+  'icon', icon,
+  'balance', my_balance,
+  'lastExpense', last_expense_at
+) AS row_json
+FROM dashboard_groups
+WHERE user_id = $1
+ORDER BY last_expense_at DESC;
+In Node:
+
+const { rows } = await db.query(sql);     // rows = [{row_json: {...}}, ...]
+res.type('application/json').send(
+  `[${rows.map(r => r.row_json).join(',')}]`
+);
+No JS object creation --> saves ~40 ms for 10 groups.
+
+6. Indexed-only scans
+
+Ensure every column referenced in the MV or where-clause is part of its covering index:
+
+CREATE INDEX IF NOT EXISTS idx_dashgrp_cover
+  ON dashboard_groups (user_id, group_id, last_expense_at, my_balance);
+EXPLAIN (ANALYZE,BUFFERS) must show “Index Only Scan” and “Buffers: shared hit” > 99 %.
+
+7. Client Bundling
+
+Home page blank likely equals JS bundle > 1 MB.
+– Split react-query dev tools, chart libs into lazy chunks.
+– Add React.lazy(() => import('./GroupCharts')) for heavy graphs.
+First paint becomes HTML + hero CSS; JS chunks stream after.
+
+Expected Timing after these changes
+Segment	ms
+pgBouncer connection reuse	-60
+Index-only single-row fetch	20
+JSON pre-serialise in SQL	-40
+Gzip + HTTP/2 transfer	-20
+Total	≈ 90 ms
+(Tested routinely on mid-tier VPS.)
+
+🔨 Developer Work Orders (one PR each)
+
+Implement dashboard_groups MV & single-row update trigger.
+Wire Express to pgBouncer container; remove direct DB env var.
+Rewrite /api/groups to SELECT row_json as above (no JS stringify).
+Add index idx_dashgrp_cover; verify with EXPLAIN.
+Swap Node server to HTTP/2 + gzip once benchmarks are clean.
+Bundle-split home page; measure Largest Contentful Paint.
+Re-benchmark: autocannon -d 30 -c 20 http://localhost:5000/api/groups – post p95.
+Only merge when p95 ≤ 100 ms and LCP < 1 s on cold cache.
+
+For Management
+These optimisations are conventional, zero-risk, and don’t add new correctness surfaces. They eliminate remaining latency without more hardware. Green-light when the posted p95 log shows ≤ 100 ms and the blank home page is gone.
