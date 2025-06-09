@@ -1312,34 +1312,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Balance routes - TEMPORARILY DISABLED CACHE FOR DEBUGGING
+  // Balance routes - CACHE DISABLED FOR TRANSACTIONAL TESTING
   app.get("/api/balances", async (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     
     try {
-      console.log("Fetching balances directly from database (cache disabled)");
+      console.log("Fetching balances from transactional balance table");
       
-      // FORCE: Always use direct database calculation for now to eliminate cache issues
+      // Use transactional balance data (updated by createExpenseWithBalances/deleteExpenseWithBalances)
       const balances = await storage.getUserCachedTotalBalance(req.user.id);
       res.json(balances);
-      
-      // Apply pagination manually if needed
-      if (limit !== undefined) {
-        balances.owedByUsers = balances.owedByUsers.slice(offset, offset + limit);
-        balances.owesToUsers = balances.owesToUsers.slice(offset, offset + limit);
-      }
-      
-      if (aboveTheFold) {
-        // Add total counts for pagination UI
-        res.json({
-          ...balances,
-          totalOwedByCount: balances.owedByUsers.length,
-          totalOwesToCount: balances.owesToUsers.length
-        });
-      } else {
-        res.json(balances);
-      }
     } catch (error) {
+      console.error("Error fetching balances:", error);
       res.status(500).json({ error: "Failed to fetch balances" });
     }
   });
