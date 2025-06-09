@@ -273,6 +273,7 @@ export default function GroupPage() {
     refetch: refetchBalances 
   } = useQuery({
     queryKey: ['balance', groupId],
+    queryFn: () => fetch(`/api/groups/${groupId}/balances`).then(res => res.json()),
     enabled: groupId > 0 && !!group,
     staleTime: 30000, // Keep data fresh for 30 seconds, same as groups list
     gcTime: 300000, // Keep in cache for 5 minutes
@@ -287,8 +288,8 @@ export default function GroupPage() {
       }
       
       // Fallback to navigation state if available (already in array format)
-      if (location.state?.preload) {
-        return location.state.preload;
+      if (typeof window !== 'undefined' && (window.history.state as any)?.preload) {
+        return (window.history.state as any).preload;
       }
       
       // No initial data available
