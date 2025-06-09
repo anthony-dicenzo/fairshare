@@ -12,6 +12,9 @@ console.log('✅ Server starting with validated environment configuration');
 
 const app = express();
 
+// PRODUCTION FIX: Disable ETag generation to prevent 304 responses
+app.set('etag', false);
+
 // Security middleware - applied first
 app.use(helmet({
   contentSecurityPolicy: {

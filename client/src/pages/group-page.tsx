@@ -261,18 +261,20 @@ export default function GroupPage() {
     setIsLoadingMorePayments(false);
   }, [fetchNextPaymentPage, hasNextPaymentPage, isFetchingNextPaymentPage]);
 
-  // Fetch group balances - with aggressive refresh strategy
+  // Fetch group balances - ZERO CACHE for production consistency
   const { 
     data: balances = [], 
     isLoading: isLoadingBalances,
     refetch: refetchBalances 
   } = useQuery({
-    queryKey: [`/api/groups/${groupIdStr}/balances`],
+    queryKey: [`/api/groups/${groupIdStr}/balances`, Date.now()], // Timestamp prevents caching
     enabled: groupId > 0 && !!group,
     staleTime: 0,
+    gcTime: 0, // No caching whatsoever (updated from cacheTime)
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
-    refetchOnReconnect: true
+    refetchOnReconnect: true,
+    retry: false // Immediate failure rather than stale data
   });
   
   // Set persistent notification when group is newly created

@@ -1,0 +1,60 @@
+Critical Team Lead Review: FairShare Balance Issue
+
+Summary of the Real Situation
+Backend integrity is necessary, but not sufficient.
+“Database is correct” is not the end goal—the user experience is the source of truth.
+If the UI ever shows stale, inconsistent, or contradictory balances, the app is not production ready.
+Caching issues are not a “minor frontend bug.”
+They’re fundamental, especially when your app’s trust and user value depend on accuracy and immediacy.
+Different users seeing different balances in a two-person group is never acceptable.
+This is a critical failure. In any two-party ledger, User 1’s “owes” must match User 2’s “owed” (with inverse sign).
+If that’s ever not true—regardless of backend or cache state—the system is not reliable, and not safe for real money or real users.
+React Query’s “304 Not Modified” is a symptom, not the disease.
+If after “cache clearing,” forced refreshes, and refetches, the UI still shows different balances for two users, the caching solution is not working, or there’s a deeper bug in the way state is managed or mapped in the frontend.
+Production-Ready means every user, every device, every refresh, every time, sees the correct, current balance.
+“Works on my machine after a forced refresh” is not good enough.
+What’s Actually Happening?
+The backend may be writing correct balances, but the frontend is not reliably, consistently presenting that data to users.
+React Query’s cache is not being invalidated or refetched in all relevant situations, and/or there is a timing or race condition in when data is read vs. written.
+The “comprehensive invalidation” may not cover all edge cases—e.g., parallel tab/window updates, mid-session user switches, network lag, etc.
+The fact that User 1 and User 2 see different balances is a canary: either the cache is split by user, or stale state is being delivered from memory/session, not the actual API/database.
+Blunt Reality
+If a user ever sees a wrong balance—even for a moment—the system is not production-ready.
+The persistence of this issue after “fixes” means the integration between backend, cache, and UI still has fundamental flaws.
+Declaring this “frontend only” or “not a big deal” is, respectfully, missing the point for a financial platform.
+Next Steps – Developer Instructions
+
+Reproduce and Document the Exact Discrepancy
+With only two users in a group, perform a series of expense/add/delete operations. Take screenshots and log database states and frontend displays for both users, before and after operations.
+Note: If balances ever differ for two users, that’s a critical bug.
+Isolate the Source of Divergence
+Audit the API calls and their responses after each operation.
+Confirm that both users’ UIs are getting the same, correct response from the API after any balance change.
+If the API is returning different values to each user, investigate API logic and data source.
+If the API returns correct data but the UI shows stale info, instrument (log, debug) React Query’s cache keys and state.
+Eliminate All Local/Session Caching for Balances in All Browsers/Devices
+Temporarily disable React Query’s cache for all balance queries.
+Fetch balances directly from the API/database after every expense/payment change.
+The UI must always reflect the current database state, every time, for both users, after every operation.
+Implement and Test Synchronous Balance Updates
+When an expense or payment is added/deleted, both users should see the correct new balance immediately (within a reasonable API round trip).
+Refresh both user UIs and verify.
+Only Restore Caching When It is Proven Bulletproof
+Only re-enable caching with strict, reliable invalidation after comprehensive end-to-end testing—across devices, sessions, and simultaneous users.
+Regression Test
+Run a full regression: Create a group, add both users, perform dozens of operations, and verify that balances are always the exact inverse for two users, and correct for all.
+Conclusion for Management
+We cannot ship or call this production-ready until:
+
+All users, at all times, see the same, correct, up-to-date balances—no matter their device or session.
+There is zero possibility of stale, split, or contradictory ledger states.
+Anything less is a hard stop. The risk to user trust and platform integrity is too high.
+
+Developer Prompt:
+
+Do not consider this app production-ready. The balance display bug is critical, not cosmetic.
+Your immediate task is to eliminate any scenario where users see different or outdated balances.
+Disable all caching for balances until this is fixed.
+Ensure all balance reads always reflect the true database state.
+Once balances are always correct for all users, only then revisit caching—with bulletproof invalidation and full regression testing.
+This is the highest priority until resolved.

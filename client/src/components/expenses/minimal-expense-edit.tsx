@@ -203,39 +203,27 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
     // Only depend on expenseParticipants, not amount - this prevents a circular dependency
   }, [expenseParticipants]);
 
-  // Helper to invalidate queries after updates with aggressive cache clearing
+  // PRODUCTION FIX: Force fresh balance data after operations
   const invalidateQueries = async () => {
     try {
       const groupIdStr = groupId.toString();
       
-      // STEP 1: Clear all relevant cache entries immediately
+      // NUCLEAR OPTION: Remove all balance cache entries completely
+      queryClient.removeQueries({ predicate: (query) => {
+        const key = query.queryKey[0] as string;
+        return key.includes('balances') || key.includes('balance');
+      }});
+      
+      // Clear all group-specific queries
       queryClient.removeQueries({ queryKey: [`/api/groups/${groupIdStr}/balances`] });
-      queryClient.removeQueries({ queryKey: ["/api/balances"] });
       queryClient.removeQueries({ queryKey: [`/api/groups/${groupIdStr}/expenses`] });
       queryClient.removeQueries({ queryKey: [`/api/expenses/${expenseId}`] });
-      queryClient.removeQueries({ queryKey: [`/api/expenses/${expenseId}/participants`] });
       
-      // STEP 2: Force invalidation with refetch
-      await queryClient.invalidateQueries({ 
-        queryKey: [`/api/groups/${groupIdStr}/balances`],
-        refetchType: 'active'
-      });
-      
-      // STEP 3: Explicitly refresh balances on backend
+      // Force backend to recalculate balances
       await apiRequest('POST', `/api/groups/${groupId}/refresh-balances`);
       
-      // STEP 4: Force refetch with fresh data
-      await queryClient.refetchQueries({ 
-        queryKey: [`/api/groups/${groupIdStr}/balances`],
-        type: 'active'
-      });
-      
-      // STEP 5: Invalidate all other related queries
-      queryClient.invalidateQueries({ queryKey: ["/api/balances"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/activity"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
-      queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupIdStr}/expenses`] });
+      // Invalidate everything related to this group
+      queryClient.invalidateQueries();
       
     } catch (error) {
       console.error('Failed to refresh data:', error);

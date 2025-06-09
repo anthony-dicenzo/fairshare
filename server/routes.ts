@@ -1331,6 +1331,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/groups/:id/balances", async (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     
+    // CRITICAL: Completely disable all caching for balance data
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'Surrogate-Control': 'no-store',
+    });
+    
+    // Remove ETag to prevent 304 responses
+    res.removeHeader('ETag');
+    res.removeHeader('Last-Modified');
+    
     try {
       const groupId = parseInt(req.params.id);
       
@@ -1342,27 +1354,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "You are not a member of this group" });
       }
       
-      // Try to get cached balances first
-      try {
-        const cachedBalances = await storage.getCachedGroupBalances(groupId);
-        res.json(cachedBalances);
-        return;
-      } catch (cacheError) {
-        console.log(`Cache miss or error for group ${groupId} balances, falling back to calculated balances`, cacheError);
-      }
-      
-      // Fallback to calculated balances if there's a cache miss
+      // FORCE: Always read from transactional balance table, NO CACHE
+      console.log(`Force fetching fresh balance data for group ${groupId}`);
       const balances = await storage.getGroupBalances(groupId);
       
-      // Try to update the cache for next time
-      try {
-        await storage.updateAllBalancesInGroup(groupId);
-      } catch (updateError) {
-        console.log(`Failed to update balance cache for group ${groupId}`, updateError);
-      }
-      
+      // Send raw balance data with timestamp
       res.json(balances);
     } catch (error) {
+      console.error("Error fetching group balances:", error);
       res.status(500).json({ error: "Failed to fetch group balances" });
     }
   });
