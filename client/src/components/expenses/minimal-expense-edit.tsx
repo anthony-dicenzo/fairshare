@@ -275,11 +275,11 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
       // Cancel queries to prevent race conditions
       const groupIdStr = groupId.toString();
       await queryClient.cancelQueries({ queryKey: [`/api/groups/${groupIdStr}/expenses`] });
-      await queryClient.cancelQueries({ queryKey: [`/api/groups/${groupIdStr}/balances`] });
+      await queryClient.cancelQueries({ queryKey: ['balance', groupId] });
 
       // Snapshot previous values for rollback
       const previousExpenses = queryClient.getQueryData([`/api/groups/${groupIdStr}/expenses`]);
-      const previousBalances = queryClient.getQueryData([`/api/groups/${groupIdStr}/balances`]);
+      const previousBalances = queryClient.getQueryData(['balance', groupId]);
 
       // Optimistically remove expense from list
       queryClient.setQueryData([`/api/groups/${groupIdStr}/expenses`], (old: any) => {
@@ -290,6 +290,35 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
           totalCount: Math.max(0, (old.totalCount || 0) - 1),
         };
       });
+
+      // Optimistically update balances - reverse the expense effect
+      if (expenseData && user?.id) {
+        queryClient.setQueryData(['balance', groupId], (old: any) => {
+          if (!old || !Array.isArray(old)) return old;
+          
+          return old.map((balance: any) => {
+            if (balance.userId === user?.id) {
+              // Find user's participation in this expense
+              const userParticipant = expenseData.participants?.find((p: any) => p.userId === user?.id);
+              if (!userParticipant) return balance;
+              
+              const amountOwed = parseFloat(userParticipant.amountOwed || "0");
+              
+              // Reverse the expense effect: if user paid, they lose the credit; if user owed, they gain back the debt
+              const balanceChange = expenseData.paidBy === user?.id 
+                ? -(parseFloat(expenseData.totalAmount) - amountOwed) // User loses credit for paying
+                : amountOwed; // User gains back what they owed
+              
+              return {
+                ...balance,
+                balance: (parseFloat(balance.balance) + balanceChange).toString(),
+                isOptimistic: true,
+              };
+            }
+            return balance;
+          });
+        });
+      }
 
       return { previousExpenses, previousBalances, groupIdStr };
     },
@@ -305,13 +334,13 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
       if (context?.groupIdStr) {
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: [`/api/groups/${context.groupIdStr}/expenses`] }),
-          queryClient.invalidateQueries({ queryKey: [`/api/groups/${context.groupIdStr}/balances`] }),
+          queryClient.invalidateQueries({ queryKey: ['balance', groupId] }),
           queryClient.invalidateQueries({ queryKey: [`/api/groups/${context.groupIdStr}/activity`] }),
           queryClient.invalidateQueries({ queryKey: [`/api/groups/${context.groupIdStr}`] })
         ]);
         
         // Force immediate refetch of balances
-        await queryClient.refetchQueries({ queryKey: [`/api/groups/${context.groupIdStr}/balances`] });
+        await queryClient.refetchQueries({ queryKey: ['balance', groupId] });
       }
       
       queryClient.invalidateQueries({ queryKey: ["/api/balances"] });
@@ -322,7 +351,7 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
         queryClient.setQueryData([`/api/groups/${context.groupIdStr}/expenses`], context.previousExpenses);
       }
       if (context?.previousBalances) {
-        queryClient.setQueryData([`/api/groups/${context.groupIdStr}/balances`], context.previousBalances);
+        queryClient.setQueryData(['balance', groupId], context.previousBalances);
       }
       
       toast({
