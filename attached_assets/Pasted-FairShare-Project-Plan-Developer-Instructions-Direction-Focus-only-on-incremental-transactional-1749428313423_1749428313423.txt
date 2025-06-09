@@ -1,0 +1,54 @@
+FairShare Project Plan – Developer Instructions
+
+Direction:
+Focus only on incremental, transactional balance updates and UI responsiveness.
+Do not attempt global optimizations, background jobs, or experimental features until the basics are proven, tested, and stable.
+
+Step-by-Step Implementation Plan for Developer
+1. Transactional, Incremental Balances Only
+
+All expense/payment creates, edits, and deletes must update the relevant group/user balances summary table within the same database transaction.
+No full recalculation or background jobs in the main flow.
+Balance logic should be well-documented, with clear code for each operation.
+2. Remove Out-of-Scope/Experimental Code
+
+Delete or comment out any old incremental balance code, background workers, full recalculation hooks, or “eventual consistency” attempts.
+Make sure only the new approach is live.
+3. UI Reads From Precomputed Balances Only
+
+The React frontend should display balances solely from the summary table, not by querying or calculating on the fly.
+If a user performs an expense/payment operation, immediately update the UI (optimistic update) and roll back only if the transaction fails.
+4. Strict RLS Policies on Balances Table
+
+Keep Row Level Security active on the balances summary table.
+Only allow group members to read their own group’s balances.
+5. Write Comprehensive Automated Tests
+
+Unit and integration tests for:
+Adding, editing, deleting expenses/payments (single and bulk).
+Simultaneous changes by multiple users (simulate concurrency).
+Ensuring no mismatch between expenses and balances.
+Performance: All operations must complete in <200ms even for large groups.
+6. Incremental, Reviewable Delivery
+
+Each step should be completed as a separate pull request or commit, with a clear description and passing tests.
+No merging of changes without passing all relevant tests and review.
+If a step breaks a user-facing feature, revert and fix before proceeding.
+7. Regular Communication
+
+Post updates at the end of each day: what was implemented, what was tested, what’s next, and any blockers.
+If unsure if something is in-scope or high-priority, stop and ask for clarification before starting.
+Copy-Ready Developer Prompt
+FairShare – Focused Developer Instructions
+
+You are to implement only the following, in this order, without deviation or premature optimization:
+
+Implement incremental, transactional updates to the balances summary table for all expense and payment operations (create, edit, delete). Each change must occur in the same transaction as the source change.
+Remove all code for background recalculation, incremental caching, or other out-of-scope optimizations from the production codebase.
+Ensure the frontend only reads balances from the summary table. All UI updates should be immediate and rolled back on backend failure.
+Maintain strict RLS policies: Only group members can read balances for their groups.
+Write and run automated tests for all balance scenarios, concurrency, and edge cases. All tests must pass before shipping.
+Work incrementally. Each change should be a separate PR/commit with description and test coverage. Get code review before merging.
+Communicate progress daily. If in doubt about scope or next steps, ask before proceeding.
+Do not add background jobs, complex caching, or global recalculation. Focus on this new, tested, transactional approach.
+

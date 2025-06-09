@@ -16,6 +16,12 @@ import {
 } from "@shared/schema";
 import { db, pool } from "./db";
 import { eq, and, desc, asc, inArray, or, sql } from "drizzle-orm";
+import { 
+  calculateExpenseBalanceChanges, 
+  applyBalanceChanges, 
+  reverseExpenseBalanceChanges,
+  type ExpenseBalanceData 
+} from "./balance-service.js";
 
 export interface IStorage {
   // User operations
@@ -1083,8 +1089,21 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createExpense(expenseData: InsertExpense): Promise<Expense> {
-    const result = await db.insert(expenses).values(expenseData).returning();
-    return result[0];
+    if (!db) {
+      throw new Error('Database not available');
+    }
+
+    // Use database transaction for atomic balance updates
+    return await db.transaction(async (tx) => {
+      // Create the expense
+      const result = await tx.insert(expenses).values(expenseData).returning();
+      const expense = result[0];
+
+      // Note: Balance updates will be handled after participants are added in the routes layer
+      // This ensures we have complete participant data for accurate balance calculations
+      
+      return expense;
+    });
   }
   
   async getExpensesByGroupId(groupId: number, limit?: number, offset: number = 0): Promise<Expense[]> {
