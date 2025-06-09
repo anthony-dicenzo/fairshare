@@ -64,20 +64,15 @@ try {
 // Create the Drizzle ORM instance with fresh schema
 export const db = client ? drizzle(client, { schema, logger: false }) : null;
 
-// High-performance PostgreSQL pool for sub-100ms targets
+// Create a PostgreSQL pool for session store compatibility
 let poolInstance = null;
 try {
   poolInstance = new Pool({ 
     connectionString,
     ssl: { rejectUnauthorized: false },
-    max: 50,                    // Aggressive connection pooling
-    min: 20,                    // Keep warm connections
-    connectionTimeoutMillis: 1000,  // Ultra-fast connection timeout
-    idleTimeoutMillis: 5000,    // Quick connection recycling
-    statement_timeout: 3000,    // Fast query timeout
-    query_timeout: 3000         // Aggressive query timeout
+    connectionTimeoutMillis: 10000
   });
-  console.log('Successfully initialized high-performance database pool');
+  console.log('Successfully initialized database pool');
 } catch (error) {
   console.error('Failed to initialize database pool:', error instanceof Error ? error.message : String(error));
 }

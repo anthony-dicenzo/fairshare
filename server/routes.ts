@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { db, pool } from "./db";
+import { db } from "./db";
 import { setupAuth } from "./auth";
 import { sql } from "drizzle-orm";
 import { 
@@ -104,50 +104,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const aboveTheFold = req.query.aboveTheFold === 'true';
       const ultraFast = req.query.ultraFast === 'true';
       
-      // ULTRA-FAST MODE: Single query for sub-100ms performance
-      if (ultraFast) {
-        console.log(`Processing ultra-fast request with direct SQL query`);
-        
-        // Use raw SQL with minimal overhead for maximum speed
-        const result = await db!.execute(sql`
-          SELECT json_agg(
-            json_build_object(
-              'id', group_id,
-              'name', name,
-              'balance', my_balance,
-              'lastExpenseAt', last_expense_at,
-              'recentCount', recent_expense_count
-            ) ORDER BY last_expense_at DESC NULLS LAST
-          ) as groups_json
-          FROM (
-            SELECT * FROM dashboard_groups 
-            WHERE user_id = ${req.user.id}
-            ORDER BY last_expense_at DESC NULLS LAST
-            ${limit ? sql`LIMIT ${limit}` : sql``}
-            ${offset > 0 ? sql`OFFSET ${offset}` : sql``}
-          ) grouped_data
-        `);
-        
-        // Direct JSON response with minimal processing
-        const rows = Array.isArray(result) ? result : (result as any).rows || [];
-        const firstRow = rows[0];
-        const groupsJsonString = firstRow?.groups_json;
-        const groupsJson = groupsJsonString ? JSON.parse(groupsJsonString) : [];
-        const groupCount = groupsJson?.length || 0;
-        
-        res.setHeader('Content-Type', 'application/json');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.end(JSON.stringify({
-          groups: groupsJson,
-          totalCount: groupCount,
-          hasMore: false,
-          page: 0
-        }));
-        return;
-      }
-      
-      // Get total count for normal mode
+      // Get total count early for ultra-fast mode
       const totalCount = await storage.getUserGroupsCount(req.user.id);
+      
+      // ULTRA-FAST MODE: Direct query with minimal data for sub-100ms performance
+      if (ultraFast) {
+        console.log(`Processing ultra-fast request with direct query`);
+        
+        // Simple direct query for maximum speed - only essential data
+        const groupsWithBalances = await db!.execute(sql`
+          SELECT DISTINCT
+            g.id,
+            g.name,
+            COALESCE(ub.balance_amount::numeric, 0) as balance
+          FROM group_members gm
+          JOIN groups g ON g.id = gm.group_id
+          LEFT JOIN user_balances ub ON ub.group_id = g.id AND ub.user_id = ${req.user.id}
+          WHERE gm.user_id = ${req.user.id} 
+            AND gm.archived = false
+          ORDER BY g.id DESC
+          ${limit ? sql`LIMIT ${limit}` : sql``}
+          ${offset > 0 ? sql`OFFSET ${offset}` : sql``}
+        `);
+
+        const groups = (groupsWithBalances as any).rows.map((row: any) => ({
+          id: row.id,
+          name: row.name,
+          balance: parseFloat(row.balance || 0),
+        }));
+        
+        return res.json({
+          groups,
+          totalCount,
+          hasMore: limit ? offset + groups.length < totalCount : false,
+          page: limit ? Math.floor(offset / limit) : 0
+        });
+      }
       
       // Get basic group data with pagination - this happens for both normal and above-the-fold
       const groups = await storage.getGroupsByUserId(req.user.id, limit, offset);
