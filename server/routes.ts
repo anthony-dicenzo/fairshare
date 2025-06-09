@@ -1312,41 +1312,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Balance routes
+  // Balance routes - TEMPORARILY DISABLED CACHE FOR DEBUGGING
   app.get("/api/balances", async (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     
     try {
-      // Parse pagination parameters for optimized loading
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
-      const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
-      const aboveTheFold = req.query.aboveTheFold === 'true';
+      console.log("Fetching balances directly from database (cache disabled)");
       
-      // Try to get cached balances first with pagination support
-      try {
-        const cachedBalances = await storage.getUserCachedTotalBalance(req.user.id, limit, offset);
-        
-        if (aboveTheFold) {
-          // Add total counts for pagination UI
-          const totalOwedByCount = cachedBalances.owedByUsers.length;
-          const totalOwesToCount = cachedBalances.owesToUsers.length;
-          
-          // For above-the-fold, we might limit the users arrays but keep the total amounts
-          res.json({
-            ...cachedBalances,
-            totalOwedByCount,
-            totalOwesToCount
-          });
-        } else {
-          res.json(cachedBalances);
-        }
-        return;
-      } catch (cacheError) {
-        console.log("Cache miss or error, falling back to calculated balances", cacheError);
-      }
-      
-      // Fallback to calculated balances if there's a cache miss
-      const balances = await storage.getUserTotalBalance(req.user.id);
+      // FORCE: Always use direct database calculation for now to eliminate cache issues
+      const balances = await storage.getUserCachedTotalBalance(req.user.id);
+      res.json(balances);
       
       // Apply pagination manually if needed
       if (limit !== undefined) {

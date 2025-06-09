@@ -109,14 +109,36 @@ export async function applyBalanceChanges(
     // Skip zero changes for efficiency
     if (parseFloat(amountChange) === 0) continue;
 
-    await transaction.execute(sql`
-      INSERT INTO user_balances (user_id, group_id, balance_amount, last_updated)
-      VALUES (${userId}, ${groupId}, ${amountChange}, CURRENT_TIMESTAMP)
-      ON CONFLICT (user_id, group_id)
-      DO UPDATE SET 
-        balance_amount = (COALESCE(user_balances.balance_amount::decimal, 0) + ${amountChange})::text,
-        last_updated = CURRENT_TIMESTAMP
-    `);
+    // Use proper upsert pattern for balance updates
+    const existingBalance = await transaction
+      .select()
+      .from(userBalances)
+      .where(and(eq(userBalances.userId, userId), eq(userBalances.groupId, groupId)))
+      .limit(1);
+
+    if (existingBalance.length > 0) {
+      // Update existing balance
+      const currentBalance = parseFloat(existingBalance[0].balanceAmount);
+      const newBalance = (currentBalance + parseFloat(amountChange)).toFixed(2);
+      
+      await transaction
+        .update(userBalances)
+        .set({ 
+          balanceAmount: newBalance,
+          lastUpdated: new Date()
+        })
+        .where(and(eq(userBalances.userId, userId), eq(userBalances.groupId, groupId)));
+    } else {
+      // Insert new balance record
+      await transaction
+        .insert(userBalances)
+        .values({
+          userId,
+          groupId,
+          balanceAmount: amountChange,
+          lastUpdated: new Date()
+        });
+    }
   }
 }
 

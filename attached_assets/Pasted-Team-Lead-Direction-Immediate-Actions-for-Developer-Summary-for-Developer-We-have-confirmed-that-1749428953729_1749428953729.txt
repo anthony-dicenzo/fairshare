@@ -1,0 +1,50 @@
+Team Lead Direction – Immediate Actions for Developer
+
+Summary for Developer:
+We have confirmed that our new transactional balance system works at the database level, but the UI is displaying outdated information due to stale or improperly invalidated cached balances. The risk is high—users are seeing incorrect numbers, which undermines trust.
+
+What’s Next: Step-by-Step Fix Plan
+1. Audit the Balance Data Flow
+
+Trace the data flow for balances from database → cache → UI.
+Confirm whether the user_balances table is correct immediately after a transaction (e.g., directly query the DB after delete/add).
+2. Remove/Disable the Legacy Cache Layer for Balances
+
+Eliminate any remaining code or middleware that serves cached balances from the legacy system (including Redis/in-memory cache), at least for all read and write operations involving balances.
+Ensure all UI reads fetch balances directly from the user_balances summary table after a transaction.
+3. Fix/Replace Cache Invalidation
+
+If a cache is required for performance, rewrite the cache invalidation logic so it’s triggered inside the same transaction or immediately after a successful transaction.
+The invalidateAllGroupData(groupId) function must fully clear and repopulate the balance cache whenever a group’s balances change.
+Validate cache invalidation and repopulation with log statements.
+4. Update UI Data Source
+
+Double-check that the frontend only displays balances from the source updated by the transactional system (user_balances summary table), not from any disconnected cache or old logic.
+5. Test and Verify End-to-End
+
+After deleting or adding an expense, verify in logs, DB, and UI that the displayed balance matches the actual database state.
+Test with multiple users/groups to confirm there is no delay or mismatch.
+6. Remove All “Dual System” Code
+
+Remove any remaining references to the old balance cache logic that are not required for performance.
+Commit only once a single source of truth for balances is in use throughout the app.
+Copy-Ready Developer Prompt
+FairShare – Immediate Developer Action on Balance Consistency
+
+You must resolve the balance display inconsistency by aligning all cache and UI layers with the new transactional system. Execute the following steps in order:
+
+Audit and log the flow of balance data: After each transaction (expense create/delete), verify the user_balances table reflects the expected result. If not, debug the write operation.
+Remove all legacy cache references for balance data in both backend and frontend code. Do not serve balance data from any stale cache—temporarily disable Redis/in-memory cache for balances if needed.
+Update or rewrite cache invalidation:
+Ensure that after each successful transactional update, any cache storing balances is immediately and fully invalidated and refreshed from the current database state.
+Add detailed logging so we can see cache invalidation and repopulation steps in the logs.
+Point the UI directly to the live source of balance truth—the user_balances table that is updated by transactions. No dual-source logic should remain.
+Test end-to-end:
+Perform expense creation and deletion as multiple users.
+Confirm that the UI balance matches the database after every operation, with no delay.
+Remove/clean up all old balance cache or dual-system code. Only the new system should remain active.
+No new features or optimizations should be attempted until this single-source-of-truth balance flow is verified working and passing all end-to-end tests.
+
+If any step fails, stop and report before proceeding.
+If you’re unsure whether something is required, ask for review before merging.
+
