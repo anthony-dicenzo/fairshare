@@ -109,10 +109,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // ULTRA-FAST MODE: Stream JSON directly without stringify overhead
       if (ultraFast) {
+        const tStart = performance.now();
         console.log(`Processing ultra-fast request with JSON streaming`);
         
         const t0 = performance.now();
-        const groups = await storage.getGroupsByUserId(req.user.id, limit, offset);
+        const groups = await storage.getGroupsByUserId(req.user.id, limit || 10, offset);
         console.log('   ▸ query', (performance.now()-t0).toFixed(1),'ms');
         
         const t1 = performance.now();
@@ -127,8 +128,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         
         res.write(`],"totalCount":${groups.length},"hasMore":false,"page":0}`);
-        res.end();
         console.log('   ▸ stringify', (performance.now()-t1).toFixed(1),'ms');
+        console.log('   ▸ total', (performance.now()-tStart).toFixed(1),'ms');
+        res.end();
         return;
       }
       
@@ -1405,5 +1407,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  
+  // Optimize HTTP connections for sub-100ms performance
+  httpServer.keepAliveTimeout = 5000; // 5 seconds
+  httpServer.headersTimeout = 6000;   // 6 seconds (should be > keepAliveTimeout)
+  httpServer.timeout = 10000;         // 10 seconds request timeout
+  
   return httpServer;
 }
