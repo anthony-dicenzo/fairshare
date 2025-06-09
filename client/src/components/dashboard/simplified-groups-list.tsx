@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Group } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useAuth } from "@/hooks/use-auth";
 
 // Define the number of groups to show initially
 const INITIAL_GROUPS_COUNT = 5;
@@ -24,16 +25,47 @@ export function SimplifiedGroupsList({
   const [, setLocation] = useLocation();
   const [visibleGroups, setVisibleGroups] = useState(INITIAL_GROUPS_COUNT);
   const [showSkeleton, setShowSkeleton] = useState(true);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  
+  // Cache seeding function
+  const seedBalanceCache = (groups: any[], source: string) => {
+    if (!user?.id || !groups?.length) return;
+    
+    console.log(`CACHE SEED (${source}): Starting cache seeding for ${groups.length} groups`, 
+      groups.map(g => ({ id: g.id, name: g.name, balance: g.balance })));
+    
+    groups.forEach(group => {
+      if (group.balance !== undefined && group.id) {
+        const balanceData = [{ userId: user.id, balance: group.balance }];
+        queryClient.setQueryData([`/api/groups/${group.id}/balances`], balanceData);
+        console.log(`CACHE SEED (${source}): Seeded balance for group ${group.id} (${group.name}): ${group.balance}`);
+      }
+    });
+  };
   
   // Fetch groups with minimal data for faster load
   const { data: groupsData, isLoading } = useQuery<{ 
     groups: (Group & { balance?: number; memberCount?: number })[], 
     totalCount: number 
   }>({
-    queryKey: ["/api/groups", { limit: visibleGroups, offset: 0 }],
+    queryKey: ["/api/groups", { limit: visibleGroups, offset: 0, aboveTheFold: true }],
     staleTime: 10000, // Keep this data fresh for 10 seconds
   });
   
+  // Seed cache when groups data loads
+  useEffect(() => {
+    if (groupsData?.groups && user?.id) {
+      console.log('SIMPLIFIED: useEffect triggered for groupsData', { 
+        hasGroupsData: !!groupsData, 
+        groupsLength: groupsData.groups.length, 
+        userId: user.id,
+        groups: groupsData.groups.map(g => ({ id: g.id, name: g.name, balance: g.balance }))
+      });
+      seedBalanceCache(groupsData.groups, 'simplifiedGroupsData');
+    }
+  }, [groupsData, user?.id]);
+
   // Hide skeleton after data is loaded
   useEffect(() => {
     if (groupsData && !isLoading) {
