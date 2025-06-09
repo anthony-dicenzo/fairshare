@@ -174,6 +174,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Always include a consistent response format
+      console.log(`SERVER: Returning ${enhancedGroups.length} groups with balance data:`, 
+        enhancedGroups.map(g => ({ id: g.id, name: g.name, balance: g.balance })));
+      
       res.json({
         groups: enhancedGroups,
         totalCount: totalCount,
