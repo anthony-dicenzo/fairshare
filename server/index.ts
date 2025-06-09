@@ -9,6 +9,14 @@ import { dbHealthCheck, monitorConnections } from "./middleware/database";
 
 // Environment validation
 import { config } from '../config/environment';
+import fs from 'fs';
+import path from 'path';
+
+// Write Google Client ID to .env.local for Vite access
+const envLocalPath = path.resolve(process.cwd(), '.env.local');
+const envContent = `VITE_GOOGLE_CLIENT_ID=${process.env.GOOGLE_CLIENT_ID || ''}\n`;
+fs.writeFileSync(envLocalPath, envContent);
+
 console.log('✅ Server starting with validated environment configuration');
 
 const app = express();

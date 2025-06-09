@@ -46,7 +46,8 @@ try {
   
   // Add OAuth client ID and login parameters
   googleProvider.setCustomParameters({
-    prompt: 'select_account'
+    prompt: 'select_account',
+    client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
   });
   
   // Add OAuth scopes
