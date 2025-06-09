@@ -104,9 +104,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const aboveTheFold = req.query.aboveTheFold === 'true';
       const ultraFast = req.query.ultraFast === 'true';
       
-      // Get total count early for ultra-fast mode
-      const totalCount = await storage.getUserGroupsCount(req.user.id);
-      
       // ULTRA-FAST MODE: Stream JSON directly without stringify overhead
       if (ultraFast) {
         const tStart = performance.now();
