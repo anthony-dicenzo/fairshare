@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { FC, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { auth, googleProvider } from "@/lib/firebase";
-import { signInWithPopup, signInWithRedirect, getRedirectResult } from "firebase/auth";
+import { signInWithPopup } from "firebase/auth";
 import FirebaseDomainErrorGuide from "@/components/auth/firebase-domain-error-guide";
 import FirebaseOperationErrorGuide from "@/components/auth/firebase-operation-error-guide";
 
@@ -87,26 +87,19 @@ export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = ""
       if (error && typeof error === 'object' && 'code' in error) {
         const firebaseError = error as { code: string; message?: string };
         
-        console.error("Firebase error details:", {
-          code: firebaseError.code,
-          message: firebaseError.message,
-          currentDomain: window.location.hostname,
-          fullUrl: window.location.href
-        });
-        
         // Fire event and store error
         const errorEvent = new CustomEvent('firebase-auth-error', { 
           detail: { error: firebaseError } 
         });
         window.dispatchEvent(errorEvent);
         
-        if (firebaseError.code === 'auth/unauthorized-domain' || firebaseError.code === 'auth/internal-error') {
+        if (firebaseError.code === 'auth/unauthorized-domain') {
           setShowDomainError(true);
           localStorage.setItem('firebase_auth_error', firebaseError.code);
           
           toast({
             title: "Google Sign-In Failed",
-            description: "Domain authorization required. Please check Firebase console settings.",
+            description: "Your domain needs to be registered in Firebase. See instructions below.",
             variant: "destructive"
           });
           return;
