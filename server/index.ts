@@ -1,5 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import helmet from "helmet";
+import compression from "compression";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initializeBalanceCache } from "./init-balance-cache";
@@ -14,6 +15,13 @@ const app = express();
 
 // PRODUCTION FIX: Disable ETag generation to prevent 304 responses
 app.set('etag', false);
+
+// Performance optimizations
+app.use(compression());
+app.use((_, res, next) => { 
+  res.set('Connection', 'keep-alive'); 
+  next(); 
+});
 
 // Security middleware - applied first
 app.use(helmet({

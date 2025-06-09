@@ -1,0 +1,67 @@
+ Team-Lead Critical Feedback
+Good progress on eliminating the $0 flash and unifying every UI path to the single transactional balance source. Balances now agree across pages—this unblocks correctness.
+However, the performance target (< 100 ms on every balance-related request) is still unmet; some pages are taking 500 ms+. A financial app must feel instant. Correct + slow is not production-ready.
+
+🔑 Why We’re Still Seeing 500 ms+
+
+Un-indexed look-ups behind RLS
+Even with the summary table, the endpoint still runs joins/filters (e.g., WHERE group_id = $1 AND user_id = $2) on tables that lack composite indexes. Postgres must scan, then RLS filters again → latency.
+Wide JSON payloads
+/api/groups returns full group + member + balances JSON. Most of it is unused on first paint but still serialized and sent.
+Cold React-Query “zero-cache” everywhere
+Disabling caching fixed staleness, but now every tab navigation fetches the same balance again—network and server both pay the cost.
+Node/Express default settings
+– json() middleware does stringify-then-send on large objects without gzip.
+– No connection keep-alive or HTTP/2 on local server.
+🟩 Next Objectives (Performance Phase)
+
+Goal	Target	Ownership
+P1 Balance & group endpoints < 100 ms (p95)	DB query ≤ 40 ms • serialization + network ≤ 60 ms	Dev
+P2 No redundant balance fetches on tab/nav within 30 s	React-Query cache window & prefetch	Dev
+P3 Verified under 10× current dataset (load test)	Autotest + pgbench	Dev/Ops
+🛠 Step-by-Step Work Orders for Developer
+
+Copy-ready prompt starts below
+FairShare – Performance Optimisation Sprint (Keep Accuracy Intact)
+Profile the slow endpoints
+Enable pg_stat_statements and run the balance & group endpoints 10×.
+SELECT query, mean_time FROM pg_stat_statements ORDER BY mean_time DESC LIMIT 5;
+Capture the two slowest queries and post EXPLAIN ANALYZE output in the PR description.
+Add the missing indexes (likely)
+-- single fast lookup for summary table
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_balances_group_user
+  ON user_balances (group_id, user_id);
+
+-- if RLS function checks group_members JOINs
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_group_members_uid_gid
+  ON group_members (user_id, group_id);
+Trim JSON payloads
+For /api/groups return only fields needed for the home/groups cards (id, name, icon, current_user_balance).
+Compute members count, latest expense date in SQL (select list, not nested JSON).
+Send full detail only on /api/groups/:id.
+Enable gzip & keep-alive in Express
+import compression from 'compression';
+app.use(compression());
+app.set('etag', false); // keep etag off
+app.use((_, res, next) => { res.set('Connection', 'keep-alive'); next(); });
+Introduce a tiny React-Query cache window
+staleTime: 30_000, cacheTime: 60_000 for balance queries.
+This keeps tabs fast within 30 s while still forcing freshness on any write (we already invalidate on mutation).
+Automated p95 test
+Add a script in scripts/perf.sh that hits /api/groups and /api/groups/{id}/balances 100× and fails CI if p95 > 120 ms.
+Use autocannon or k6.
+Re-run full user-flow regression
+Add/delete an expense, switch pages/tabs, confirm:
+Balances correct everywhere.
+No request > 120 ms in dev logs.
+No additional features, UI work, or refactors until the p95 target passes.
+Post benchmark numbers in PR before and after each DB/index change.
+
+Acceptance Criteria
+/api/groups and /api/groups/:id/balances ≤ 100 ms p95 on dev laptop with seeded dataset (1 000 expenses, 10 users).
+No duplicate balance fetch within 30 s when navigating between home → group → back.
+All balances still 100 % correct under concurrent expense creation load test.
+End of prompt
+
+Management Summary
+We’ve fixed correctness; now we lock in perceived speed. Once these seven concrete tasks pass the acceptance criteria we can reassess “production-ready”.
