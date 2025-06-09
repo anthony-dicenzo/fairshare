@@ -309,7 +309,7 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
               
               return {
                 ...balance,
-                balance: (parseFloat(balance.balance) + balanceChange).toString(),
+                balance: parseFloat(balance.balance) + balanceChange,
                 isOptimistic: true,
               };
             }
