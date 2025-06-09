@@ -215,6 +215,35 @@ export function setupAuth(app: Express) {
     });
   });
 
+  // Add the logout route that the frontend expects
+  app.post("/api/logout", (req, res, next) => {
+    req.logout((err) => {
+      if (err) {
+        console.error("Logout error:", err);
+        return res.status(500).json({ error: "Failed to logout" });
+      }
+      
+      // Destroy the session completely
+      req.session.destroy((sessionErr) => {
+        if (sessionErr) {
+          console.error("Session destruction error:", sessionErr);
+          return res.status(500).json({ error: "Failed to destroy session" });
+        }
+        
+        // Clear the session cookie
+        res.clearCookie('fairshare.sid', {
+          path: '/',
+          httpOnly: true,
+          secure: false,
+          sameSite: 'lax'
+        });
+        
+        console.log("User logged out successfully");
+        res.status(200).json({ success: true, message: "Logged out successfully" });
+      });
+    });
+  });
+
   app.get("/api/user", (req, res) => {
     console.log(`Session ID in /api/user: ${req.sessionID}`);
     console.log(`Is authenticated: ${req.isAuthenticated()}`);
