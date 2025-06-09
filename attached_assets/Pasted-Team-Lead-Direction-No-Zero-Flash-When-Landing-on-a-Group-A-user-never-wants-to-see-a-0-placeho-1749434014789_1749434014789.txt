@@ -1,0 +1,84 @@
+Team-Lead Direction – “No-Zero Flash” When Landing on a Group
+A user never wants to see a $0 placeholder that later snaps to the real number.
+That flash means we render before we have the balance. Splitwise avoids it with two tricks:
+
+Pass the already-known dashboard balance into the Group screen (so you start with something real).
+Render a skeleton until the first in-group balance query returns—never a numeric 0.
+Below is the concrete plan and code snippets. No schema work required; this is 100 % UI + React Query cache wiring.
+
+1 ️⃣ Make /api/groups the single source of truth
+
+The Groups/Home list already fetches:
+
+[
+  { "id": 1, "name": "House of Anthica", "balance": -2120.86, ... }
+]
+That balance is exactly what the Group page needs for the “You Owe” header.
+Do not overwrite it with 0.
+
+2 ️⃣ Keep that object alive when you navigate
+
+// GroupsList.jsx
+<Link
+   key={g.id}
+   to={`/groups/${g.id}`}
+   state={{ preloadedBalance: g.balance }}   // pass it forward
+>
+   {g.name}: {g.balance}
+</Link>
+On the Group page:
+
+import { useLocation } from 'react-router-dom';
+
+const { state } = useLocation();          // { preloadedBalance?: number }
+const preloaded = state?.preloadedBalance;
+
+// React Query for in-group balance
+const { data: liveBal, isLoading } = useQuery(
+  ['balance', groupId],
+  () => api.getBalance(groupId),
+  { initialData: preloaded }              // <── key line
+);
+Result: the first paint shows the real dashboard balance immediately.
+
+3 ️⃣ Replace numeric “0” with Skeleton while loading
+
+function BalancePill({ balance, isLoading }: {balance:number|undefined,isLoading:boolean}) {
+  if (isLoading && balance === undefined)
+      return <div className="h-6 w-24 bg-gray-200 animate-pulse rounded" />;
+
+  return <span>{balance < 0 ? `You owe $${-balance}` : `You’re owed $${balance}`}</span>;
+}
+No flash, no misinformation.
+
+4 ️⃣ Prefetch balances before user clicks (optional)
+
+// GroupsList item onMouseEnter
+onMouseEnter={()=>{
+   queryClient.prefetchQuery(['balance', g.id], () => api.getBalance(g.id));
+}}
+By the time the user reaches the Group page, the live query is already in cache → zero wait.
+
+5 ️⃣ Double-check: never default to 0 anywhere
+
+Search the codebase for:
+
+grep -R "0.00" client/src | grep balance
+grep -R "balance || 0" client/src
+Remove/replace with undefined + Skeleton.
+
+6 ️⃣ Quick end-to-end test
+
+Load “Groups” list – balances visible.
+Throttle network to “Slow 3G” in Chrome DevTools.
+Click a group:
+You should immediately see the same balance as the list (because it came via state/initialData).
+If the later fetch returns a new figure, React Query re-hydrates silently; no flash.
+No component should ever render 0 unless the real balance truly is zero.
+7 ️⃣ Deliverable Checklist for the PR
+
+ Link state or queryClient.setQueryData used to seed group page.
+ Skeleton component in place; numeric 0 removed.
+ Manual slow-network test recorded (gif or video).
+ Jest test: group page renders pre-loaded balance without hitting /balance if already in cache.
+Once this lands, users will perceive the page as instant even if the follow-up request still takes 200 ms in the background.

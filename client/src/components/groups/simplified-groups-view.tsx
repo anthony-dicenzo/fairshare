@@ -130,8 +130,11 @@ export function SimplifiedGroupsView() {
           return (
             <div 
               key={group.id}
-              className="bg-white rounded-lg p-3 flex items-center justify-between shadow-sm"
-              onClick={() => setLocation(`/group/${group.id}`)}
+              className="bg-white rounded-lg p-3 flex items-center justify-between shadow-sm cursor-pointer"
+              onClick={() => setLocation(`/group/${group.id}`, {
+                replace: false,
+                state: { preloadedBalance: group.balance }
+              })}
             >
               <div className="flex items-center">
                 <Avatar className="h-10 w-10 bg-[#E7EDE4] text-[#32846b] mr-3">

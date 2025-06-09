@@ -134,7 +134,17 @@ export function GroupsList() {
               <div 
                 key={group.id} 
                 className="hover:bg-accent transition-colors cursor-pointer" 
-                onClick={() => setLocation(`/group/${group.id}`)}
+                onClick={() => setLocation(`/group/${group.id}`, { 
+                  replace: false,
+                  state: { preloadedBalance: 'balance' in group ? (group as any).balance : undefined }
+                })}
+                onMouseEnter={() => {
+                  // Prefetch group balance on hover for instant loading
+                  queryClient.prefetchQuery({
+                    queryKey: ["/api/groups", group.id, "balances"],
+                    staleTime: 30000
+                  });
+                }}
               >
                 <div className="px-3 sm:px-5 py-3 sm:py-4">
                   <div className="flex items-center justify-between">
