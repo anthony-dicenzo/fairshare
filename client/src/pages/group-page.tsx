@@ -529,6 +529,7 @@ export default function GroupPage() {
           balances={Array.isArray(balances) ? balances : []}
           expenses={Array.isArray(expenses) ? expenses : []}
           payments={Array.isArray(payments) ? payments : []}
+          isBalancesLoading={isLoadingBalances}
         />
 
         <div className="mt-8">

@@ -27,9 +27,10 @@ type GroupDetailProps = {
   }[];
   expenses?: any[];
   payments?: any[];
+  isBalancesLoading?: boolean;
 };
 
-export function GroupDetail({ group, members = [], balances = [], expenses = [], payments = [] }: GroupDetailProps) {
+export function GroupDetail({ group, members = [], balances = [], expenses = [], payments = [], isBalancesLoading = false }: GroupDetailProps) {
   const { user } = useAuth();
 
   if (!user || !group) return null;
@@ -75,7 +76,7 @@ export function GroupDetail({ group, members = [], balances = [], expenses = [],
               </h3>
               <BalancePill 
                 balance={userBalance} 
-                isLoading={false}
+                isLoading={isBalancesLoading}
                 className="text-xl font-semibold"
               />
             </div>

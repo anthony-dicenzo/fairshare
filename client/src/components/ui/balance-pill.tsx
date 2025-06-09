@@ -7,11 +7,8 @@ interface BalancePillProps {
 }
 
 export function BalancePill({ balance, isLoading, className = "" }: BalancePillProps) {
-  if (isLoading && balance === undefined) {
-    return <Skeleton className={`h-6 w-24 bg-gray-200 animate-pulse rounded ${className}`} />;
-  }
-
-  if (balance === undefined) {
+  // Always show skeleton when loading OR when balance is undefined
+  if (isLoading || balance === undefined) {
     return <Skeleton className={`h-6 w-24 bg-gray-200 animate-pulse rounded ${className}`} />;
   }
 
