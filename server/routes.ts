@@ -1,8 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth } from "./auth";
 import { db } from "./db";
+import { setupAuth } from "./auth";
 import { sql } from "drizzle-orm";
 import { 
   insertGroupSchema, insertExpenseSchema, insertExpenseParticipantSchema, 
@@ -107,31 +107,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get total count early for ultra-fast mode
       const totalCount = await storage.getUserGroupsCount(req.user.id);
       
-      // ULTRA-FAST MODE: Use materialized view for sub-100ms performance
+      // ULTRA-FAST MODE: Direct query with minimal data for sub-100ms performance
       if (ultraFast) {
-        console.log(`Processing ultra-fast request using materialized view`);
+        console.log(`Processing ultra-fast request with direct query`);
         
-        // Query the materialized view directly for maximum speed
-        const dashboardData = await storage.db!.execute(sql`
-          SELECT 
-            group_id as id,
-            name,
-            balance,
-            expense_count,
-            last_expense_at
-          FROM dashboard_balances 
-          WHERE user_id = ${req.user.id}
-          ORDER BY last_expense_at DESC NULLS LAST
+        // Simple direct query for maximum speed - only essential data
+        const groupsWithBalances = await db!.execute(sql`
+          SELECT DISTINCT
+            g.id,
+            g.name,
+            COALESCE(ub.balance_amount::numeric, 0) as balance
+          FROM group_members gm
+          JOIN groups g ON g.id = gm.group_id
+          LEFT JOIN user_balances ub ON ub.group_id = g.id AND ub.user_id = ${req.user.id}
+          WHERE gm.user_id = ${req.user.id} 
+            AND gm.archived = false
+          ORDER BY g.id DESC
           ${limit ? sql`LIMIT ${limit}` : sql``}
           ${offset > 0 ? sql`OFFSET ${offset}` : sql``}
         `);
 
-        const groups = dashboardData.rows.map((row: any) => ({
+        const groups = (groupsWithBalances as any).rows.map((row: any) => ({
           id: row.id,
           name: row.name,
-          balance: parseFloat(row.balance),
-          expenseCount: row.expense_count,
-          lastExpenseAt: row.last_expense_at,
+          balance: parseFloat(row.balance || 0),
         }));
         
         return res.json({
