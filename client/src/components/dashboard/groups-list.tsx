@@ -48,7 +48,7 @@ export function GroupsList() {
     groups: (Group & { balance?: number; memberCount?: number })[], 
     totalCount: number 
   }>({
-    queryKey: ["/api/groups", { limit: visibleGroups, offset: 0 }],
+    queryKey: ["/api/groups", { limit: visibleGroups, offset: 0, aboveTheFold: true }],
     // Skip this query if we're just showing the initial groups or if initial loading is still in progress
     enabled: visibleGroups > INITIAL_GROUPS_COUNT && !isInitialLoading,
     staleTime: 5000, // Keep this data fresh for 5 seconds
