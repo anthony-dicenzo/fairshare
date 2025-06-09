@@ -36,12 +36,12 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://www.googleapis.com", "https://apis.google.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://www.googleapis.com", "https://apis.google.com", "https://www.gstatic.com", "https://identitytoolkit.googleapis.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
       imgSrc: ["'self'", "data:", "https:", "blob:"],
-      connectSrc: ["'self'", "https://api.supabase.co", "https://*.supabase.co", "wss://*.supabase.co"],
-      frameSrc: ["'none'"],
+      connectSrc: ["'self'", "https://api.supabase.co", "https://*.supabase.co", "wss://*.supabase.co", "https://identitytoolkit.googleapis.com", "https://www.googleapis.com", "https://securetoken.googleapis.com"],
+      frameSrc: ["https://fairshare-7f83a.firebaseapp.com", "https://accounts.google.com"],
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
       formAction: ["'self'"]
