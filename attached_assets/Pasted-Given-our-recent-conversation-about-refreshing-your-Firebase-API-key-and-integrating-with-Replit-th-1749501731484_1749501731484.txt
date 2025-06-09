@@ -1,0 +1,29 @@
+Given our recent conversation about refreshing your Firebase API key and integrating with Replit, this error strongly suggests that your Replit application is still trying to use the old Firebase API key to initialize the Firebase SDK.
+
+Here's the flow:
+
+Your app initializes the Firebase SDK using the provided configuration (including the API key).
+
+You call signInWithPopup (or signInWithRedirect ).
+
+The Firebase SDK makes calls to Firebase's authentication backend to start the process.
+
+These calls include the API key from your initialization.
+
+If the API key is outdated or incorrect for your project ( fairshare-7f83a ), the Firebase backend cannot validate the request.
+
+Instead of giving a specific client-side error about the key, the backend responds with a generic auth/internal-error because it failed to process the request correctly.
+
+You confirmed that the Google OAuth Client ID and Authorized Domains in your Firebase Authentication settings are correct. This specific auth/internal-error , right after you refreshed your API key, points almost certainly to the client-side application using the wrong API key to connect to Firebase initially.
+
+How to fix it:
+
+The solution is to make absolutely sure your Replit environment variable ( VITE_FIREBASE_API_KEY ) is set to the new, valid Firebase API Key for your project ( fairshare-7f83a ), and that your Replit application is picking up this updated environment variable (usually requires a restart).
+
+Confirm the New API Key: Find the correct, new API key for your Firebase project in either your project's web app configuration file or in the Google Cloud Console -> APIs & Services -> Credentials under the "API Keys" section.
+
+Update Replit Environment Variable: Go to your Replit project's secrets/environment variables settings and update the value of VITE_FIREBASE_API_KEY to this new key.
+
+Restart Replit App: Ensure your application in Replit is fully restarted so it loads the updated environment variable.
+
+Once your app is initialized with the correct API key, the Firebase SDK should be able to communicate properly with the Firebase authentication backend, and the auth/internal-error should go away.
