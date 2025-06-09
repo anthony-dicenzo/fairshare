@@ -52,6 +52,7 @@ export function calculateExpenseBalanceChanges(data: ExpenseBalanceData): Balanc
         .filter(p => p.userId !== paidBy)
         .reduce((sum, p) => sum + parseFloat(p.amountOwed), 0);
       
+      // Net change: what others owe the payer minus what the payer owes
       const netChange = creditFromOthers - amountOwed;
       changes.push({
         userId,
