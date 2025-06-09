@@ -166,8 +166,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Standard enhancement with full data
         enhancedGroups = await Promise.all(groups.map(async (group) => {
           try {
-            // Get the cached balance for this user in this group
-            const userBalance = await storage.getUserCachedBalance(req.user.id, group.id);
+            // CONSISTENCY FIX: Read from same transactional balance source as group detail page
+            const groupBalances = await storage.getGroupBalances(group.id);
+            const userBalanceData = groupBalances.find(b => b.userId === req.user.id);
+            const userBalance = userBalanceData ? { balanceAmount: userBalanceData.balance.toString() } : null;
             
             // Get the member count - optimized to use count query instead of fetching all members
             const memberCount = await storage.getGroupMemberCount(group.id);
@@ -252,8 +254,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "You are not a member of this group" });
       }
       
-      // Get user's cached balance in this group
-      const userBalance = await storage.getUserCachedBalance(req.user.id, groupId);
+      // CONSISTENCY FIX: Read from same transactional balance source
+      const groupBalances = await storage.getGroupBalances(groupId);
+      const userBalanceData = groupBalances.find(b => b.userId === req.user.id);
+      const userBalance = userBalanceData ? { balanceAmount: userBalanceData.balance.toString() } : null;
       
       // Return a lightweight summary object
       res.json({

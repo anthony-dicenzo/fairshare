@@ -1,0 +1,54 @@
+House of Anthica balance is updated to $2067.86 when a $100 expense (Test Subject is added). On the home page, groups page, the balance is shown as $2,117.86 (without 50% of the $100 test charge). The other issue is that a full recalculation is being done when the user comes to the House of Anthica group page (under the You Owe sections, sot he user briefly sees a $0 balance).
+ChatGPT said:
+This clearly shows two remaining architectural issues: (1) inconsistent balance calculation and (2) a poor user experience from full recalculation. Here’s what’s happening and what you must do next—both as a team lead’s assessment and developer prompt.
+
+🟥 Team Lead Critical Assessment
+
+1. Inconsistent Balances Across Pages
+The home page and groups page are showing a different balance than the group’s detail (“You Owe”) section.
+This means there is still more than one “source of truth” or the reads are not all coming from the same place (or via the same logic).
+2. Full Recalculation on Page Load
+When a user visits the group page, the app triggers a full balance recalculation, causing a momentary “$0 balance” display before showing the true value.
+This creates both confusion and a real risk of race conditions/data glitches (especially if users take action before recalculation completes).
+3. Root Problems
+Multiple code paths for calculating/displaying balances.
+Unnecessary or incorrectly-timed recalculations.
+Asynchronous frontend state that does not enforce single-source-of-truth logic.
+🚦 What Must Be Done
+
+1. Enforce a True Single Source of Truth for Balances
+All balance reads, everywhere in the UI, must come from the same backend summary table and endpoint.
+No page/component should calculate balances independently or use separate APIs.
+2. Eliminate Automatic Full Recalculation on Page Load
+Remove all calls to “full recalculation” (e.g., updateAllBalancesInGroup()) from page/component loads.
+A recalculation should only be triggered by admin/manual action or during data repair—not on user navigation or normal use.
+3. Update All Page Components to Read Balances from the Same Endpoint
+Ensure home, group, and all other pages pull the displayed balance by fetching the same API route that simply returns the summary table’s current value.
+4. Implement Loading State for Balances
+While awaiting a fresh API response, show a “Loading balance…” spinner—not $0 or any placeholder.
+Do not show a zero or incorrect value even briefly.
+5. Regression Test All User Paths
+Add a $100 expense and verify: All balance displays (home, groups, detail page, all users) immediately show the correct, identical result.
+Remove expense and verify all UIs return to prior correct balance.
+🟩 Developer Prompt
+
+FairShare – Immediate Balance Consistency Fix
+
+Your task is to ensure absolute consistency and correctness for balance displays. Follow these instructions without deviation:
+
+Refactor the application so that ALL balance displays (home, group, detail pages) pull their value from the same summary table, via the same backend endpoint.
+Remove any component- or page-specific balance calculation or alternate API calls.
+Remove ALL automatic or implicit full recalculation logic (updateAllBalancesInGroup() or equivalent) from any page/component load.
+Recalculation should only ever run by explicit admin/manual command.
+Implement a “loading” state for all balance displays.
+When fetching, show a spinner or loading indicator—not $0 or a stale value.
+Only show the actual balance when data is returned from the summary table endpoint.
+Regression test across all user flows:
+Add, delete, or modify expenses; verify the balance shown everywhere is identical, correct, and updated instantly for all users/devices.
+If any part of the UI ever shows a different balance than another, STOP and debug before proceeding. Consistency is non-negotiable.
+No further features or optimizations until this is confirmed with end-to-end testing.
+Document your changes and verify with real user accounts.
+
+Summary for Management:
+As long as different parts of the UI show different balances, or the app does a full recalculation on page load, the product is not ready for real users. This must be a single-source, real-time system, with no “brief wrong values.”
+

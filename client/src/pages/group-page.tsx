@@ -297,37 +297,8 @@ export default function GroupPage() {
     }
   }, [params, groupId]);
 
-  // Force refresh balances and group data when component mounts
-  useEffect(() => {
-    if (groupId > 0) {
-      // Call the explicit balance refresh API endpoint
-      const refreshBalances = async () => {
-        try {
-          // First, explicitly trigger balance refresh on the server
-          await apiRequest('POST', `/api/groups/${groupIdStr}/refresh-balances`);
-          console.log('Explicitly refreshed balances on component mount');
-          
-          // Then refetch the balances from the updated database
-          refetchBalances();
-          
-          // Also refresh the group data to ensure consistent display
-          refetchGroup();
-        } catch (error) {
-          console.error('Failed to refresh balances on mount:', error);
-        }
-      };
-      
-      // Execute immediate refresh
-      refreshBalances();
-      
-      // Schedule another refresh after a delay
-      const timer = setTimeout(() => {
-        refetchBalances();
-      }, 500);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [groupId]);
+  // REMOVED: Problematic auto-refresh that caused $0 flash and full recalculation
+  // Balances should only update from actual expense transactions, not page navigation
   
   // Mutation for refreshing balances
   const refreshBalancesMutation = useMutation({
@@ -687,10 +658,23 @@ export default function GroupPage() {
                   {refreshBalancesMutation.isPending ? 'Refreshing...' : 'Refresh Balances'}
                 </Button>
               </div>
-              <BalancesMatrix 
-                balances={Array.isArray(balances) ? balances : []} 
-                members={Array.isArray(members) ? members : []} 
-              />
+              {isLoadingBalances ? (
+                <div className="bg-white dark:bg-gray-800 rounded-lg border shadow-sm p-6">
+                  <div className="animate-pulse">
+                    <div className="h-6 bg-gray-200 rounded w-32 mb-4"></div>
+                    <div className="space-y-3">
+                      <div className="h-4 bg-gray-200 rounded w-full"></div>
+                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <BalancesMatrix 
+                  balances={Array.isArray(balances) ? balances : []} 
+                  members={Array.isArray(members) ? members : []} 
+                />
+              )}
             </TabsContent>
 
             <TabsContent value="activity" className="mt-0">
