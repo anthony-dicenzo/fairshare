@@ -9,6 +9,7 @@ import { useState, useEffect } from "react";
 import { GroupForm } from "../groups/group-form";
 import { queryClient } from "@/lib/queryClient";
 import { BalancePill } from "@/components/ui/balance-pill";
+import { useAuth } from "@/hooks/use-auth";
 
 // Define the number of groups to show initially (above the fold)
 const INITIAL_GROUPS_COUNT = 3;
@@ -18,6 +19,7 @@ const ADDITIONAL_GROUPS_COUNT = 5;
 const ULTRAFAST_LOADING = true;
 
 export function GroupsList() {
+  const { user } = useAuth();
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [, setLocation] = useLocation();
   const [visibleGroups, setVisibleGroups] = useState(INITIAL_GROUPS_COUNT);
@@ -41,39 +43,6 @@ export function GroupsList() {
     staleTime: 10000, // Keep this data fresh for 10 seconds
   });
 
-  // Seed balance cache when groups with balance data are loaded
-  useEffect(() => {
-    if (initialData?.groups) {
-      initialData.groups.forEach(group => {
-        if (group.balance !== undefined) {
-          queryClient.setQueryData(["/api/groups", group.id, "balances"], [{ 
-            userId: 1, // This will be the current user's balance
-            balance: group.balance,
-            user: { id: 1, name: "User" }
-          }]);
-        }
-      });
-    }
-  }, [initialData]);
-
-  // Also seed cache for full data when it loads
-  useEffect(() => {
-    if (fullData?.groups) {
-      fullData.groups.forEach(group => {
-        if (group.balance !== undefined) {
-          queryClient.setQueryData(["/api/groups", group.id, "balances"], [{ 
-            userId: 1, // This will be the current user's balance
-            balance: group.balance,
-            user: { id: 1, name: "User" }
-          }]);
-        }
-      });
-    }
-  }, [fullData]);
-  
-  // Get the total count from either query
-  const totalCount = initialData?.totalCount || minimalData?.totalCount || 0;
-  
   // Step 3: Fetch all loaded groups based on the visibleGroups count (deferred)
   const { data: fullData, isLoading } = useQuery<{ 
     groups: (Group & { balance?: number; memberCount?: number })[], 
@@ -84,6 +53,39 @@ export function GroupsList() {
     enabled: visibleGroups > INITIAL_GROUPS_COUNT && !isInitialLoading,
     staleTime: 5000, // Keep this data fresh for 5 seconds
   });
+
+  // Seed balance cache when groups with balance data are loaded
+  useEffect(() => {
+    if (initialData?.groups && user?.id) {
+      initialData.groups.forEach(group => {
+        if (group.balance !== undefined) {
+          queryClient.setQueryData([`/api/groups/${group.id}/balances`], [{ 
+            userId: user.id,
+            balance: group.balance,
+            user: { id: user.id, name: user.name }
+          }]);
+        }
+      });
+    }
+  }, [initialData, user?.id]);
+
+  // Also seed cache for full data when it loads
+  useEffect(() => {
+    if (fullData?.groups && user?.id) {
+      fullData.groups.forEach(group => {
+        if (group.balance !== undefined) {
+          queryClient.setQueryData([`/api/groups/${group.id}/balances`], [{ 
+            userId: user.id,
+            balance: group.balance,
+            user: { id: user.id, name: user.name }
+          }]);
+        }
+      });
+    }
+  }, [fullData, user?.id]);
+  
+  // Get the total count from either query
+  const totalCount = initialData?.totalCount || minimalData?.totalCount || 0;
   
   // Hide skeleton after initial data is loaded
   useEffect(() => {
@@ -97,8 +99,8 @@ export function GroupsList() {
   // Order of preference: full data > initial data > minimal data
   const groups = (() => {
     // If we requested more than the initial count and have that data, use it
-    if (visibleGroups > INITIAL_GROUPS_COUNT && data?.groups) {
-      return data.groups;
+    if (visibleGroups > INITIAL_GROUPS_COUNT && fullData?.groups) {
+      return fullData.groups;
     }
     // Otherwise, if we have the initial data with balances, use that
     if (initialData?.groups) {
