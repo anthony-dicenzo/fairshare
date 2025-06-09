@@ -107,42 +107,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get total count early for ultra-fast mode
       const totalCount = await storage.getUserGroupsCount(req.user.id);
       
-      // ULTRA-FAST MODE: Pre-serialized JSON from materialized view for sub-100ms performance
+      // ULTRA-FAST MODE: Raw PostgreSQL query for sub-100ms performance
       if (ultraFast) {
-        console.log(`Processing ultra-fast request with pre-serialized JSON`);
+        console.log(`Processing ultra-fast request with raw PostgreSQL query`);
         
-        // Query pre-serialized JSON from materialized view - no JS object creation
-        const result = await db!.execute(sql`
-          SELECT row_json
-          FROM dashboard_groups
-          WHERE user_id = ${req.user.id}
-          ORDER BY last_expense_at DESC NULLS LAST
-          ${limit ? sql`LIMIT ${limit}` : sql``}
-          ${offset > 0 ? sql`OFFSET ${offset}` : sql``}
-        `);
-
-        // Handle materialized view result - check if rows exist
-        const rows = (result as any).rows || [];
-        if (rows.length === 0) {
-          // Fallback to basic groups query for zero-balance groups
-          const basicGroups = await storage.getGroupsByUserId(req.user.id, limit, offset);
-          return res.json({
-            groups: basicGroups.map(g => ({ id: g.id, name: g.name, balance: 0 })),
+        // Direct pool query bypassing ORM overhead entirely
+        const client = await pool!.connect();
+        try {
+          const queryText = `
+            SELECT json_agg(row_json ORDER BY last_expense_at DESC NULLS LAST) as groups_json
+            FROM dashboard_groups 
+            WHERE user_id = $1
+            ${limit ? `LIMIT ${limit}` : ''}
+            ${offset > 0 ? `OFFSET ${offset}` : ''}
+          `;
+          
+          const queryParams = [req.user.id];
+          const result = await client.query(queryText, queryParams);
+          
+          // Direct JSON response - no additional processing
+          const groupsJson = result.rows[0]?.groups_json || [];
+          
+          res.setHeader('Content-Type', 'application/json');
+          res.setHeader('Cache-Control', 'no-cache');
+          res.end(JSON.stringify({
+            groups: groupsJson,
             totalCount,
-            hasMore: limit ? offset + basicGroups.length < totalCount : false,
+            hasMore: limit ? offset + (groupsJson?.length || 0) < totalCount : false,
             page: limit ? Math.floor(offset / limit) : 0
-          });
+          }));
+          return;
+        } finally {
+          client.release();
         }
-        
-        // Send pre-serialized JSON for groups with balances
-        const jsonRows = rows.map((r: any) => r.row_json);
-        res.type('application/json').send(JSON.stringify({
-          groups: jsonRows,
-          totalCount,
-          hasMore: limit ? offset + jsonRows.length < totalCount : false,
-          page: limit ? Math.floor(offset / limit) : 0
-        }));
-        return;
       }
       
       // Get basic group data with pagination - this happens for both normal and above-the-fold
