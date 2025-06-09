@@ -439,9 +439,15 @@ export function setupAuth(app: Express) {
       
       console.log("Google auth data validated. Proceeding with authentication...");
       
-      // For the moment, we'll trust the token from the client without verification
-      // This is a simplification to get the flow working
-      // In a production environment, proper token verification is required
+      // Verify the Firebase ID token
+      const verificationResult = await verifyFirebaseToken(validatedData.token);
+      
+      if (!verificationResult.valid) {
+        console.error("Firebase token verification failed:", verificationResult.error);
+        return res.status(401).json({ error: "Invalid Google authentication token" });
+      }
+      
+      console.log("Firebase token verified successfully for:", verificationResult.email);
       
       // Get the email from the request
       const email = validatedData.email;

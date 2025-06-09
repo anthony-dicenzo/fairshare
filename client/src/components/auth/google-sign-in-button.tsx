@@ -34,6 +34,9 @@ export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = ""
       
       // Use popup authentication directly
       console.log("Attempting signInWithPopup...");
+      console.log("Auth object:", auth);
+      console.log("Google provider:", googleProvider);
+      
       const result = await signInWithPopup(auth, googleProvider);
       console.log("Popup sign-in successful!", result.user.email);
       
