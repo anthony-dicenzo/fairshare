@@ -1,0 +1,38 @@
+Why the Home Page Looks “Splitwise-Fast” but the Group Page Doesn’t
+Screen	What happens right now	Result you see
+Home / “Groups” list	A single request to /api/groups returns every group with its pre-calculated balance.
+React renders only after that request resolves, so each card already has the real number.	Balance appears instantly.
+Individual Group page	When you click a card we mount the page immediately. The component then triggers a second fetch (/api/groups/:id/balance or equivalent). Until that fetch finishes, the component shows the fallback (“All settled up” or skeleton).	200-300 ms gap before the real number shows.
+In other words, the list screen already HAS the balance when it renders;
+the detail screen waits for another call, so you get the flash.
+
+How Splitwise Eliminates That Gap
+Denormalised “dashboard” table
+Splitwise stores a per-user, per-group balance row that is always current.
+Cache seeding
+They write that balance into a global cache when the list loads.
+Carry the value forward
+When you navigate, they read the cached value (or pass it via navigation state) and render it immediately, while a background refetch keeps things fresh.
+How to Get the Same Experience in FairShare (Recap)
+Seed React-Query cache when the list loads
+onSuccess: groups =>
+  groups.forEach(g =>
+    queryClient.setQueryData(['balance', userId, g.id], g.balance)
+  );
+Pass the balance through <Link state> as a fallback
+<Link to={`/groups/${g.id}`} state={{ preloadBal: g.balance }}> … </Link>
+Use that value as initialData in the Group page query
+const preload = location.state?.preloadBal;
+const { data: balance } = useQuery(
+  ['balance', userId, groupId],
+  () => api.getBalance(groupId),
+  {
+    initialData: () =>
+      queryClient.getQueryData(['balance', userId, groupId]) ?? preload,
+    staleTime: 30_000,
+  }
+);
+Render a skeleton only if balance === undefined
+If either the cache or preloadBal has a number, you never hit the skeleton path.
+After those four changes the Group page will behave exactly like the Home page:
+the real balance is on screen at the first paint, and React-Query quietly refreshes it in the background—no flash, no waiting.

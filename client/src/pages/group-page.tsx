@@ -276,7 +276,6 @@ export default function GroupPage() {
     enabled: groupId > 0 && !!group,
     staleTime: 30000, // Keep data fresh for 30 seconds, same as groups list
     gcTime: 300000, // Keep in cache for 5 minutes
-    refetchOnMount: 'always',
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
     // Use cached data or navigation state as initial value for instant display
@@ -287,12 +286,12 @@ export default function GroupPage() {
         return cachedBalances;
       }
       
-      // Fallback to navigation state if available
-      if (preloadedBalance !== undefined) {
+      // Fallback to navigation state if available and user is authenticated
+      if (preloadedBalance !== undefined && user?.id) {
         return [{ 
-          userId: 1, // Current user
+          userId: user.id,
           balance: preloadedBalance,
-          user: { id: 1, name: "User" }
+          user: { id: user.id, name: user.name || "User" }
         }];
       }
       

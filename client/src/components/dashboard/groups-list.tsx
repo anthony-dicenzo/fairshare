@@ -174,7 +174,7 @@ export function GroupsList() {
                 onMouseEnter={() => {
                   // Prefetch group balance on hover for instant loading
                   queryClient.prefetchQuery({
-                    queryKey: ["/api/groups", group.id, "balances"],
+                    queryKey: [`/api/groups/${group.id}/balances`],
                     staleTime: 30000
                   });
                 }}
