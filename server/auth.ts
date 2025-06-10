@@ -33,8 +33,8 @@ async function comparePasswords(supplied: string, stored: string) {
     return timingSafeEqual(hashedBuf, suppliedBuf);
   } else {
     // Legacy format - try bcrypt comparison
-    const bcrypt = require('bcrypt');
     try {
+      const bcrypt = await import('bcrypt');
       return await bcrypt.compare(supplied, stored);
     } catch (error) {
       console.error("Legacy password comparison failed:", error);
