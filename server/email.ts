@@ -5,7 +5,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export async function sendPasswordResetEmail(email: string, resetToken: string, resetUrl: string) {
   try {
     const { data, error } = await resend.emails.send({
-      from: 'FairShare <noreply@fairshare.app>',
+      from: 'FairShare <onboarding@resend.dev>',
       to: [email],
       subject: 'Reset your FairShare password',
       html: `
