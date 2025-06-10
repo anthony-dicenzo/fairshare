@@ -81,22 +81,51 @@ export default function AuthPage() {
 
   // Check URL parameters on component mount to handle reset password links
   useEffect(() => {
-    const currentUrl = window.location.href;
-    const urlParams = new URLSearchParams(window.location.search);
-    const tab = urlParams.get('tab');
-    const token = urlParams.get('token');
+    const checkUrlParams = () => {
+      const currentUrl = window.location.href;
+      const urlParams = new URLSearchParams(window.location.search);
+      const tab = urlParams.get('tab');
+      const token = urlParams.get('token');
+      
+      console.log('=== URL Parameter Check ===');
+      console.log('Current URL:', currentUrl);
+      console.log('Search string:', window.location.search);
+      console.log('All URL params:', Array.from(urlParams.entries()));
+      console.log('Tab param:', tab);
+      console.log('Token param:', token ? `${token.substring(0, 20)}...` : 'null');
+      
+      if (token && token.length > 10) {
+        console.log('✅ Valid reset token found, switching to reset form');
+        setActiveTab('reset');
+        setResetToken(token);
+        return;
+      }
+      
+      if (tab === 'register') {
+        console.log('Setting register tab');
+        setActiveTab('register');
+        return;
+      }
+      
+      console.log('No special params, showing login form');
+    };
+
+    // Check immediately
+    checkUrlParams();
     
-    console.log('Current URL:', currentUrl);
-    console.log('URL params - tab:', tab, 'token:', token ? token.substring(0, 20) + '...' : null);
+    // Also check when hash or search changes
+    const handleLocationChange = () => {
+      setTimeout(checkUrlParams, 100);
+    };
     
-    if (token) {
-      console.log('Found reset token, switching to reset tab');
-      setActiveTab('reset');
-      setResetToken(token);
-    } else if (tab === 'register') {
-      setActiveTab('register');
-    }
-  }, [location]);
+    window.addEventListener('popstate', handleLocationChange);
+    window.addEventListener('hashchange', handleLocationChange);
+    
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+      window.removeEventListener('hashchange', handleLocationChange);
+    };
+  }, []);
 
   // Redirect to returnPath or home if already logged in
   useEffect(() => {
