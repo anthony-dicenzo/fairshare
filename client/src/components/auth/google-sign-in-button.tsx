@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { FC, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { auth, googleProvider } from "@/lib/firebase";
-import { signInWithPopup } from "firebase/auth";
+import { signInWithPopup, signInWithRedirect, getRedirectResult } from "firebase/auth";
 import FirebaseDomainErrorGuide from "@/components/auth/firebase-domain-error-guide";
 import FirebaseOperationErrorGuide from "@/components/auth/firebase-operation-error-guide";
 

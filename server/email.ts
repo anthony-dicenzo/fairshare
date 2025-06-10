@@ -16,42 +16,61 @@ export async function sendPasswordResetEmail(email: string, resetToken: string, 
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Reset your password</title>
           </head>
-          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #2563eb; margin-bottom: 10px;">FairShare</h1>
-              <p style="color: #666; margin: 0;">Expense sharing made simple</p>
-            </div>
-            
-            <div style="background: #f8fafc; padding: 30px; border-radius: 8px; margin-bottom: 30px;">
-              <h2 style="color: #1e293b; margin-top: 0;">Reset your password</h2>
-              <p style="margin-bottom: 20px;">We received a request to reset your password for your FairShare account. Click the button below to create a new password:</p>
-              
-              <div style="text-align: center; margin: 30px 0;">
-                <a href="${resetUrl}" style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 500;">Reset Password</a>
+          <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #2B3A55; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #EDE9DE;">
+            <div style="background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(43, 58, 85, 0.1);">
+              <!-- Header -->
+              <div style="background: #32846b; padding: 30px; text-align: center;">
+                <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.5px;">FairShare</h1>
+                <p style="color: #A3D5FF; margin: 8px 0 0 0; font-size: 16px; opacity: 0.9;">Expense sharing made simple</p>
               </div>
               
-              <p style="color: #666; font-size: 14px; margin-bottom: 0;">
-                This link will expire in 1 hour. If you didn't request this password reset, you can safely ignore this email.
-              </p>
-            </div>
-            
-            <div style="text-align: center; color: #666; font-size: 12px;">
-              <p>© 2024 FairShare. All rights reserved.</p>
+              <!-- Content -->
+              <div style="padding: 40px 30px;">
+                <h2 style="color: #2B3A55; margin: 0 0 20px 0; font-size: 24px; font-weight: 600;">Reset your password</h2>
+                <p style="margin-bottom: 24px; color: #2B3A55; font-size: 16px; line-height: 1.5;">
+                  We received a request to reset your password for your FairShare account. Click the button below to create a new password:
+                </p>
+                
+                <div style="text-align: center; margin: 35px 0;">
+                  <a href="${resetUrl}" style="background: #32846b; color: #ffffff; padding: 16px 32px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600; font-size: 16px; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(50, 132, 107, 0.3);">Reset Password</a>
+                </div>
+                
+                <div style="background: #E6F4D5; padding: 20px; border-radius: 8px; border-left: 4px solid #32846b; margin: 30px 0;">
+                  <p style="color: #2B3A55; font-size: 14px; margin: 0; line-height: 1.4;">
+                    <strong>Security note:</strong> This link will expire in 1 hour. If you didn't request this password reset, you can safely ignore this email.
+                  </p>
+                </div>
+                
+                <p style="color: #2B3A55; font-size: 14px; margin: 20px 0 0 0; line-height: 1.4;">
+                  If the button above doesn't work, copy and paste this link into your browser:<br>
+                  <span style="color: #32846b; word-break: break-all; font-family: monospace; font-size: 13px;">${resetUrl}</span>
+                </p>
+              </div>
+              
+              <!-- Footer -->
+              <div style="background: #EDE9DE; padding: 20px; text-align: center; border-top: 1px solid rgba(43, 58, 85, 0.1);">
+                <p style="color: #2B3A55; font-size: 12px; margin: 0; opacity: 0.7;">© 2024 FairShare. All rights reserved.</p>
+              </div>
             </div>
           </body>
         </html>
       `,
       text: `
-        Reset your FairShare password
-        
-        We received a request to reset your password for your FairShare account.
-        
-        Click this link to create a new password:
-        ${resetUrl}
-        
-        This link will expire in 1 hour. If you didn't request this password reset, you can safely ignore this email.
-        
-        © 2024 FairShare. All rights reserved.
+FairShare - Reset your password
+================================
+
+We received a request to reset your password for your FairShare account.
+
+Click this link to create a new password:
+${resetUrl}
+
+SECURITY NOTE: This link will expire in 1 hour. If you didn't request this password reset, you can safely ignore this email.
+
+Need help? Contact our support team.
+
+---
+© 2024 FairShare. All rights reserved.
+Expense sharing made simple.
       `
     });
 
