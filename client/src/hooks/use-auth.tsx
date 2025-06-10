@@ -49,16 +49,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     error,
   } = useQuery<SafeUser | null>({
     queryKey: ["/api/user"],
-    queryFn: getQueryFn<SafeUser | null>,
+    queryFn: () => fetch('/api/user', { credentials: 'include' }).then(res => res.ok ? res.json() : null),
     retry: false,
   });
 
   // Login mutation
   const loginMutation = useMutation<SafeUser, Error, LoginData>({
     mutationFn: async (data) => {
-      const response = await apiRequest("/api/login", {
+      const response = await fetch("/api/login", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
+        credentials: "include",
       });
       
       if (!response.ok) {
@@ -89,8 +91,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Logout mutation
   const logoutMutation = useMutation<void, Error, void>({
     mutationFn: async () => {
-      const response = await apiRequest("/api/logout", {
+      const response = await fetch("/api/logout", {
         method: "POST",
+        credentials: "include",
       });
       
       if (!response.ok) {
@@ -117,9 +120,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Registration mutation
   const registerMutation = useMutation<SafeUser, Error, RegisterData>({
     mutationFn: async (data) => {
-      const response = await apiRequest("/api/register", {
+      const response = await fetch("/api/register", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
+        credentials: "include",
       });
       
       if (!response.ok) {
