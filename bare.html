@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Firebase Auth Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        button { padding: 15px 30px; font-size: 16px; margin: 10px; }
+        #log { background: #f0f0f0; padding: 10px; margin: 10px 0; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>Firebase Google Authentication Test</h1>
+    <p>This bypasses React/Vite to test Firebase directly</p>
+    
+    <button id="testBtn">Test Google Sign-In</button>
+    <button id="logBtn">Show Console Log</button>
+    
+    <div id="log"></div>
+    
+    <script>
+        function log(message) {
+            console.log(message);
+            document.getElementById('log').textContent += new Date().toLocaleTimeString() + ': ' + message + '\n';
+        }
+        
+        log('Loading Firebase...');
+        
+        // Load Firebase scripts dynamically
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+        
+        async function initFirebase() {
+            try {
+                await loadScript('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js');
+                await loadScript('https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js');
+                
+                log('Firebase scripts loaded');
+                
+                const firebaseConfig = {
+                    apiKey: 'AIzaSyDNsYRVOJ0sUmjdFj3qyorGtTGiUnl_S3M',
+                    authDomain: 'fairshare-7f83a.firebaseapp.com',
+                    projectId: 'fairshare-7f83a',
+                    appId: '1:816167207113:web:53f66b3f63459e48c24d18'
+                };
+                
+                firebase.initializeApp(firebaseConfig);
+                const provider = new firebase.auth.GoogleAuthProvider();
+                
+                log('Firebase initialized successfully');
+                log('Config: ' + JSON.stringify(firebaseConfig, null, 2));
+                
+                document.getElementById('testBtn').onclick = async function() {
+                    log('Starting Google sign-in test...');
+                    try {
+                        const result = await firebase.auth().signInWithPopup(provider);
+                        log('✅ SUCCESS: User signed in: ' + result.user.email);
+                        alert('✅ Sign-in succeeded!\n\nUser: ' + result.user.email);
+                    } catch (error) {
+                        log('❌ ERROR: ' + error.code + ' - ' + error.message);
+                        log('Full error: ' + JSON.stringify(error, null, 2));
+                        alert('❌ Sign-in failed!\n\nCode: ' + error.code + '\nMessage: ' + error.message);
+                    }
+                };
+                
+                document.getElementById('testBtn').disabled = false;
+                log('Ready to test authentication');
+                
+            } catch (error) {
+                log('Failed to load Firebase: ' + error.message);
+            }
+        }
+        
+        document.getElementById('testBtn').disabled = true;
+        document.getElementById('logBtn').onclick = function() {
+            console.log('Current log content:', document.getElementById('log').textContent);
+        };
+        
+        initFirebase();
+    </script>
+</body>
+</html>
