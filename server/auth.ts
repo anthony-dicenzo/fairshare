@@ -595,13 +595,13 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ error: "Token is required" });
       }
 
-      if (!global.resetTokens || !global.resetTokens.has(token)) {
+      if (!(global as any).resetTokens || !(global as any).resetTokens.has(token)) {
         return res.status(400).json({ error: "Invalid or expired reset token" });
       }
 
-      const tokenData = global.resetTokens.get(token);
+      const tokenData = (global as any).resetTokens.get(token);
       if (tokenData.expiresAt < new Date()) {
-        global.resetTokens.delete(token);
+        (global as any).resetTokens.delete(token);
         return res.status(400).json({ error: "Reset token has expired" });
       }
 
@@ -622,13 +622,13 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ error: "Token and new password are required" });
       }
 
-      if (!global.resetTokens || !global.resetTokens.has(token)) {
+      if (!(global as any).resetTokens || !(global as any).resetTokens.has(token)) {
         return res.status(400).json({ error: "Invalid or expired reset token" });
       }
 
-      const tokenData = global.resetTokens.get(token);
+      const tokenData = (global as any).resetTokens.get(token);
       if (tokenData.expiresAt < new Date()) {
-        global.resetTokens.delete(token);
+        (global as any).resetTokens.delete(token);
         return res.status(400).json({ error: "Reset token has expired" });
       }
 
@@ -640,7 +640,7 @@ export function setupAuth(app: Express) {
       await storage.updateUser(tokenData.userId, { password: hashedPassword });
 
       // Remove used token
-      global.resetTokens.delete(token);
+      (global as any).resetTokens.delete(token);
       
       console.log(`Password reset completed for user: ${tokenData.email}`);
       
