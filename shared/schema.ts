@@ -96,6 +96,16 @@ export const userBalancesBetweenUsers = pgTable("user_balances_between_users", {
   lastUpdated: timestamp("last_updated").defaultNow().notNull()
 });
 
+// Password reset tokens table
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  used: boolean("used").default(false).notNull()
+});
+
 // Insert Schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -180,6 +190,12 @@ export const insertUserBalanceBetweenUsersSchema = createInsertSchema(userBalanc
 }).omit({
   id: true,
   lastUpdated: true
+});
+
+export const insertPasswordResetTokenSchema = createInsertSchema(passwordResetTokens).omit({
+  id: true,
+  createdAt: true,
+  used: true
 });
 
 // Login schema
