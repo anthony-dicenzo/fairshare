@@ -34,6 +34,11 @@ type LoginData = {
   password: string;
 };
 
+// Type for password reset
+type ResetPasswordData = {
+  email: string;
+};
+
 // Remove password from User type for client
 type SafeUser = Omit<User, "password">;
 

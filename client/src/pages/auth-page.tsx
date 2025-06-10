@@ -50,9 +50,15 @@ const registerSchema = z.object({
   path: ["confirmPassword"],
 });
 
+// Password reset schema
+const resetPasswordSchema = z.object({
+  email: z.string().email("Invalid email address"),
+});
+
 type LoginStep1Values = z.infer<typeof loginStep1Schema>;
 type LoginFormValues = z.infer<typeof loginSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
+type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
 
 export default function AuthPage() {
   const [location, navigate] = useLocation();
@@ -60,7 +66,7 @@ export default function AuthPage() {
   const isMobile = useIsMobile();
   const [loginStep, setLoginStep] = useState<1 | 2>(1);
   const [loginUsername, setLoginUsername] = useState("");
-  const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+  const [activeTab, setActiveTab] = useState<"login" | "register" | "reset">("login");
 
   // Redirect to returnPath or home if already logged in
   useEffect(() => {
@@ -108,6 +114,14 @@ export default function AuthPage() {
     },
   });
 
+  // Password reset form
+  const resetForm = useForm<ResetPasswordValues>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: {
+      email: "",
+    },
+  });
+
   // This function is no longer needed since we removed the form in step 1,
   // but we keep it for backward compatibility
   const onLoginStep1Submit = (data: LoginStep1Values) => {
@@ -152,7 +166,7 @@ export default function AuthPage() {
           <div className="bg-white rounded-3xl p-6 shadow-sm">
             <Tabs 
               value={activeTab} 
-              onValueChange={(value) => setActiveTab(value as "login" | "register")} 
+              onValueChange={(value) => setActiveTab(value as "login" | "register" | "reset")} 
               className="w-full tabs">
               <TabsList className="hidden">
                 <TabsTrigger value="login">Login</TabsTrigger>
@@ -255,6 +269,18 @@ export default function AuthPage() {
                             </FormItem>
                           )}
                         />
+
+                        {/* Forgot password link */}
+                        <div className="text-right">
+                          <Button 
+                            variant="link" 
+                            className="text-sm text-fairshare-primary hover:text-fairshare-primary/80 p-0 h-auto"
+                            onClick={() => setActiveTab("reset")}
+                            type="button"
+                          >
+                            Forgot password?
+                          </Button>
+                        </div>
 
                         {/* Login button */}
                         <Button 
