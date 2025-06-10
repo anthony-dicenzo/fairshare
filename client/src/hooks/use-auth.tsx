@@ -34,9 +34,15 @@ type LoginData = {
   password: string;
 };
 
-// Type for password reset
+// Type for password reset request
 type ResetPasswordData = {
   email: string;
+};
+
+// Type for password reset confirmation
+type ResetPasswordConfirmData = {
+  token: string;
+  password: string;
 };
 
 // Remove password from User type for client
@@ -51,6 +57,7 @@ type AuthContextType = {
   registerMutation: UseMutationResult<SafeUser, Error, RegisterData>;
   googleSignInMutation: UseMutationResult<SafeUser, Error, void>;
   resetPasswordMutation: UseMutationResult<{ message: string }, Error, ResetPasswordData>;
+  resetPasswordConfirmMutation: UseMutationResult<{ message: string }, Error, ResetPasswordConfirmData>;
 };
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -422,6 +429,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onError: (error) => {
       toast({
         title: "Reset failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const resetPasswordConfirmMutation = useMutation({
+    mutationFn: async (data: ResetPasswordConfirmData) => {
+      const response = await fetch("/api/auth/reset-password/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to reset password");
+      }
+
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Password reset successful",
+        description: data.message || "Your password has been updated. You can now sign in with your new password.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Password reset failed",
         description: error.message,
         variant: "destructive",
       });

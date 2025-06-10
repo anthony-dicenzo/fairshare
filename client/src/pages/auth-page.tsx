@@ -50,15 +50,25 @@ const registerSchema = z.object({
   path: ["confirmPassword"],
 });
 
-// Password reset schema
+// Password reset request schema (for requesting reset)
 const resetPasswordSchema = z.object({
   email: z.string().email("Invalid email address"),
+});
+
+// Password reset confirmation schema (for setting new password with token)
+const resetPasswordConfirmSchema = z.object({
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string().min(1, "Please confirm your password"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
 });
 
 type LoginStep1Values = z.infer<typeof loginStep1Schema>;
 type LoginFormValues = z.infer<typeof loginSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
 type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
+type ResetPasswordConfirmValues = z.infer<typeof resetPasswordConfirmSchema>;
 
 export default function AuthPage() {
   const [location, navigate] = useLocation();
@@ -67,6 +77,21 @@ export default function AuthPage() {
   const [loginStep, setLoginStep] = useState<1 | 2>(1);
   const [loginUsername, setLoginUsername] = useState("");
   const [activeTab, setActiveTab] = useState<"login" | "register" | "reset">("login");
+  const [resetToken, setResetToken] = useState<string | null>(null);
+
+  // Check URL parameters on component mount to handle reset password links
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tab = urlParams.get('tab');
+    const token = urlParams.get('token');
+    
+    if (tab === 'reset' && token) {
+      setActiveTab('reset');
+      setResetToken(token);
+    } else if (tab === 'register') {
+      setActiveTab('register');
+    }
+  }, []);
 
   // Redirect to returnPath or home if already logged in
   useEffect(() => {
