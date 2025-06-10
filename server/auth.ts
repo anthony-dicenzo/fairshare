@@ -575,9 +575,15 @@ export function setupAuth(app: Express) {
       await sendPasswordResetEmail(user.email, resetToken, resetUrl);
       
       console.log(`Password reset email sent to: ${email}`);
+      console.log(`Reset token for testing: ${resetToken}`);
+      console.log(`Reset URL: ${resetUrl}`);
       
       return res.status(200).json({ 
-        message: "If an account with that email exists, we've sent password reset instructions." 
+        message: "If an account with that email exists, we've sent password reset instructions.",
+        // Include token in development for testing
+        ...(process.env.NODE_ENV === 'development' && { 
+          debug: { token: resetToken, url: resetUrl } 
+        })
       });
       
     } catch (error) {
@@ -651,6 +657,30 @@ export function setupAuth(app: Express) {
     } catch (error) {
       console.error("Password reset confirm error:", error);
       return res.status(500).json({ error: "Failed to reset password" });
+    }
+  });
+
+  // Test email endpoint to verify Resend integration
+  app.post("/api/auth/test-email", async (req, res) => {
+    try {
+      const { sendPasswordResetEmail } = await import('./email.js');
+      const testResult = await sendPasswordResetEmail(
+        'adicenzo1@gmail.com', 
+        'test-token-123', 
+        'https://example.com/reset?token=test-token-123'
+      );
+      
+      return res.status(200).json({ 
+        message: "Test email sent successfully",
+        result: testResult
+      });
+      
+    } catch (error) {
+      console.error("Test email error:", error);
+      return res.status(500).json({ 
+        error: "Failed to send test email",
+        details: error.message 
+      });
     }
   });
 

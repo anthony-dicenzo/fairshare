@@ -56,9 +56,11 @@ export async function sendPasswordResetEmail(email: string, resetToken: string, 
     });
 
     if (error) {
+      console.error('Resend API error:', error);
       throw new Error(`Failed to send email: ${error.message}`);
     }
 
+    console.log('Resend API response:', data);
     return data;
   } catch (error) {
     console.error('Email sending error:', error);
