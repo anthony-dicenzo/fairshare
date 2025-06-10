@@ -14,8 +14,7 @@ import {
   getRedirectResult,
   GoogleAuthProvider, 
   UserCredential,
-  Auth,
-  sendPasswordResetEmail
+  Auth
 } from "firebase/auth";
 import { auth, googleProvider } from "../lib/firebase";
 
@@ -400,41 +399,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const resetPasswordMutation = useMutation({
     mutationFn: async (data: ResetPasswordData) => {
-      if (!auth) {
-        throw new Error("Firebase authentication not initialized");
+      const response = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to send reset email");
       }
 
-      await sendPasswordResetEmail(auth, data.email);
-      return { message: "Password reset email sent successfully" };
+      return await response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({
         title: "Reset email sent",
-        description: "Check your inbox for the password reset link",
+        description: data.message || "Check your email for password reset instructions",
       });
     },
-    onError: (error: any) => {
-      let errorMessage = "Failed to send reset email";
-      
-      if (error?.code) {
-        switch (error.code) {
-          case 'auth/user-not-found':
-            errorMessage = "No account found with this email address";
-            break;
-          case 'auth/invalid-email':
-            errorMessage = "Invalid email address";
-            break;
-          case 'auth/too-many-requests':
-            errorMessage = "Too many reset attempts. Please try again later";
-            break;
-          default:
-            errorMessage = error.message || errorMessage;
-        }
-      }
-      
+    onError: (error) => {
       toast({
         title: "Reset failed",
-        description: errorMessage,
+        description: error.message,
         variant: "destructive",
       });
     },

@@ -225,4 +225,6 @@ export type UserBalance = typeof userBalances.$inferSelect;
 export type InsertUserBalance = z.infer<typeof insertUserBalanceSchema>;
 export type UserBalanceBetweenUsers = typeof userBalancesBetweenUsers.$inferSelect;
 export type InsertUserBalanceBetweenUsers = z.infer<typeof insertUserBalanceBetweenUsersSchema>;
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type InsertPasswordResetToken = z.infer<typeof insertPasswordResetTokenSchema>;
 export type LoginUser = z.infer<typeof loginUserSchema>;

@@ -530,6 +530,130 @@ export function setupAuth(app: Express) {
     }
   });
 
+  // Password reset endpoint
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      // Check if user exists
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        // Don't reveal if email exists for security
+        return res.status(200).json({ 
+          message: "If an account with that email exists, we've sent password reset instructions." 
+        });
+      }
+
+      // Generate secure reset token
+      const crypto = await import('crypto');
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const resetUrl = `${process.env.REPLIT_DEV_DOMAIN ? 'https://' + process.env.REPLIT_DEV_DOMAIN : 'http://localhost:5000'}/auth?tab=reset&token=${resetToken}`;
+      
+      // Store reset token temporarily (in production, use a proper token store)
+      // For now, we'll store it in memory with expiration
+      const tokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+      if (!(global as any).resetTokens) (global as any).resetTokens = new Map();
+      (global as any).resetTokens.set(resetToken, { 
+        userId: user.id, 
+        email: user.email, 
+        expiresAt: tokenExpiry 
+      });
+
+      // Clean up expired tokens
+      for (const [token, data] of (global as any).resetTokens.entries()) {
+        if (data.expiresAt < new Date()) {
+          (global as any).resetTokens.delete(token);
+        }
+      }
+
+      // Send email using Resend
+      const { sendPasswordResetEmail } = await import('./email.js');
+      await sendPasswordResetEmail(user.email, resetToken, resetUrl);
+      
+      console.log(`Password reset email sent to: ${email}`);
+      
+      return res.status(200).json({ 
+        message: "If an account with that email exists, we've sent password reset instructions." 
+      });
+      
+    } catch (error) {
+      console.error("Password reset error:", error);
+      return res.status(500).json({ error: "Failed to process password reset request" });
+    }
+  });
+
+  // Verify reset token endpoint
+  app.post("/api/auth/verify-reset-token", async (req, res) => {
+    try {
+      const { token } = req.body;
+      
+      if (!token) {
+        return res.status(400).json({ error: "Token is required" });
+      }
+
+      if (!global.resetTokens || !global.resetTokens.has(token)) {
+        return res.status(400).json({ error: "Invalid or expired reset token" });
+      }
+
+      const tokenData = global.resetTokens.get(token);
+      if (tokenData.expiresAt < new Date()) {
+        global.resetTokens.delete(token);
+        return res.status(400).json({ error: "Reset token has expired" });
+      }
+
+      return res.status(200).json({ valid: true });
+      
+    } catch (error) {
+      console.error("Token verification error:", error);
+      return res.status(500).json({ error: "Failed to verify reset token" });
+    }
+  });
+
+  // Reset password with token endpoint
+  app.post("/api/auth/reset-password-confirm", async (req, res) => {
+    try {
+      const { token, newPassword } = req.body;
+      
+      if (!token || !newPassword) {
+        return res.status(400).json({ error: "Token and new password are required" });
+      }
+
+      if (!global.resetTokens || !global.resetTokens.has(token)) {
+        return res.status(400).json({ error: "Invalid or expired reset token" });
+      }
+
+      const tokenData = global.resetTokens.get(token);
+      if (tokenData.expiresAt < new Date()) {
+        global.resetTokens.delete(token);
+        return res.status(400).json({ error: "Reset token has expired" });
+      }
+
+      // Hash the new password
+      const bcrypt = await import('bcrypt');
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update user's password
+      await storage.updateUser(tokenData.userId, { password: hashedPassword });
+
+      // Remove used token
+      global.resetTokens.delete(token);
+      
+      console.log(`Password reset completed for user: ${tokenData.email}`);
+      
+      return res.status(200).json({ 
+        message: "Password has been reset successfully. You can now log in with your new password." 
+      });
+      
+    } catch (error) {
+      console.error("Password reset confirm error:", error);
+      return res.status(500).json({ error: "Failed to reset password" });
+    }
+  });
+
   // Middleware to check for header-based authentication when cookies fail
   // This helps mobile devices where cookies often don't work as expected
   app.use(async (req, res, next) => {
