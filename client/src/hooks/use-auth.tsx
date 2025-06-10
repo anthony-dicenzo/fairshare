@@ -476,7 +476,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logoutMutation,
         registerMutation,
         googleSignInMutation,
-        resetPasswordMutation
+        resetPasswordMutation,
+        resetPasswordConfirmMutation
       }}
     >
       {children}

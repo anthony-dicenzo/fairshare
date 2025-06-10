@@ -72,7 +72,7 @@ type ResetPasswordConfirmValues = z.infer<typeof resetPasswordConfirmSchema>;
 
 export default function AuthPage() {
   const [location, navigate] = useLocation();
-  const { user, loginMutation, registerMutation, googleSignInMutation, resetPasswordMutation } = useAuth();
+  const { user, loginMutation, registerMutation, googleSignInMutation, resetPasswordMutation, resetPasswordConfirmMutation } = useAuth();
   const isMobile = useIsMobile();
   const [loginStep, setLoginStep] = useState<1 | 2>(1);
   const [loginUsername, setLoginUsername] = useState("");
@@ -147,6 +147,15 @@ export default function AuthPage() {
     },
   });
 
+  // Password reset confirmation form
+  const resetConfirmForm = useForm<ResetPasswordConfirmValues>({
+    resolver: zodResolver(resetPasswordConfirmSchema),
+    defaultValues: {
+      password: "",
+      confirmPassword: "",
+    },
+  });
+
   // This function is no longer needed since we removed the form in step 1,
   // but we keep it for backward compatibility
   const onLoginStep1Submit = (data: LoginStep1Values) => {
@@ -171,6 +180,15 @@ export default function AuthPage() {
 
   const onResetSubmit = (data: ResetPasswordValues) => {
     resetPasswordMutation.mutate(data);
+  };
+
+  const onResetConfirmSubmit = (data: ResetPasswordConfirmValues) => {
+    if (resetToken) {
+      resetPasswordConfirmMutation.mutate({
+        token: resetToken,
+        password: data.password,
+      });
+    }
   };
 
   // Mobile-optimized login page that matches the wireframe
@@ -457,45 +475,113 @@ export default function AuthPage() {
                     Back to login
                   </Button>
                   
-                  <div className="mb-6">
-                    <h3 className="text-xl font-medium text-fairshare-dark">Reset password</h3>
-                    <p className="text-sm text-fairshare-dark/60 mt-1">
-                      Enter your email address and we'll send you a link to reset your password
-                    </p>
-                  </div>
-                  
-                  <Form {...resetForm}>
-                    <form onSubmit={resetForm.handleSubmit(onResetSubmit)} className="space-y-4">
-                      {/* Email field */}
-                      <FormField
-                        control={resetForm.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Input 
-                                type="email" 
-                                placeholder="Email address" 
-                                className="h-12 rounded-xl border-fairshare-dark/20 bg-white" 
-                                autoComplete="email"
-                                {...field} 
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                  {resetToken ? (
+                    /* Password reset confirmation form (when user has a token) */
+                    <>
+                      <div className="mb-6">
+                        <h3 className="text-xl font-medium text-fairshare-dark">Set new password</h3>
+                        <p className="text-sm text-fairshare-dark/60 mt-1">
+                          Enter your new password below
+                        </p>
+                      </div>
+                      
+                      <Form {...resetConfirmForm}>
+                        <form onSubmit={resetConfirmForm.handleSubmit(onResetConfirmSubmit)} className="space-y-4">
+                          {/* New password field */}
+                          <FormField
+                            control={resetConfirmForm.control}
+                            name="password"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <Input 
+                                    type="password" 
+                                    placeholder="New password" 
+                                    className="h-12 rounded-xl border-fairshare-dark/20 bg-white" 
+                                    autoComplete="new-password"
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
-                      {/* Reset button */}
-                      <Button 
-                        type="submit" 
-                        className="w-full h-12 rounded-xl mt-4 bg-fairshare-primary text-white hover:bg-fairshare-primary/90"
-                        disabled={resetPasswordMutation.isPending}
-                      >
-                        {resetPasswordMutation.isPending ? "Sending..." : "Send reset email"}
-                      </Button>
-                    </form>
-                  </Form>
+                          {/* Confirm password field */}
+                          <FormField
+                            control={resetConfirmForm.control}
+                            name="confirmPassword"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <Input 
+                                    type="password" 
+                                    placeholder="Confirm new password" 
+                                    className="h-12 rounded-xl border-fairshare-dark/20 bg-white" 
+                                    autoComplete="new-password"
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          {/* Update password button */}
+                          <Button 
+                            type="submit" 
+                            className="w-full h-12 rounded-xl mt-4 bg-fairshare-primary text-white hover:bg-fairshare-primary/90"
+                            disabled={resetPasswordConfirmMutation.isPending}
+                          >
+                            {resetPasswordConfirmMutation.isPending ? "Updating..." : "Update password"}
+                          </Button>
+                        </form>
+                      </Form>
+                    </>
+                  ) : (
+                    /* Password reset request form (when no token) */
+                    <>
+                      <div className="mb-6">
+                        <h3 className="text-xl font-medium text-fairshare-dark">Reset password</h3>
+                        <p className="text-sm text-fairshare-dark/60 mt-1">
+                          Enter your email address and we'll send you a link to reset your password
+                        </p>
+                      </div>
+                      
+                      <Form {...resetForm}>
+                        <form onSubmit={resetForm.handleSubmit(onResetSubmit)} className="space-y-4">
+                          {/* Email field */}
+                          <FormField
+                            control={resetForm.control}
+                            name="email"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <Input 
+                                    type="email" 
+                                    placeholder="Email address" 
+                                    className="h-12 rounded-xl border-fairshare-dark/20 bg-white" 
+                                    autoComplete="email"
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          {/* Reset button */}
+                          <Button 
+                            type="submit" 
+                            className="w-full h-12 rounded-xl mt-4 bg-fairshare-primary text-white hover:bg-fairshare-primary/90"
+                            disabled={resetPasswordMutation.isPending}
+                          >
+                            {resetPasswordMutation.isPending ? "Sending..." : "Send reset email"}
+                          </Button>
+                        </form>
+                      </Form>
+                    </>
+                  )}
                 </div>
               </TabsContent>
             </Tabs>
