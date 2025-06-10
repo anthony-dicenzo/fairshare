@@ -620,12 +620,12 @@ export function setupAuth(app: Express) {
   });
 
   // Reset password with token endpoint
-  app.post("/api/auth/reset-password-confirm", async (req, res) => {
+  app.post("/api/auth/reset-password/confirm", async (req, res) => {
     try {
-      const { token, newPassword } = req.body;
+      const { token, password } = req.body;
       
-      if (!token || !newPassword) {
-        return res.status(400).json({ error: "Token and new password are required" });
+      if (!token || !password) {
+        return res.status(400).json({ error: "Token and password are required" });
       }
 
       if (!(global as any).resetTokens || !(global as any).resetTokens.has(token)) {
@@ -640,7 +640,7 @@ export function setupAuth(app: Express) {
 
       // Hash the new password
       const bcrypt = await import('bcrypt');
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      const hashedPassword = await bcrypt.hash(password, 10);
 
       // Update user's password
       await storage.updateUser(tokenData.userId, { password: hashedPassword });
