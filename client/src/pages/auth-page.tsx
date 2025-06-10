@@ -83,47 +83,76 @@ export default function AuthPage() {
   useEffect(() => {
     const checkUrlParams = () => {
       const currentUrl = window.location.href;
-      const urlParams = new URLSearchParams(window.location.search);
+      const searchParams = window.location.search;
+      const urlParams = new URLSearchParams(searchParams);
       const tab = urlParams.get('tab');
       const token = urlParams.get('token');
       
       console.log('=== URL Parameter Check ===');
-      console.log('Current URL:', currentUrl);
-      console.log('Search string:', window.location.search);
-      console.log('All URL params:', Array.from(urlParams.entries()));
-      console.log('Tab param:', tab);
-      console.log('Token param:', token ? `${token.substring(0, 20)}...` : 'null');
+      console.log('Full URL:', currentUrl);
+      console.log('Search string:', searchParams);
+      console.log('Pathname:', window.location.pathname);
+      console.log('Hash:', window.location.hash);
       
-      if (token && token.length > 10) {
+      // Also try parsing from the full URL in case there are routing issues
+      const urlFromHref = new URL(currentUrl);
+      const hrefParams = new URLSearchParams(urlFromHref.search);
+      const hrefTab = hrefParams.get('tab');
+      const hrefToken = hrefParams.get('token');
+      
+      console.log('From href - tab:', hrefTab, 'token:', hrefToken ? `${hrefToken.substring(0, 20)}...` : 'null');
+      
+      // Use whichever method finds the parameters
+      const finalTab = tab || hrefTab;
+      const finalToken = token || hrefToken;
+      
+      if (finalToken && finalToken.length > 10) {
         console.log('✅ Valid reset token found, switching to reset form');
+        console.log('Token preview:', finalToken.substring(0, 20) + '...');
         setActiveTab('reset');
-        setResetToken(token);
+        setResetToken(finalToken);
         return;
       }
       
-      if (tab === 'register') {
+      if (finalTab === 'register') {
         console.log('Setting register tab');
         setActiveTab('register');
         return;
       }
       
-      console.log('No special params, showing login form');
+      console.log('No special params found, showing login form');
     };
 
     // Check immediately
     checkUrlParams();
     
-    // Also check when hash or search changes
+    // Also recheck when the location changes
     const handleLocationChange = () => {
-      setTimeout(checkUrlParams, 100);
+      setTimeout(checkUrlParams, 50);
     };
     
     window.addEventListener('popstate', handleLocationChange);
     window.addEventListener('hashchange', handleLocationChange);
     
+    // Listen for URL changes in SPA routing
+    const originalPushState = window.history.pushState;
+    const originalReplaceState = window.history.replaceState;
+    
+    window.history.pushState = function(...args) {
+      originalPushState.apply(window.history, args);
+      handleLocationChange();
+    };
+    
+    window.history.replaceState = function(...args) {
+      originalReplaceState.apply(window.history, args);
+      handleLocationChange();
+    };
+    
     return () => {
       window.removeEventListener('popstate', handleLocationChange);
       window.removeEventListener('hashchange', handleLocationChange);
+      window.history.pushState = originalPushState;
+      window.history.replaceState = originalReplaceState;
     };
   }, []);
 
