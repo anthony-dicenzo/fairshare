@@ -29,18 +29,48 @@ export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = ""
       
       toast({
         title: "Initiating Google Sign-In",
-        description: "Opening Google authentication popup..."
+        description: "Opening Google authentication..."
       });
       
-      // Use popup authentication directly
-      console.log("Attempting signInWithPopup...");
-      console.log("Auth object:", auth);
-      console.log("Google provider:", googleProvider);
+      let result;
       
-      const result = await signInWithPopup(auth, googleProvider);
-      console.log("Popup sign-in successful!", result.user.email);
+      try {
+        // First try popup method
+        console.log("Attempting signInWithPopup...");
+        console.log("Auth object:", auth);
+        console.log("Google provider:", googleProvider);
+        
+        result = await signInWithPopup(auth, googleProvider);
+        console.log("Popup sign-in successful!", result.user.email);
+        
+      } catch (popupError) {
+        console.log("Popup method failed, trying redirect method...", popupError);
+        
+        // If popup fails, try redirect method
+        if (popupError && typeof popupError === 'object' && 'code' in popupError) {
+          const firebaseError = popupError as { code: string; message?: string };
+          
+          // For certain errors, use redirect instead
+          if (firebaseError.code === 'auth/popup-blocked' || 
+              firebaseError.code === 'auth/popup-closed-by-user' ||
+              firebaseError.code === 'auth/internal-error') {
+            
+            toast({
+              title: "Redirecting to Google",
+              description: "Opening Google sign-in page..."
+            });
+            
+            // Use redirect method as fallback
+            await signInWithRedirect(auth, googleProvider);
+            return; // Exit here as redirect will handle the rest
+          }
+        }
+        
+        // Re-throw if it's not a popup-specific error
+        throw popupError;
+      }
       
-      // Process the successful popup result
+      // Process the successful authentication result
       const idToken = await result.user.getIdToken();
       const response = await fetch("/api/google-auth", {
         method: "POST",
@@ -98,7 +128,7 @@ export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = ""
           localStorage.setItem('firebase_auth_error', firebaseError.code);
           
           toast({
-            title: "Google Sign-In Failed",
+            title: "Domain Authorization Required",
             description: "Your domain needs to be registered in Firebase. See instructions below.",
             variant: "destructive"
           });
@@ -113,6 +143,13 @@ export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = ""
             variant: "destructive"
           });
           return;
+        } else if (firebaseError.code === 'auth/internal-error') {
+          toast({
+            title: "Authentication Configuration Issue",
+            description: "There's a configuration issue with Google authentication. Please check your Firebase project settings.",
+            variant: "destructive"
+          });
+          return;
         }
       }
       
@@ -124,8 +161,71 @@ export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = ""
     }
   };
   
-  // Check for Firebase errors in localStorage on mount
+  // Check for redirect result and Firebase errors on mount
   useEffect(() => {
+    const handleRedirectResult = async () => {
+      if (!auth || !googleProvider) return;
+      
+      try {
+        // Check if user was redirected back from Google
+        const result = await getRedirectResult(auth);
+        
+        if (result) {
+          console.log("Redirect sign-in successful!", result.user.email);
+          
+          // Process the successful redirect result
+          const idToken = await result.user.getIdToken();
+          const response = await fetch("/api/google-auth", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              token: idToken,
+              name: result.user.displayName,
+              email: result.user.email
+            }),
+            credentials: "include"
+          });
+          
+          if (!response.ok) {
+            throw new Error("Failed to authenticate with the server after successful Google sign-in");
+          }
+          
+          const userData = await response.json();
+          console.log("Server authentication successful:", userData);
+          
+          // Save auth state to localStorage
+          localStorage.setItem("fairshare_auth_state", JSON.stringify({
+            userId: userData.id,
+            username: userData.username,
+            sessionId: userData.sessionId,
+            loggedInAt: new Date().toISOString()
+          }));
+          
+          toast({
+            title: "Google Sign-In successful",
+            description: `Welcome, ${userData.name || userData.username}!`
+          });
+          
+          // Refresh the page to update the UI
+          window.location.reload();
+        }
+      } catch (error) {
+        console.error("Redirect result error:", error);
+        
+        if (error && typeof error === 'object' && 'code' in error) {
+          const firebaseError = error as { code: string; message?: string };
+          
+          if (firebaseError.code === 'auth/unauthorized-domain') {
+            setShowDomainError(true);
+            localStorage.setItem('firebase_auth_error', firebaseError.code);
+          } else if (firebaseError.code === 'auth/operation-not-allowed') {
+            setShowOperationError(true);
+            localStorage.setItem('firebase_auth_error', firebaseError.code);
+          }
+        }
+      }
+    };
+    
     const checkForStoredErrors = () => {
       // Check localStorage for previously stored errors
       const storedError = localStorage.getItem('firebase_auth_error');
@@ -139,6 +239,10 @@ export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = ""
       }
     };
     
+    // Handle redirect result first
+    handleRedirectResult();
+    
+    // Then check for stored errors
     checkForStoredErrors();
     
     // Listen for errors in the current session
@@ -164,7 +268,7 @@ export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = ""
     return () => {
       window.removeEventListener('firebase-auth-error' as any, handleAuthError);
     };
-  }, []);
+  }, [toast]);
 
   return (
     <div className="w-full">
