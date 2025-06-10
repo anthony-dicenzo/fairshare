@@ -81,17 +81,22 @@ export default function AuthPage() {
 
   // Check URL parameters on component mount to handle reset password links
   useEffect(() => {
+    const currentUrl = window.location.href;
     const urlParams = new URLSearchParams(window.location.search);
     const tab = urlParams.get('tab');
     const token = urlParams.get('token');
     
-    if (tab === 'reset' && token) {
+    console.log('Current URL:', currentUrl);
+    console.log('URL params - tab:', tab, 'token:', token ? token.substring(0, 20) + '...' : null);
+    
+    if (token) {
+      console.log('Found reset token, switching to reset tab');
       setActiveTab('reset');
       setResetToken(token);
     } else if (tab === 'register') {
       setActiveTab('register');
     }
-  }, []);
+  }, [location]);
 
   // Redirect to returnPath or home if already logged in
   useEffect(() => {
@@ -187,6 +192,14 @@ export default function AuthPage() {
       resetPasswordConfirmMutation.mutate({
         token: resetToken,
         password: data.password,
+      }, {
+        onSuccess: () => {
+          // Clear the reset token and switch back to login
+          setResetToken(null);
+          setActiveTab('login');
+          // Clear the form
+          resetConfirmForm.reset();
+        }
       });
     }
   };

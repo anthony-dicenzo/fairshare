@@ -456,6 +456,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Password reset successful",
         description: data.message || "Your password has been updated. You can now sign in with your new password.",
       });
+      
+      // Clear the URL parameters and redirect to login after successful reset
+      window.history.replaceState({}, '', '/auth');
     },
     onError: (error) => {
       toast({
