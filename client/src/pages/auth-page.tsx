@@ -25,7 +25,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 
 // Login schema for step 1 (username/email only)
 const loginStep1Schema = z.object({
@@ -171,16 +170,6 @@ export default function AuthPage() {
                     >
                       Continue with email
                     </Button>
-
-                    {/* OR Separator */}
-                    <div className="relative flex items-center my-6">
-                      <div className="flex-grow border-t border-gray-300"></div>
-                      <span className="flex-shrink mx-4 text-gray-500 text-sm uppercase">OR</span>
-                      <div className="flex-grow border-t border-gray-300"></div>
-                    </div>
-
-                    {/* Google Sign-in Button */}
-                    <GoogleSignInButton className="mb-6" />
 
                     {/* Register option */}
                     <div className="text-center">
