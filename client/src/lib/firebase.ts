@@ -1,59 +1,23 @@
 import { initializeApp, getApp, getApps } from "firebase/app";
-import { getAuth, GoogleAuthProvider, Auth } from "firebase/auth";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
-// Firebase configuration
-const apiKey = import.meta.env.VITE_FIREBASE_API_KEY || '';
-const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || '';
-const appId = import.meta.env.VITE_FIREBASE_APP_ID || '';
-
-console.log("Firebase configuration check:");
-console.log("- API Key available:", apiKey ? "Yes" : "No");
-console.log("- Project ID available:", projectId ? "Yes" : "No");
-console.log("- App ID available:", appId ? "Yes" : "No");
-
+// Firebase configuration - using only standard Firebase settings
 const firebaseConfig = {
-  apiKey,
-  authDomain: `${projectId}.firebaseapp.com`,
-  projectId,
-  storageBucket: `${projectId}.firebasestorage.app`,
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
   messagingSenderId: "",
-  appId,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-console.log("Firebase configuration:", {
-  ...firebaseConfig,
-  apiKey: apiKey ? "[API_KEY_SET]" : "[MISSING]",
-  appId: appId ? "[APP_ID_SET]" : "[MISSING]"
-});
+// Initialize Firebase app (singleton pattern)
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// Initialize Firebase with singleton pattern
-let auth: Auth | null = null;
-let googleProvider: GoogleAuthProvider | null = null;
+// Initialize Firebase Auth
+const auth = getAuth(app);
 
-try {
-  console.log("Initializing Firebase...");
-  
-  // Check if Firebase is already initialized
-  const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-  
-  // Initialize Auth
-  auth = getAuth(app);
-  auth.languageCode = 'en';
-  
-  // Initialize Google Auth Provider
-  googleProvider = new GoogleAuthProvider();
-  googleProvider.addScope('profile');
-  googleProvider.addScope('email');
-  googleProvider.setCustomParameters({
-    prompt: 'select_account'
-  });
-  
-  console.log("Firebase initialized successfully");
-  console.log("Firebase Auth available:", !!auth);
-  console.log("Google Auth Provider initialized:", !!googleProvider);
-  
-} catch (error) {
-  console.error("Error initializing Firebase:", error);
-}
+// Initialize Google Auth Provider with minimal configuration
+const googleProvider = new GoogleAuthProvider();
 
 export { auth, googleProvider };

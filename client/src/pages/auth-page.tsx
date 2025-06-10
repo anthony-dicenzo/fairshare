@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ArrowLeft } from "lucide-react";
+import { FirebaseStatusChecker } from "@/components/auth/firebase-status-checker";
 import {
   Form,
   FormControl,
