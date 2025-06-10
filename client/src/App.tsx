@@ -12,11 +12,9 @@ import GroupPage from "@/pages/group-page";
 import GroupsPage from "@/pages/groups-page";
 import ActivityPage from "@/pages/activity-page";
 import ProfilePage from "@/pages/profile-page";
-import AuthPage from "@/pages/auth-page";
+import { AuthPage } from "@/pages/auth-page";
 import InvitePage from "@/pages/invite-page";
-import FirebaseDebugPage from "@/pages/firebase-debug";
-import GoogleAuthTestPage from "@/pages/google-auth-test";
-import DomainDebugPage from "@/pages/domain-debug";
+
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -29,9 +27,7 @@ function Router() {
       <ProtectedRoute path="/profile" component={ProfilePage} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/invite/:inviteCode" component={InvitePage} />
-      <Route path="/firebase-debug" component={FirebaseDebugPage} />
-      <Route path="/google-auth-test" component={GoogleAuthTestPage} />
-      <Route path="/domain-debug" component={DomainDebugPage} />
+
       <Route component={NotFound} />
     </Switch>
   );

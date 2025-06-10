@@ -49,54 +49,29 @@ const registerSchema = z.object({
   path: ["confirmPassword"],
 });
 
-type LoginStep1Values = z.infer<typeof loginStep1Schema>;
-type LoginFormValues = z.infer<typeof loginSchema>;
-type RegisterFormValues = z.infer<typeof registerSchema>;
+type LoginStep1Form = z.infer<typeof loginStep1Schema>;
+type LoginForm = z.infer<typeof loginSchema>;
+type RegisterForm = z.infer<typeof registerSchema>;
 
-export default function AuthPage() {
+export function AuthPage() {
   const [location, navigate] = useLocation();
-  const { user, loginMutation, registerMutation, googleSignInMutation } = useAuth();
-  const isMobile = useIsMobile();
-  const [loginStep, setLoginStep] = useState<1 | 2>(1);
-  const [loginUsername, setLoginUsername] = useState("");
+  const { user, login, register } = useAuth();
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+  const [loginStep, setLoginStep] = useState<1 | 2>(1);
+  const isMobile = useIsMobile();
 
-  // Redirect to returnPath or home if already logged in
-  useEffect(() => {
-    if (user) {
-      // Check if there's a saved return path in localStorage (for invite links)
-      const returnPath = localStorage.getItem('returnPath');
-      if (returnPath) {
-        // Clear the return path from localStorage
-        localStorage.removeItem('returnPath');
-        // Navigate to the saved path
-        navigate(returnPath);
-      } else {
-        // Default to home page
-        navigate("/");
-      }
-    }
-  }, [user, navigate]);
-
-  // Login step 1 form (username/email only)
-  const loginStep1Form = useForm<LoginStep1Values>({
+  // Form instances
+  const loginStep1Form = useForm<LoginStep1Form>({
     resolver: zodResolver(loginStep1Schema),
-    defaultValues: {
-      username: "",
-    },
+    defaultValues: { username: "" },
   });
 
-  // Login form for step 2 (with password)
-  const loginForm = useForm<LoginFormValues>({
+  const loginForm = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      username: loginUsername,
-      password: "",
-    },
+    defaultValues: { username: "", password: "" },
   });
 
-  // Registration form
-  const registerForm = useForm<RegisterFormValues>({
+  const registerForm = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       name: "",
@@ -107,36 +82,46 @@ export default function AuthPage() {
     },
   });
 
-  // This function is no longer needed since we removed the form in step 1,
-  // but we keep it for backward compatibility
-  const onLoginStep1Submit = (data: LoginStep1Values) => {
-    setLoginUsername("");
-    setLoginStep(2); // Proceed to credentials screen
-    
-    // Reset the form for step 2
-    loginForm.reset({
-      username: "",
-      password: ""
-    });
+  // Mutations for API calls
+  const loginMutation = login;
+  const registerMutation = register;
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (user) {
+      navigate("/dashboard");
+    }
+  }, [user, navigate]);
+
+  // Handle login step 1 submission (username/email check)
+  const onLoginStep1Submit = (data: LoginStep1Form) => {
+    loginForm.setValue("username", data.username);
+    setLoginStep(2);
   };
 
-  // This handles the final login submission (username + password)
-  const onLoginSubmit = (data: LoginFormValues) => {
+  // Handle login submission
+  const onLoginSubmit = (data: LoginForm) => {
     loginMutation.mutate(data);
   };
 
-  const onRegisterSubmit = (data: RegisterFormValues) => {
+  // Handle registration submission
+  const onRegisterSubmit = (data: RegisterForm) => {
     registerMutation.mutate(data);
   };
 
-  // Mobile-optimized login page that matches the wireframe
-  if (isMobile) {
-    return (
-      <div className="min-h-screen flex flex-col bg-fairshare-cream">
-        <div className="flex-1 flex flex-col justify-center p-6">
-          {/* Logo and tagline section */}
-          <div className="text-center mb-12">
-            <div className="flex justify-center items-center mb-2">
+  if (user) {
+    return null; // Will redirect via useEffect
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-fairshare-secondary/20 to-fairshare-primary/10">
+      {isMobile ? (
+        // Mobile Layout - Scrollable single column
+        <div className="flex flex-col min-h-screen">
+          {/* Header Section with Logo */}
+          <div className="flex-shrink-0 px-6 pt-8 pb-6">
+            <div className="flex items-center">
+              <div className="w-8 h-8 bg-fairshare-primary rounded-lg mr-3"></div>
               <h1 className="text-3xl font-bold text-fairshare-primary">FairShare</h1>
             </div>
             <h2 className="text-4xl font-serif font-medium text-fairshare-dark mt-10 mb-2">
@@ -271,6 +256,7 @@ export default function AuthPage() {
                             <Input 
                               placeholder="Full Name" 
                               className="h-12 rounded-xl border-fairshare-dark/20 bg-white"
+                              autoComplete="name"
                               {...field} 
                             />
                           </FormControl>
@@ -286,8 +272,9 @@ export default function AuthPage() {
                           <FormControl>
                             <Input 
                               type="email" 
-                              placeholder="Email" 
+                              placeholder="Email address" 
                               className="h-12 rounded-xl border-fairshare-dark/20 bg-white"
+                              autoComplete="email"
                               {...field} 
                             />
                           </FormControl>
@@ -304,6 +291,7 @@ export default function AuthPage() {
                             <Input 
                               placeholder="Username" 
                               className="h-12 rounded-xl border-fairshare-dark/20 bg-white"
+                              autoComplete="username"
                               {...field} 
                             />
                           </FormControl>
@@ -321,6 +309,7 @@ export default function AuthPage() {
                               type="password" 
                               placeholder="Password" 
                               className="h-12 rounded-xl border-fairshare-dark/20 bg-white"
+                              autoComplete="new-password"
                               {...field} 
                             />
                           </FormControl>
@@ -338,6 +327,7 @@ export default function AuthPage() {
                               type="password" 
                               placeholder="Confirm Password" 
                               className="h-12 rounded-xl border-fairshare-dark/20 bg-white"
+                              autoComplete="new-password"
                               {...field} 
                             />
                           </FormControl>
@@ -345,26 +335,15 @@ export default function AuthPage() {
                         </FormItem>
                       )}
                     />
-                    
                     <Button 
                       type="submit" 
-                      className="w-full h-12 rounded-xl mt-4 bg-fairshare-dark text-white hover:bg-fairshare-dark/90"
+                      className="w-full h-12 rounded-xl mt-4 bg-fairshare-primary text-white hover:bg-fairshare-primary/90"
                       disabled={registerMutation.isPending}
                     >
                       {registerMutation.isPending ? "Creating account..." : "Create account"}
                     </Button>
                   </form>
                 </Form>
-
-                {/* OR Separator */}
-                <div className="relative flex items-center my-6">
-                  <div className="flex-grow border-t border-gray-300"></div>
-                  <span className="flex-shrink mx-4 text-gray-500 text-sm uppercase">OR</span>
-                  <div className="flex-grow border-t border-gray-300"></div>
-                </div>
-
-                {/* Google Sign-in Button */}
-                <GoogleSignInButton className="mb-6" />
 
                 {/* Login option */}
                 <div className="text-center">
@@ -388,271 +367,213 @@ export default function AuthPage() {
             <div className="space-y-6">
               <div className="flex items-start gap-4">
                 <div className="w-8 h-8 rounded-full bg-fairshare-primary/20 flex items-center justify-center shrink-0 mt-1">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M5 13L9 17L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-fairshare-primary" />
-                  </svg>
+                  <span className="text-fairshare-primary font-bold text-sm">1</span>
                 </div>
                 <div>
-                  <h4 className="font-medium text-fairshare-dark">Effortless Expense Tracking</h4>
-                  <p className="text-fairshare-dark/70 text-sm">Log expenses and split them equally or with custom amounts</p>
+                  <h4 className="font-semibold text-fairshare-dark">Quick expense tracking</h4>
+                  <p className="text-fairshare-dark/70 text-sm">Add expenses in seconds and split them automatically with your group.</p>
                 </div>
               </div>
               
               <div className="flex items-start gap-4">
                 <div className="w-8 h-8 rounded-full bg-fairshare-primary/20 flex items-center justify-center shrink-0 mt-1">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M5 13L9 17L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-fairshare-primary" />
-                  </svg>
+                  <span className="text-fairshare-primary font-bold text-sm">2</span>
                 </div>
                 <div>
-                  <h4 className="font-medium text-fairshare-dark">Smart Group Management</h4>
-                  <p className="text-fairshare-dark/70 text-sm">Create groups for roommates, trips, or events</p>
+                  <h4 className="font-semibold text-fairshare-dark">Real-time balances</h4>
+                  <p className="text-fairshare-dark/70 text-sm">See who owes what instantly with automatic balance calculations.</p>
                 </div>
               </div>
               
               <div className="flex items-start gap-4">
                 <div className="w-8 h-8 rounded-full bg-fairshare-primary/20 flex items-center justify-center shrink-0 mt-1">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M5 13L9 17L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-fairshare-primary" />
-                  </svg>
+                  <span className="text-fairshare-primary font-bold text-sm">3</span>
                 </div>
                 <div>
-                  <h4 className="font-medium text-fairshare-dark">Real-time Balance Tracking</h4>
-                  <p className="text-fairshare-dark/70 text-sm">See who owes what with automatic calculations</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-4">
-                <div className="w-8 h-8 rounded-full bg-fairshare-primary/20 flex items-center justify-center shrink-0 mt-1">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M5 13L9 17L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-fairshare-primary" />
-                  </svg>
-                </div>
-                <div>
-                  <h4 className="font-medium text-fairshare-dark">Simplified Settlements</h4>
-                  <p className="text-fairshare-dark/70 text-sm">Record payments and keep everyone's balances up to date</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="mt-8 text-center">
-              <p className="text-fairshare-primary font-medium">Free for everyone. No hidden fees.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Desktop version remains unchanged
-  return (
-    <div className="min-h-screen flex flex-col bg-muted/40">
-      <header className="flex items-center justify-between p-4 bg-background border-b">
-        <div className="text-xl font-bold text-fairshare-primary">FairShare</div>
-      </header>
-
-      <div className="flex-1 grid md:grid-cols-2 gap-0">
-        {/* Auth Forms */}
-        <div className="flex items-center justify-center p-4 md:p-8">
-          <Card className="w-full max-w-md mx-auto">
-            <CardHeader>
-              <CardTitle className="text-2xl">Welcome to FairShare</CardTitle>
-              <CardDescription>
-                Split expenses fairly with friends, roommates, or groups — everyone gets their fair share.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Tabs 
-                value={activeTab} 
-                onValueChange={(value) => setActiveTab(value as "login" | "register")} 
-                className="w-full tabs">
-                <TabsList className="grid w-full grid-cols-2 mb-4">
-                  <TabsTrigger value="login">Login</TabsTrigger>
-                  <TabsTrigger value="register">Register</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="login">
-                  <Form {...loginForm}>
-                    <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
-                      <FormField
-                        control={loginForm.control}
-                        name="username"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email or Username</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Email or username" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={loginForm.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Password</FormLabel>
-                            <FormControl>
-                              <Input type="password" placeholder="Password" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <Button 
-                        type="submit" 
-                        className="w-full" 
-                        disabled={loginMutation.isPending}
-                      >
-                        {loginMutation.isPending ? "Logging in..." : "Log in"}
-                      </Button>
-                    </form>
-
-                    {/* OR Separator */}
-                    <div className="relative flex items-center my-6">
-                      <div className="flex-grow border-t border-gray-300"></div>
-                      <span className="flex-shrink mx-4 text-gray-500 text-sm uppercase">OR</span>
-                      <div className="flex-grow border-t border-gray-300"></div>
-                    </div>
-
-                    {/* Google Sign-in Button */}
-                    <GoogleSignInButton />
-                  </Form>
-                </TabsContent>
-
-                <TabsContent value="register">
-                  <Form {...registerForm}>
-                    <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
-                      <FormField
-                        control={registerForm.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Full Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Full Name" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={registerForm.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email</FormLabel>
-                            <FormControl>
-                              <Input type="email" placeholder="Email" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={registerForm.control}
-                        name="username"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Username</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Username" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={registerForm.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Password</FormLabel>
-                            <FormControl>
-                              <Input type="password" placeholder="Password" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={registerForm.control}
-                        name="confirmPassword"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Confirm Password</FormLabel>
-                            <FormControl>
-                              <Input type="password" placeholder="Confirm Password" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <Button 
-                        type="submit" 
-                        className="w-full" 
-                        disabled={registerMutation.isPending}
-                      >
-                        {registerMutation.isPending ? "Creating account..." : "Create account"}
-                      </Button>
-                    </form>
-
-                    {/* OR Separator */}
-                    <div className="relative flex items-center my-6">
-                      <div className="flex-grow border-t border-gray-300"></div>
-                      <span className="flex-shrink mx-4 text-gray-500 text-sm uppercase">OR</span>
-                      <div className="flex-grow border-t border-gray-300"></div>
-                    </div>
-
-                    {/* Google Sign-in Button */}
-                    <GoogleSignInButton />
-                  </Form>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Hero Section */}
-        <div className="hidden md:flex flex-col items-center justify-center p-8 bg-primary/10 text-center">
-          <div className="max-w-lg">
-            <h1 className="text-4xl font-bold mb-6 text-fairshare-primary">Split expenses without the drama</h1>
-            
-            <div className="space-y-6 text-left">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-full bg-fairshare-primary/20 flex items-center justify-center shrink-0">
-                  <span className="text-fairshare-primary font-bold">1</span>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Track shared expenses</h3>
-                  <p className="text-muted-foreground">Log expenses and assign them to the right people, whether split equally or custom amounts.</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-full bg-fairshare-primary/20 flex items-center justify-center shrink-0">
-                  <span className="text-fairshare-primary font-bold">2</span>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Create groups for any occasion</h3>
-                  <p className="text-muted-foreground">Organize expenses for roommates, trips, events or any shared spending situation.</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-full bg-fairshare-primary/20 flex items-center justify-center shrink-0">
-                  <span className="text-fairshare-primary font-bold">3</span>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Settle up easily</h3>
-                  <p className="text-muted-foreground">See who owes what and record payments to keep your balances up to date.</p>
+                  <h4 className="font-semibold text-fairshare-dark">Easy settlements</h4>
+                  <p className="text-fairshare-dark/70 text-sm">Record payments and settle up with just a few taps.</p>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      ) : (
+        // Desktop Layout - Two columns
+        <div className="flex min-h-screen">
+          {/* Left column - Forms */}
+          <div className="w-1/2 p-8 flex items-center justify-center">
+            <Card className="w-full max-w-md border-0 shadow-none bg-transparent">
+              <CardHeader className="space-y-1 px-0 pb-8">
+                <div className="flex items-center mb-8">
+                  <div className="w-8 h-8 bg-fairshare-primary rounded-lg mr-3"></div>
+                  <CardTitle className="text-3xl font-bold text-fairshare-primary">FairShare</CardTitle>
+                </div>
+                <CardDescription className="text-lg text-fairshare-dark/80">
+                  Split expenses fairly with friends
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="px-0">
+                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "login" | "register")} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 mb-6">
+                    <TabsTrigger value="login">Login</TabsTrigger>
+                    <TabsTrigger value="register">Register</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="login">
+                    <Form {...loginForm}>
+                      <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
+                        <FormField
+                          control={loginForm.control}
+                          name="username"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email or Username</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter your email or username" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={loginForm.control}
+                          name="password"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Password</FormLabel>
+                              <FormControl>
+                                <Input type="password" placeholder="Enter your password" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
+                          {loginMutation.isPending ? "Logging in..." : "Log in"}
+                        </Button>
+                      </form>
+                    </Form>
+                  </TabsContent>
+
+                  <TabsContent value="register">
+                    <Form {...registerForm}>
+                      <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
+                        <FormField
+                          control={registerForm.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Full Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Full Name" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={registerForm.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email</FormLabel>
+                              <FormControl>
+                                <Input type="email" placeholder="Email" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={registerForm.control}
+                          name="username"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Username</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Username" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={registerForm.control}
+                          name="password"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Password</FormLabel>
+                              <FormControl>
+                                <Input type="password" placeholder="Password" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={registerForm.control}
+                          name="confirmPassword"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Confirm Password</FormLabel>
+                              <FormControl>
+                                <Input type="password" placeholder="Confirm Password" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <Button type="submit" className="w-full" disabled={registerMutation.isPending}>
+                          {registerMutation.isPending ? "Creating account..." : "Create account"}
+                        </Button>
+                      </form>
+                    </Form>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right column - Hero Section */}
+          <div className="w-1/2 bg-gradient-to-br from-fairshare-primary/10 to-fairshare-secondary/10 p-8 flex items-center justify-center">
+            <div className="max-w-lg text-center">
+              <h1 className="text-4xl font-bold mb-6 text-fairshare-primary">Split expenses without the drama</h1>
+              
+              <div className="space-y-6 text-left">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-full bg-fairshare-primary/20 flex items-center justify-center shrink-0">
+                    <span className="text-fairshare-primary font-bold">1</span>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg">Track shared expenses</h3>
+                    <p className="text-muted-foreground">Log expenses and assign them to the right people, whether split equally or custom amounts.</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-full bg-fairshare-primary/20 flex items-center justify-center shrink-0">
+                    <span className="text-fairshare-primary font-bold">2</span>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg">Real-time balances</h3>
+                    <p className="text-muted-foreground">See exactly who owes what with automatic calculations and running balance updates.</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-full bg-fairshare-primary/20 flex items-center justify-center shrink-0">
+                    <span className="text-fairshare-primary font-bold">3</span>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg">Easy settlements</h3>
+                    <p className="text-muted-foreground">Record payments and settle debts with simple, intuitive tools that keep everyone happy.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
