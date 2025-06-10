@@ -530,6 +530,42 @@ export function setupAuth(app: Express) {
     }
   });
 
+  // Password reset endpoint
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      // Check if user exists
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        // Don't reveal if email exists for security
+        return res.status(200).json({ 
+          message: "If an account with that email exists, we've sent password reset instructions." 
+        });
+      }
+
+      // In a production app, you would:
+      // 1. Generate a secure reset token
+      // 2. Store it in the database with expiration
+      // 3. Send an email with the reset link
+      
+      // For now, we'll just return a success message
+      console.log(`Password reset requested for: ${email}`);
+      
+      return res.status(200).json({ 
+        message: "If an account with that email exists, we've sent password reset instructions." 
+      });
+      
+    } catch (error) {
+      console.error("Password reset error:", error);
+      return res.status(500).json({ error: "Failed to process password reset request" });
+    }
+  });
+
   // Middleware to check for header-based authentication when cookies fail
   // This helps mobile devices where cookies often don't work as expected
   app.use(async (req, res, next) => {

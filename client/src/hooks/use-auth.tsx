@@ -50,6 +50,7 @@ type AuthContextType = {
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<SafeUser, Error, RegisterData>;
   googleSignInMutation: UseMutationResult<SafeUser, Error, void>;
+  resetPasswordMutation: UseMutationResult<{ message: string }, Error, ResetPasswordData>;
 };
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -396,6 +397,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (data: ResetPasswordData) => {
+      const response = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to send reset email");
+      }
+
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Reset email sent",
+        description: data.message || "Check your email for password reset instructions",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Reset failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return (
     <AuthContext.Provider
       value={{
@@ -405,7 +437,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginMutation,
         logoutMutation,
         registerMutation,
-        googleSignInMutation
+        googleSignInMutation,
+        resetPasswordMutation
       }}
     >
       {children}

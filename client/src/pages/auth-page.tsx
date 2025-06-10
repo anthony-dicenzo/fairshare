@@ -62,7 +62,7 @@ type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
 
 export default function AuthPage() {
   const [location, navigate] = useLocation();
-  const { user, loginMutation, registerMutation, googleSignInMutation } = useAuth();
+  const { user, loginMutation, registerMutation, googleSignInMutation, resetPasswordMutation } = useAuth();
   const isMobile = useIsMobile();
   const [loginStep, setLoginStep] = useState<1 | 2>(1);
   const [loginUsername, setLoginUsername] = useState("");
@@ -142,6 +142,10 @@ export default function AuthPage() {
 
   const onRegisterSubmit = (data: RegisterFormValues) => {
     registerMutation.mutate(data);
+  };
+
+  const onResetSubmit = (data: ResetPasswordValues) => {
+    resetPasswordMutation.mutate(data);
   };
 
   // Mobile-optimized login page that matches the wireframe
@@ -413,6 +417,60 @@ export default function AuthPage() {
                   >
                     Log in
                   </Button>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="reset">
+                <div>
+                  {/* Back button for reset password */}
+                  <Button 
+                    variant="ghost" 
+                    className="mb-4 px-0 hover:bg-transparent" 
+                    onClick={() => setActiveTab("login")}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to login
+                  </Button>
+                  
+                  <div className="mb-6">
+                    <h3 className="text-xl font-medium text-fairshare-dark">Reset password</h3>
+                    <p className="text-sm text-fairshare-dark/60 mt-1">
+                      Enter your email address and we'll send you a link to reset your password
+                    </p>
+                  </div>
+                  
+                  <Form {...resetForm}>
+                    <form onSubmit={resetForm.handleSubmit(onResetSubmit)} className="space-y-4">
+                      {/* Email field */}
+                      <FormField
+                        control={resetForm.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input 
+                                type="email" 
+                                placeholder="Email address" 
+                                className="h-12 rounded-xl border-fairshare-dark/20 bg-white" 
+                                autoComplete="email"
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* Reset button */}
+                      <Button 
+                        type="submit" 
+                        className="w-full h-12 rounded-xl mt-4 bg-fairshare-primary text-white hover:bg-fairshare-primary/90"
+                        disabled={resetPasswordMutation.isPending}
+                      >
+                        {resetPasswordMutation.isPending ? "Sending..." : "Send reset email"}
+                      </Button>
+                    </form>
+                  </Form>
                 </div>
               </TabsContent>
             </Tabs>
