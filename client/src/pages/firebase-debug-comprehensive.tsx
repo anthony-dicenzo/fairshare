@@ -74,7 +74,7 @@ export default function FirebaseDebugComprehensive() {
   };
 
   // Test 2: Firebase App Initialization
-  const testFirebaseInitialization = () => {
+  const testFirebaseInitialization = async () => {
     const test: TestResult = {
       name: 'Firebase Initialization',
       status: 'pending',
@@ -83,41 +83,80 @@ export default function FirebaseDebugComprehensive() {
     const index = results.length;
     addResult(test);
 
-    try {
-      const config = {
-        apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-        authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
-        projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-        storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
-        messagingSenderId: "",
-        appId: import.meta.env.VITE_FIREBASE_APP_ID,
-      };
+    return new Promise((resolve) => {
+      // Set timeout for initialization
+      const timeout = setTimeout(() => {
+        updateResult(index, {
+          status: 'error',
+          message: 'Firebase initialization timeout (5s)',
+          details: { error: 'Initialization took too long' }
+        });
+        resolve(null);
+      }, 5000);
 
-      // Clear existing apps
-      const existingApps = getApps();
-      console.log('Existing Firebase apps:', existingApps.length);
+      try {
+        const config = {
+          apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+          authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
+          projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+          storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
+          messagingSenderId: "",
+          appId: import.meta.env.VITE_FIREBASE_APP_ID,
+        };
 
-      const app = initializeApp(config, 'debug-app-' + Date.now());
-      
-      updateResult(index, {
-        status: 'success',
-        message: 'Firebase app initialized successfully',
-        details: {
-          appName: app.name,
-          projectId: app.options.projectId,
-          authDomain: app.options.authDomain
+        console.log('Firebase config check:', {
+          hasApiKey: !!config.apiKey,
+          hasProjectId: !!config.projectId,
+          hasAppId: !!config.appId,
+          authDomain: config.authDomain
+        });
+
+        // Check existing apps
+        const existingApps = getApps();
+        console.log('Existing Firebase apps:', existingApps.length);
+
+        let app;
+        
+        // Use existing app if available, otherwise create new one
+        if (existingApps.length > 0) {
+          app = existingApps[0];
+          console.log('Using existing Firebase app:', app.name);
+        } else {
+          console.log('Creating new Firebase app...');
+          app = initializeApp(config, 'debug-app-' + Date.now());
+          console.log('Firebase app created:', app.name);
         }
-      });
+        
+        clearTimeout(timeout);
+        updateResult(index, {
+          status: 'success',
+          message: 'Firebase app initialized successfully',
+          details: {
+            appName: app.name,
+            projectId: app.options.projectId,
+            authDomain: app.options.authDomain,
+            existingApps: existingApps.length,
+            isNewApp: existingApps.length === 0
+          }
+        });
 
-      return app;
-    } catch (error: any) {
-      updateResult(index, {
-        status: 'error',
-        message: `Firebase initialization failed: ${error.message}`,
-        details: error
-      });
-      return null;
-    }
+        resolve(app);
+      } catch (error: any) {
+        clearTimeout(timeout);
+        console.error('Firebase initialization error:', error);
+        updateResult(index, {
+          status: 'error',
+          message: `Firebase initialization failed: ${error.message}`,
+          details: {
+            error: error.message,
+            code: error.code,
+            name: error.name,
+            stack: error.stack?.substring(0, 300)
+          }
+        });
+        resolve(null);
+      }
+    });
   };
 
   // Test 3: Auth Service Access
@@ -346,8 +385,8 @@ export default function FirebaseDebugComprehensive() {
     testEnvironmentVariables();
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    // Step 2: Firebase Initialization
-    const app = testFirebaseInitialization();
+    // Step 2: Firebase Initialization (now async)
+    const app = await testFirebaseInitialization();
     if (!app) {
       setLoading(false);
       return;
