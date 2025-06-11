@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { FC, useState } from "react";
+import { FC, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { auth, googleProvider } from "@/lib/firebase";
-import { signInWithPopup } from "firebase/auth";
+import { signInWithRedirect, getRedirectResult, onAuthStateChanged } from "firebase/auth";
 
 interface GoogleSignInButtonProps {
   className?: string;
@@ -12,8 +12,57 @@ export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = ""
   const { toast } = useToast();
   const [isSigningIn, setIsSigningIn] = useState(false);
 
+  // Handle redirect result when component mounts
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      console.log('Checking for redirect result...');
+      
+      try {
+        const result = await getRedirectResult(auth);
+        if (result) {
+          console.log('✅ Redirect sign-in successful!', result.user);
+          console.log('User email:', result.user.email);
+          console.log('User display name:', result.user.displayName);
+          
+          toast({
+            title: "Sign-in Successful!",
+            description: `Welcome, ${result.user.displayName || result.user.email}!`,
+          });
+          
+          // Refresh page to update UI
+          window.location.reload();
+        } else {
+          console.log('No redirect result found');
+        }
+      } catch (error: any) {
+        console.error('❌ Redirect result error:', error);
+        console.error('Error code:', error?.code);
+        console.error('Error message:', error?.message);
+        
+        toast({
+          variant: "destructive",
+          title: "Sign-in Error",
+          description: error?.message || "Authentication failed after redirect",
+        });
+      }
+    };
+
+    handleRedirectResult();
+
+    // Listen for auth state changes
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        console.log('✅ User is signed in:', user.email);
+      } else {
+        console.log('User is signed out');
+      }
+    });
+
+    return () => unsubscribe();
+  }, [toast]);
+
   const signInWithGoogle = async () => {
-    console.log('=== GOOGLE SIGN-IN DEBUG ===');
+    console.log('=== REDIRECT SIGN-IN DEBUG ===');
     console.log('Current URL:', window.location.href);
     console.log('Current origin:', window.location.origin);
     console.log('Current hostname:', window.location.hostname);
@@ -37,154 +86,61 @@ export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = ""
     
     try {
       setIsSigningIn(true);
+      console.log('Starting redirect sign-in...');
       
-      console.log('Attempting Google sign-in with signInWithPopup...');
-      // Use Firebase's signInWithPopup method
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-      
-      console.log('✅ Sign-in successful!', user);
-      console.log("Google sign-in successful:", user.email);
-      
-      // Get the ID token and send to server
-      const idToken = await user.getIdToken();
-      
-      const response = await fetch("/api/google-auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token: idToken,
-          name: user.displayName,
-          email: user.email
-        }),
-        credentials: "include"
-      });
-      
-      if (!response.ok) {
-        throw new Error("Server authentication failed");
-      }
-      
-      const userData = await response.json();
-      
-      // Save auth state
-      localStorage.setItem("fairshare_auth_state", JSON.stringify({
-        userId: userData.id,
-        username: userData.username,
-        sessionId: userData.sessionId,
-        loggedInAt: new Date().toISOString()
-      }));
-      
-      toast({
-        title: "Sign-in successful",
-        description: `Welcome, ${userData.name || userData.username}!`
-      });
-      
-      // Refresh page to update UI
-      window.location.reload();
+      // Use signInWithRedirect instead of popup
+      await signInWithRedirect(auth, googleProvider);
+      // User will be redirected, so this code won't continue
       
     } catch (error: any) {
-      console.error('❌ Sign-in error:', error);
+      console.error('❌ Redirect sign-in error:', error);
       console.error('Error code:', error?.code);
       console.error('Error message:', error?.message);
       console.error('Full error object:', error);
       
-      // Log additional details based on error type
+      let errorMessage = "Sign-in failed. Please try again.";
+      let errorDescription = "";
+      
       if (error?.code === 'auth/unauthorized-domain') {
         console.error('Domain not authorized. Current domain:', window.location.hostname);
-        console.error('Make sure this domain is added to Firebase authorized domains');
+        errorMessage = "Domain not authorized";
+        errorDescription = "This domain is not configured for Google sign-in";
       } else if (error?.code === 'auth/internal-error') {
         console.error('Internal Firebase error - may indicate service configuration issue');
-        console.error('Check: Firebase Authentication enabled, Google provider configured');
+        errorMessage = "Configuration error";
+        errorDescription = "Google authentication is not properly configured";
       } else if (error?.code === 'auth/operation-not-allowed') {
         console.error('Google sign-in not enabled in Firebase Console');
-      }
-      
-      console.error("Sign-in error:", error);
-      
-      if (error && typeof error === 'object' && 'code' in error) {
-        const firebaseError = error as { code: string; message?: string };
-        
-        switch (firebaseError.code) {
-          case 'auth/popup-blocked':
-            toast({
-              title: "Popup blocked",
-              description: "Please allow popups for this site and try again.",
-              variant: "destructive"
-            });
-            break;
-          case 'auth/popup-closed-by-user':
-            toast({
-              title: "Sign-in cancelled",
-              description: "You closed the sign-in popup.",
-              variant: "destructive"
-            });
-            break;
-          case 'auth/unauthorized-domain':
-            toast({
-              title: "Domain not authorized",
-              description: "This domain needs to be added to Firebase authorized domains.",
-              variant: "destructive"
-            });
-            break;
-          case 'auth/operation-not-allowed':
-            toast({
-              title: "Google sign-in not enabled",
-              description: "Google authentication is not enabled in Firebase Console.",
-              variant: "destructive"
-            });
-            break;
-          default:
-            toast({
-              title: "Sign-in failed",
-              description: firebaseError.message || "An error occurred during sign-in.",
-              variant: "destructive"
-            });
-        }
+        errorMessage = "Google sign-in not enabled";
+        errorDescription = "Please contact support";
       } else {
-        toast({
-          title: "Sign-in failed",
-          description: error instanceof Error ? error.message : "An unknown error occurred",
-          variant: "destructive"
-        });
+        errorDescription = error?.message || "Unknown error occurred";
       }
-    } finally {
+      
+      toast({
+        variant: "destructive",
+        title: errorMessage,
+        description: errorDescription,
+      });
+      
       setIsSigningIn(false);
     }
   };
 
   return (
-    <Button
-      type="button"
-      variant="outline"
+    <Button 
       onClick={signInWithGoogle}
       disabled={isSigningIn}
-      className={`w-full h-12 rounded-xl border-gray-300 flex items-center justify-center gap-2 ${className}`}
+      variant="outline" 
+      className={`w-full ${className}`}
     >
-      {/* Google Logo */}
-      <svg
-        width="18"
-        height="18"
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 48 48"
-      >
-        <path
-          fill="#FFC107"
-          d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"
-        />
-        <path
-          fill="#FF3D00"
-          d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"
-        />
-        <path
-          fill="#4CAF50"
-          d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"
-        />
-        <path
-          fill="#1976D2"
-          d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"
-        />
+      <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
       </svg>
-      <span>{isSigningIn ? "Signing in..." : "Continue with Google"}</span>
+      {isSigningIn ? "Signing in..." : "Continue with Google"}
     </Button>
   );
 };

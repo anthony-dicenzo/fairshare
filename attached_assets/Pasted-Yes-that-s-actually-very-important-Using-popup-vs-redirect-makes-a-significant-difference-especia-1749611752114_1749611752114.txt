@@ -1,0 +1,62 @@
+Yes, that's actually very important! Using popup vs redirect makes a significant difference, especially on Replit. Let me explain why this could be causing your auth/internal-error.
+Why Popup Method Can Cause Issues on Replit
+1. Popup Blockers
+Replit's embedded environment can trigger popup blockers, which can cause Firebase to throw auth/internal-error instead of the more specific auth/popup-blocked.
+2. Cross-Origin Issues
+Popups have stricter cross-origin policies than redirects, especially in embedded environments like Replit.
+3. Firebase Popup Requirements
+The popup method requires additional OAuth redirect URIs that might not be configured correctly.
+Quick Fix - Switch to Redirect Method
+Try switching to redirect method first - it's more reliable on Replit:
+typescriptimport { signInWithRedirect, getRedirectResult, onAuthStateChanged } from "firebase/auth";
+import { auth, googleProvider } from "./firebase";
+import { useEffect } from "react";
+
+// Replace your popup method with this
+const handleGoogleSignIn = async () => {
+  console.log('=== REDIRECT SIGN-IN DEBUG ===');
+  console.log('Starting redirect sign-in...');
+  
+  try {
+    await signInWithRedirect(auth, googleProvider);
+    // User will be redirected, so this code won't continue
+  } catch (error) {
+    console.error('❌ Redirect sign-in error:', error);
+    console.error('Error code:', error.code);
+    console.error('Error message:', error.message);
+  }
+};
+
+// Add this to your component to handle the redirect result
+useEffect(() => {
+  const handleRedirectResult = async () => {
+    console.log('Checking for redirect result...');
+    
+    try {
+      const result = await getRedirectResult(auth);
+      if (result) {
+        console.log('✅ Redirect sign-in successful!', result.user);
+        // Handle successful sign-in
+      } else {
+        console.log('No redirect result found');
+      }
+    } catch (error) {
+      console.error('❌ Redirect result error:', error);
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
+    }
+  };
+
+  handleRedirectResult();
+
+  // Also listen for auth state changes
+  const unsubscribe = onAuthStateChanged(auth, (user) => {
+    if (user) {
+      console.log('✅ User is signed in:', user.email);
+    } else {
+      console.log('User is signed out');
+    }
+  });
+
+  return () => unsubscribe();
+}, []);
