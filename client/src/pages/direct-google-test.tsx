@@ -20,20 +20,25 @@ export default function DirectGoogleTest() {
     console.log('Google Client ID:', import.meta.env.VITE_GOOGLE_CLIENT_ID);
     console.log('Current domain:', window.location.origin);
     
-    if (typeof google !== 'undefined' && google.accounts) {
-      google.accounts.id.initialize({
+    if (typeof window.google !== 'undefined' && window.google.accounts) {
+      window.google.accounts.id.initialize({
         client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
         callback: handleCredentialResponse
       });
       
-      google.accounts.id.renderButton(
-        document.getElementById("direct-google-signin"),
-        { theme: "outline", size: "large", text: "continue_with" }
-      );
-      
-      console.log('✅ Direct Google OAuth initialized successfully');
+      const buttonElement = document.getElementById("direct-google-signin");
+      if (buttonElement) {
+        window.google.accounts.id.renderButton(
+          buttonElement,
+          { theme: "outline", size: "large", text: "continue_with" }
+        );
+        console.log('✅ Direct Google OAuth initialized successfully');
+      } else {
+        console.error('❌ Button element not found');
+      }
     } else {
       console.error('❌ Google Identity Services not loaded');
+      console.log('Available on window:', typeof window.google);
     }
   };
 
