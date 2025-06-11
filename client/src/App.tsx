@@ -17,6 +17,7 @@ import InvitePage from "@/pages/invite-page";
 import FirebaseDebugPage from "@/pages/firebase-debug";
 import GoogleAuthTestPage from "@/pages/google-auth-test";
 import DomainDebugPage from "@/pages/domain-debug";
+import FirebaseDebugComprehensive from "@/pages/firebase-debug-comprehensive";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -30,6 +31,7 @@ function Router() {
       <Route path="/auth" component={AuthPage} />
       <Route path="/invite/:inviteCode" component={InvitePage} />
       <Route path="/firebase-debug" component={FirebaseDebugPage} />
+      <Route path="/firebase-debug-comprehensive" component={FirebaseDebugComprehensive} />
       <Route path="/google-auth-test" component={GoogleAuthTestPage} />
       <Route path="/domain-debug" component={DomainDebugPage} />
       <Route component={NotFound} />
