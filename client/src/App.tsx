@@ -19,6 +19,7 @@ import GoogleAuthTestPage from "@/pages/google-auth-test";
 import DomainDebugPage from "@/pages/domain-debug";
 import FirebaseDebugComprehensive from "@/pages/firebase-debug-comprehensive";
 import FirebaseAuthTestSimple from "@/pages/firebase-auth-test-simple";
+import DirectGoogleTest from "@/pages/direct-google-test";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -35,6 +36,7 @@ function Router() {
       <Route path="/firebase-debug-comprehensive" component={FirebaseDebugComprehensive} />
       <Route path="/firebase-auth-test-simple" component={FirebaseAuthTestSimple} />
       <Route path="/google-auth-test" component={GoogleAuthTestPage} />
+      <Route path="/direct-google-test" component={DirectGoogleTest} />
       <Route path="/domain-debug" component={DomainDebugPage} />
       <Route component={NotFound} />
     </Switch>

@@ -61,26 +61,54 @@ export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = ""
     return () => unsubscribe();
   }, [toast]);
 
+  // Test Firebase connectivity before attempting auth
+  const testFirebaseConnectivity = async () => {
+    console.log('=== FIREBASE CONNECTIVITY TEST ===');
+    try {
+      const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${import.meta.env.VITE_FIREBASE_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken: 'test' })
+      });
+      console.log('✅ Firebase API reachable, status:', response.status);
+      return true;
+    } catch (error) {
+      console.error('❌ Firebase API unreachable:', error);
+      return false;
+    }
+  };
+
   const signInWithGoogle = async () => {
-    console.log('=== REDIRECT SIGN-IN DEBUG ===');
+    console.log('=== COMPREHENSIVE FIREBASE DEBUG ===');
     console.log('Current URL:', window.location.href);
     console.log('Current origin:', window.location.origin);
     console.log('Current hostname:', window.location.hostname);
-    console.log('Auth object:', auth);
-    console.log('Auth config:', {
-      apiKey: auth.config.apiKey?.substring(0, 10) + '...',
-      authDomain: auth.config.authDomain,
-      projectId: auth.app.options.projectId
+    
+    // Test Firebase connectivity first
+    const isFirebaseReachable = await testFirebaseConnectivity();
+    console.log('Firebase connectivity test passed:', isFirebaseReachable);
+    
+    console.log('Auth object fields comparison:');
+    console.log('- Auth object:', {
+      apiKey: auth.config?.apiKey ? 'Present' : 'MISSING',
+      authDomain: auth.config?.authDomain || 'MISSING',
+      projectId: 'projectId' in auth.config ? auth.config.projectId : 'MISSING',
+      appName: auth.app?.name || 'MISSING'
     });
-    console.log('Auth app options:', auth.app.options);
-    console.log('Complete auth app config:', {
-      apiKey: auth.app.options.apiKey ? 'Present' : 'MISSING',
-      authDomain: auth.app.options.authDomain,
-      projectId: auth.app.options.projectId,
-      storageBucket: auth.app.options.storageBucket,
-      messagingSenderId: auth.app.options.messagingSenderId,
-      appId: auth.app.options.appId ? 'Present' : 'MISSING'
+    console.log('- Auth app options:', {
+      apiKey: auth.app.options?.apiKey ? 'Present' : 'MISSING',
+      authDomain: auth.app.options?.authDomain || 'MISSING',
+      projectId: auth.app.options?.projectId || 'MISSING',
+      storageBucket: auth.app.options?.storageBucket || 'MISSING',
+      messagingSenderId: auth.app.options?.messagingSenderId || 'MISSING',
+      appId: auth.app.options?.appId ? 'Present' : 'MISSING'
     });
+    
+    console.log('OAuth Configuration Analysis:');
+    console.log('- Expected redirect URI: https://fairshare-v3.firebaseapp.com/__/auth/handler');
+    console.log('- Current domain needs JS origin:', window.location.origin);
+    console.log('- Google Client ID:', import.meta.env.VITE_GOOGLE_CLIENT_ID);
+    
     console.log('Google provider:', googleProvider);
     console.log('Google provider configured:', !!googleProvider);
     
