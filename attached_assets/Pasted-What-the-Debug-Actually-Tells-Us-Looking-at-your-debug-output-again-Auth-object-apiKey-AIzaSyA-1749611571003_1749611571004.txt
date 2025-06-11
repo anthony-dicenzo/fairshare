@@ -1,0 +1,59 @@
+What the Debug Actually Tells Us
+Looking at your debug output again:
+Auth object: {"apiKey":"AIzaSyAy3hgwd6QxmpTHatKiXKWdY1jaispenc8","authDomain":"fairshare-v3.firebaseapp.com","appName":"[DEFAULT]"}
+Red Flag #1: Your auth object is missing critical fields:
+
+projectId is missing from the auth object (though it appears in auth config)
+storageBucket is missing
+messagingSenderId is missing
+appId is missing
+
+This suggests your Firebase initialization might be incomplete, which could cause auth/internal-error.
+Let's Debug the Code Side First
+1. Check if your environment variables are actually loaded:
+typescript// Add this RIGHT BEFORE your firebaseConfig
+console.log('=== ENVIRONMENT VARIABLES DEBUG ===');
+console.log('VITE_FIREBASE_API_KEY:', import.meta.env.VITE_FIREBASE_API_KEY ? 'Present' : 'MISSING');
+console.log('VITE_FIREBASE_PROJECT_ID:', import.meta.env.VITE_FIREBASE_PROJECT_ID);
+console.log('VITE_FIREBASE_APP_ID:', import.meta.env.VITE_FIREBASE_APP_ID ? 'Present' : 'MISSING');
+console.log('All env vars:', import.meta.env);
+2. Check your actual Firebase config object:
+typescript// Add this RIGHT AFTER your firebaseConfig definition
+console.log('=== FIREBASE CONFIG DEBUG ===');
+console.log('Complete firebaseConfig:', firebaseConfig);
+console.log('Config values:', {
+  apiKey: firebaseConfig.apiKey ? 'Present' : 'MISSING',
+  authDomain: firebaseConfig.authDomain,
+  projectId: firebaseConfig.projectId,
+  storageBucket: firebaseConfig.storageBucket,
+  messagingSenderId: firebaseConfig.messagingSenderId,
+  appId: firebaseConfig.appId ? 'Present' : 'MISSING'
+});
+Most Likely Code Issues
+1. Environment Variables Not Loading
+In Replit, there's often a difference between Secrets and .env files. Try this:
+typescript// Try accessing Replit secrets directly
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || process.env.VITE_FIREBASE_API_KEY,
+  authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
+  messagingSenderId: "1033222457001",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || process.env.VITE_FIREBASE_APP_ID,
+};
+2. Hard-coded messagingSenderId
+Your messagingSenderId: "1033222457001" might be wrong. Get the correct one from Firebase Console → Project Settings → General → Your apps.
+You're Right to Question This
+The auth/internal-error CAN be caused by:
+
+Code side: Incomplete Firebase config, wrong environment variables, missing required fields
+Console side: Service not properly enabled, OAuth misconfiguration
+
+Since your auth object is missing several fields, it's likely a code-side issue with environment variable loading or Firebase initialization.
+Next Steps
+
+Run those debug console.log statements above to see what's actually in your config
+Check your messagingSenderId - get the real one from Firebase Console
+Verify your .env file is in the right location and has the right variable names
+
+Can you run those debug statements and share what gets logged? That will tell us definitively if it's a code issue or console issue.

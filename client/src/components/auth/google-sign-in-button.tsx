@@ -23,6 +23,15 @@ export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = ""
       authDomain: auth.config.authDomain,
       projectId: auth.app.options.projectId
     });
+    console.log('Auth app options:', auth.app.options);
+    console.log('Complete auth app config:', {
+      apiKey: auth.app.options.apiKey ? 'Present' : 'MISSING',
+      authDomain: auth.app.options.authDomain,
+      projectId: auth.app.options.projectId,
+      storageBucket: auth.app.options.storageBucket,
+      messagingSenderId: auth.app.options.messagingSenderId,
+      appId: auth.app.options.appId ? 'Present' : 'MISSING'
+    });
     console.log('Google provider:', googleProvider);
     console.log('Google provider configured:', !!googleProvider);
     
