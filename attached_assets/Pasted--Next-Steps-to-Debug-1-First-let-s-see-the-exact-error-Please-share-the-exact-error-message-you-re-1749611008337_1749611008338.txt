@@ -1,0 +1,54 @@
+
+Next Steps to Debug
+1. First, let's see the exact error
+Please share the exact error message you're getting in the browser console when you click the Google sign-in button. This will tell us if the domain authorization fixed the issue or if there's another problem.
+2. Check for multiple OAuth clients
+In Google Cloud Console → APIs & Services → Credentials, do you see multiple "OAuth 2.0 Client IDs"? If so:
+
+Make sure you're editing the correct one that Firebase is using
+You can identify the correct one by checking if it has your Firebase project's domains
+Consider deleting the old/unused ones to avoid confusion
+
+3. Verify the OAuth client is connected to Firebase
+In Firebase Console → Authentication → Sign-in method → Google:
+
+Is Google sign-in enabled?
+Does it show the correct Web SDK configuration?
+Try clicking "Save" again to refresh the connection
+
+4. Test with the debug code
+Can you add this debug version to your Google sign-in handler and share what gets logged?
+typescriptconst handleGoogleSignIn = async () => {
+  console.log('=== GOOGLE SIGN-IN DEBUG ===');
+  console.log('Current URL:', window.location.href);
+  console.log('Current origin:', window.location.origin);
+  console.log('Auth object:', auth);
+  console.log('Google provider:', googleProvider);
+  
+  try {
+    console.log('Attempting Google sign-in...');
+    const result = await signInWithPopup(auth, googleProvider);
+    console.log('✅ Sign-in successful!', result.user);
+    return result;
+  } catch (error) {
+    console.error('❌ Sign-in error:', error);
+    console.error('Error code:', error.code);
+    console.error('Error message:', error.message);
+    console.error('Full error object:', error);
+    
+    // Log additional details based on error type
+    if (error.code === 'auth/unauthorized-domain') {
+      console.error('Domain not authorized. Current domain:', window.location.hostname);
+    }
+    
+    throw error;
+  }
+};
+5. Quick verification
+Can you confirm:
+
+Are you testing on https://b00299a8-cf16-482d-a828-34e450b5e513-00-3su5zumoc8bsv.janeway.replit.dev?
+Is this the exact URL you added to the OAuth client?
+Are you using signInWithPopup or signInWithRedirect?
+
+What's the current error message you're seeing? That will help us determine if the OAuth client update fixed the domain issue or if there's another problem to solve.

@@ -13,13 +13,28 @@ export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = ""
   const [isSigningIn, setIsSigningIn] = useState(false);
 
   const signInWithGoogle = async () => {
+    console.log('=== GOOGLE SIGN-IN DEBUG ===');
+    console.log('Current URL:', window.location.href);
+    console.log('Current origin:', window.location.origin);
+    console.log('Current hostname:', window.location.hostname);
+    console.log('Auth object:', auth);
+    console.log('Auth config:', {
+      apiKey: auth.config.apiKey?.substring(0, 10) + '...',
+      authDomain: auth.config.authDomain,
+      projectId: auth.app.options.projectId
+    });
+    console.log('Google provider:', googleProvider);
+    console.log('Google provider configured:', !!googleProvider);
+    
     try {
       setIsSigningIn(true);
       
+      console.log('Attempting Google sign-in with signInWithPopup...');
       // Use Firebase's signInWithPopup method
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
       
+      console.log('✅ Sign-in successful!', user);
       console.log("Google sign-in successful:", user.email);
       
       // Get the ID token and send to server
@@ -58,7 +73,23 @@ export const GoogleSignInButton: FC<GoogleSignInButtonProps> = ({ className = ""
       // Refresh page to update UI
       window.location.reload();
       
-    } catch (error) {
+    } catch (error: any) {
+      console.error('❌ Sign-in error:', error);
+      console.error('Error code:', error?.code);
+      console.error('Error message:', error?.message);
+      console.error('Full error object:', error);
+      
+      // Log additional details based on error type
+      if (error?.code === 'auth/unauthorized-domain') {
+        console.error('Domain not authorized. Current domain:', window.location.hostname);
+        console.error('Make sure this domain is added to Firebase authorized domains');
+      } else if (error?.code === 'auth/internal-error') {
+        console.error('Internal Firebase error - may indicate service configuration issue');
+        console.error('Check: Firebase Authentication enabled, Google provider configured');
+      } else if (error?.code === 'auth/operation-not-allowed') {
+        console.error('Google sign-in not enabled in Firebase Console');
+      }
+      
       console.error("Sign-in error:", error);
       
       if (error && typeof error === 'object' && 'code' in error) {
