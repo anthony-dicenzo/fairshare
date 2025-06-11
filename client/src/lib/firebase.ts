@@ -17,7 +17,10 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 // Initialize Firebase Auth
 const auth = getAuth(app);
 
-// Initialize Google Auth Provider with minimal configuration
+// Initialize Google Auth Provider with custom client ID
 const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({
+  'client_id': import.meta.env.VITE_GOOGLE_CLIENT_ID
+});
 
 export { auth, googleProvider };
