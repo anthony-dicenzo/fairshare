@@ -571,20 +571,47 @@ export function setupAuth(app: Express) {
       }
 
       // Send email using Resend
-      const { sendPasswordResetEmail } = await import('./email.js');
-      await sendPasswordResetEmail(user.email, resetToken, resetUrl);
-      
-      console.log(`Password reset email sent to: ${email}`);
-      console.log(`Reset token for testing: ${resetToken}`);
-      console.log(`Reset URL: ${resetUrl}`);
-      
-      return res.status(200).json({ 
-        message: "If an account with that email exists, we've sent password reset instructions.",
-        // Include token in development for testing
-        ...(process.env.NODE_ENV === 'development' && { 
-          debug: { token: resetToken, url: resetUrl } 
-        })
-      });
+      try {
+        const { sendPasswordResetEmail } = await import('./email.js');
+        await sendPasswordResetEmail(user.email, resetToken, resetUrl);
+        
+        console.log(`Password reset email sent successfully to: ${email}`);
+        console.log(`Reset token for testing: ${resetToken}`);
+        console.log(`Reset URL: ${resetUrl}`);
+        
+        return res.status(200).json({ 
+          message: "If an account with that email exists, we've sent password reset instructions.",
+          // Include token in development for testing
+          ...(process.env.NODE_ENV === 'development' && { 
+            debug: { token: resetToken, url: resetUrl } 
+          })
+        });
+      } catch (emailError) {
+        console.error("Email sending failed:", emailError);
+        
+        // Still return success to prevent email enumeration, but log the actual error
+        console.error("Email service error details:", {
+          error: emailError.message,
+          stack: emailError.stack,
+          resendApiKey: process.env.RESEND_API_KEY ? 'present' : 'missing',
+          fromEmail: process.env.RESEND_FROM_EMAIL || 'using default',
+          targetEmail: email
+        });
+        
+        // In development, show the actual error to help with debugging
+        if (process.env.NODE_ENV === 'development') {
+          return res.status(500).json({ 
+            error: "Email service error", 
+            details: emailError.message,
+            debug: { token: resetToken, url: resetUrl }
+          });
+        }
+        
+        // In production, still return success but the email won't be sent
+        return res.status(200).json({ 
+          message: "If an account with that email exists, we've sent password reset instructions."
+        });
+      }
       
     } catch (error) {
       console.error("Password reset error:", error);
