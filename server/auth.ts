@@ -551,7 +551,15 @@ export function setupAuth(app: Express) {
       // Generate secure reset token
       const crypto = await import('crypto');
       const resetToken = crypto.randomBytes(32).toString('hex');
-      const resetUrl = `${process.env.REPLIT_DEV_DOMAIN ? 'https://' + process.env.REPLIT_DEV_DOMAIN : 'http://localhost:5000'}/auth?tab=reset&token=${resetToken}`;
+      // Use production domain if available, fallback to dev domain, then localhost
+      const baseUrl = process.env.PRODUCTION_DOMAIN 
+        ? `https://${process.env.PRODUCTION_DOMAIN}` 
+        : process.env.REPLIT_DOMAINS 
+          ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}` 
+          : process.env.REPLIT_DEV_DOMAIN 
+            ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+            : 'http://localhost:5000';
+      const resetUrl = `${baseUrl}/auth?tab=reset&token=${resetToken}`;
       
       // Store reset token temporarily (in production, use a proper token store)
       // For now, we'll store it in memory with expiration
