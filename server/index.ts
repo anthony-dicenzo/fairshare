@@ -51,7 +51,6 @@ app.use(helmet({
 }));
 
 app.use(securityHeaders);
-app.use(sanitizeInput);
 app.use(dbHealthCheck);
 
 // Performance timing middleware to measure request latency
@@ -64,9 +63,12 @@ app.use((req, res, next) => {
   next();
 });
 
-// Body parsing middleware - must come before other middleware that reads the body
+// Body parsing middleware - must come FIRST before any middleware that might access req.body
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));
+
+// Sanitization middleware - after body parsing
+app.use(sanitizeInput);
 
 // Apply rate limiting to API routes (exclude health endpoint)
 app.use('/api/', (req, res, next) => {
