@@ -690,28 +690,26 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
               <div>
                 <FormLabel className="text-sm">Split with:</FormLabel>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {/* Get all potential participants, ensuring no duplicates */}
-                  {Array.isArray(groupMembers) && groupMembers
-                    .filter((member: any) => {
-                      // Skip the person who paid
-                      const isPayer = member?.userId === parseInt(form.getValues("paidBy"));
-                      // Skip if this is the current user (we'll handle that separately)
-                      const isCurrentUser = member?.userId === user?.id;
-                      return !isPayer && !isCurrentUser;
-                    })
-                    .map((member: any) => (
+                  {/* Show all group members with clear selection state */}
+                  {Array.isArray(groupMembers) && groupMembers.map((member: any) => {
+                    const userId = member?.userId || 0;
+                    const isSelected = selectedUserIds.includes(userId);
+                    const isPayer = userId === parseInt(form.getValues("paidBy"));
+                    const memberName = member?.user?.name || "Unknown User";
+                    
+                    return (
                       <div 
-                        key={member?.userId} 
+                        key={userId} 
                         className={`
-                          px-3 py-2 rounded-md text-sm cursor-pointer flex items-center
-                          ${selectedUserIds.includes(member?.userId || 0) 
+                          px-3 py-2 rounded-md text-sm cursor-pointer flex items-center transition-colors
+                          ${isSelected 
                             ? 'bg-primary text-primary-foreground'
                             : 'bg-muted hover:bg-muted/80'
                           }
+                          ${isPayer ? 'ring-2 ring-blue-200' : ''}
                         `}
                         onClick={() => {
-                          const userId = member?.userId || 0;
-                          if (selectedUserIds.includes(userId)) {
+                          if (isSelected) {
                             setSelectedUserIds(prev => prev.filter(id => id !== userId));
                             
                             // Remove custom amounts for this user
@@ -732,13 +730,13 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
                           }
                         }}
                       >
-                        {member?.user?.name || "Unknown User"}
-                        {selectedUserIds.includes(member?.userId || 0) && (
+                        {memberName} {isPayer && "(Payer)"}
+                        {isSelected && (
                           <Check className="ml-1 h-4 w-4" />
                         )}
                       </div>
-                    ))
-                  }
+                    );
+                  })}
                   
                   {/* Include current user option if not the one who paid */}
                   {user?.id && parseInt(form.getValues("paidBy")) !== user.id && (
@@ -780,8 +778,41 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
                   )}
                 </div>
                 
-                {/* Show custom amount inputs for unequal split */}
-                {form.getValues("splitMethod") === "unequal" && selectedUserIds.length > 0 && (
+                {/* Help text */}
+                <p className="text-xs text-muted-foreground mt-1">
+                  Click to add or remove people from this expense. The payer is highlighted with a blue ring.
+                </p>
+              </div>
+              
+              {/* Show selected participants count */}
+              {selectedUserIds.length > 0 && (
+                <div className="text-sm text-muted-foreground">
+                  Splitting with {selectedUserIds.length} {selectedUserIds.length === 1 ? 'person' : 'people'}
+                </div>
+              )}
+              
+              {/* Notes field */}
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm">Notes (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Add notes about this expense..." 
+                        className="min-h-[60px] resize-none" 
+                        autoFocus={false}
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Show custom amount inputs for unequal split */}
+              {form.getValues("splitMethod") === "unequal" && selectedUserIds.length > 0 && (
                   <div className="mt-4 space-y-3">
                     <h3 className="text-sm font-medium">Custom amounts:</h3>
                     {selectedUserIds.map(userId => {

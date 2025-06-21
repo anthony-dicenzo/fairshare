@@ -458,7 +458,7 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
     }
   };
   
-  // Effect to recalculate amounts when split method changes
+  // Effect to recalculate amounts when split method or amount changes
   useEffect(() => {
     if (open) {
       // For full split method, we don't need selectedUserIds to be populated
@@ -468,7 +468,7 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
     }
   // We intentionally leave out dependent variables that would cause infinite loops
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [splitMethod, selectedUserIds, open, paidBy]);
+  }, [splitMethod, selectedUserIds, open, paidBy, amount]);
   
   // Handler for updating a user's custom amount with direct number handling
   const handleAmountChange = (userId: number, newAmount: string) => {
@@ -749,14 +749,15 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
             </div>
           )}
 
-          {/* Participants Section for unequal or percentage splits */}
-          {(splitMethod === "unequal" || splitMethod === "percentage") && (
+          {/* Participants Section - Always show for all split methods except "full" */}
+          {splitMethod !== "full" && (
             <div className="mt-1">
-              <h3 className="text-xs font-medium mb-1">Split Details:</h3>
-              <div className="border rounded-md p-2 space-y-1">
+              <h3 className="text-xs font-medium mb-1">Split with:</h3>
+              <div className="border rounded-md p-2 space-y-1 max-h-32 overflow-y-auto">
                 {Array.isArray(groupMembers) && groupMembers.map((member: any) => {
                   const userId = member.user.id;
                   const isSelected = selectedUserIds.includes(userId);
+                  const isPayer = userId.toString() === paidBy;
                   
                   return (
                     <div key={userId} className="flex justify-between items-center">
@@ -767,18 +768,44 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
                           onCheckedChange={(checked) => {
                             if (checked) {
                               setSelectedUserIds(prev => [...prev, userId]);
+                              // Initialize amount/percentage for new user
+                              const totalAmountVal = parseFloat(amount || "0");
+                              if (splitMethod === "equal") {
+                                const newCount = selectedUserIds.length + 1;
+                                const equalAmount = totalAmountVal / newCount;
+                                const equalPercentage = 100 / newCount;
+                                setCustomAmounts(prev => ({ ...prev, [userId]: equalAmount }));
+                                setCustomPercentages(prev => ({ ...prev, [userId]: equalPercentage }));
+                              } else if (splitMethod === "unequal") {
+                                const equalAmount = totalAmountVal / (selectedUserIds.length + 1);
+                                setCustomAmounts(prev => ({ ...prev, [userId]: equalAmount }));
+                              } else if (splitMethod === "percentage") {
+                                const equalPercentage = 100 / (selectedUserIds.length + 1);
+                                setCustomPercentages(prev => ({ ...prev, [userId]: equalPercentage }));
+                              }
                             } else {
                               setSelectedUserIds(prev => prev.filter(id => id !== userId));
+                              // Remove amounts/percentages for removed user
+                              setCustomAmounts(prev => {
+                                const newAmounts = { ...prev };
+                                delete newAmounts[userId];
+                                return newAmounts;
+                              });
+                              setCustomPercentages(prev => {
+                                const newPercentages = { ...prev };
+                                delete newPercentages[userId];
+                                return newPercentages;
+                              });
                             }
                           }}
                           className="h-3 w-3"
                         />
                         <label htmlFor={`user-${userId}`} className="ml-1 text-xs">
-                          {member.user.name}
+                          {member.user.name} {isPayer && "(Payer)"}
                         </label>
                       </div>
                       
-                      {isSelected && (
+                      {isSelected && splitMethod !== "equal" && (
                         <div className="flex items-center">
                           {splitMethod === "unequal" && (
                             <div className="relative">
@@ -811,6 +838,30 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
                   );
                 })}
               </div>
+              
+              {/* Show totals for unequal/percentage splits */}
+              {splitMethod === "unequal" && selectedUserIds.length > 0 && (
+                <div className="text-xs mt-1 text-right">
+                  <span className={`${
+                    Math.abs(Object.values(customAmounts).reduce((sum, amount) => sum + (amount || 0), 0) - 
+                      parseFloat(amount || "0")) < 0.01 ? "text-green-600" : "text-red-500"
+                  }`}>
+                    Total: ${Object.values(customAmounts).reduce((sum, amount) => sum + (amount || 0), 0).toFixed(2)} 
+                    / ${parseFloat(amount || "0").toFixed(2)}
+                  </span>
+                </div>
+              )}
+              
+              {splitMethod === "percentage" && selectedUserIds.length > 0 && (
+                <div className="text-xs mt-1 text-right">
+                  <span className={`${
+                    Math.abs(Object.values(customPercentages).reduce((sum, pct) => sum + (pct || 0), 0) - 100) < 0.01 
+                      ? "text-green-600" : "text-red-500"
+                  }`}>
+                    Total: {Object.values(customPercentages).reduce((sum, pct) => sum + (pct || 0), 0).toFixed(1)}%
+                  </span>
+                </div>
+              )}
             </div>
           )}
           
