@@ -64,6 +64,10 @@ app.use((req, res, next) => {
   next();
 });
 
+// Body parsing middleware - must come before other middleware that reads the body
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: false, limit: '10mb' }));
+
 // Apply rate limiting to API routes (exclude health endpoint)
 app.use('/api/', (req, res, next) => {
   if (req.path === '/api/health') {
@@ -72,16 +76,12 @@ app.use('/api/', (req, res, next) => {
   return apiLimiter(req, res, next);
 });
 
-// Apply RLS context middleware to all API routes
+// Apply RLS context middleware to all API routes - after body parsing
 app.use('/api/', setRLSUserContext);
 
 app.use('/api/login', authLimiter);
 app.use('/api/register', authLimiter);
 app.use('/api/google-auth', authLimiter);
-
-// Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
 app.use((req, res, next) => {
   const start = Date.now();
