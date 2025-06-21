@@ -550,10 +550,44 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
         userId: fullAmountOwedBy,
         amountOwed: totalAmountVal,
       }];
-      
-      console.log("Full amount split:", participants);
     } else {
-      // For other split methods, use the existing logic
+      // Validate that participants are selected
+      if (selectedUserIds.length === 0) {
+        toast({
+          title: "No participants selected",
+          description: "Please select at least one person to split this expense with.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Validate unequal splits add up correctly
+      if (splitMethod === "unequal") {
+        const totalCustom = Object.values(customAmounts).reduce((sum, amount) => sum + (amount || 0), 0);
+        if (Math.abs(totalCustom - totalAmountVal) > 0.01) {
+          toast({
+            title: "Amounts don't add up",
+            description: `Custom amounts total $${totalCustom.toFixed(2)} but expense is $${totalAmountVal.toFixed(2)}`,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+      
+      // Validate percentage splits add up to 100%
+      if (splitMethod === "percentage") {
+        const totalPercentage = Object.values(customPercentages).reduce((sum, pct) => sum + (pct || 0), 0);
+        if (Math.abs(totalPercentage - 100) > 0.1) {
+          toast({
+            title: "Percentages don't add up",
+            description: `Percentages total ${totalPercentage.toFixed(1)}% but should be 100%`,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+      
+      // Calculate participants
       participants = selectedUserIds.map(userId => {
         let amountOwed = 0;
         
@@ -572,14 +606,6 @@ export function MinimalExpenseEdit({ open, onOpenChange, expenseId, groupId }: E
           userId,
           amountOwed,
         };
-      });
-    }
-    
-    // If no participants (shouldn't happen), add the current user
-    if (participants.length === 0 && user?.id) {
-      participants.push({
-        userId: user.id,
-        amountOwed: totalAmountVal,
       });
     }
     

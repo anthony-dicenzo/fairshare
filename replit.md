@@ -117,6 +117,13 @@ FairShare is a modern web application for sharing and tracking expenses among gr
 - Background job queue monitoring for system health
 
 ## Changelog
+- June 21, 2025: Enhanced expense editing functionality for new group members
+  - Improved user selection interface to show all group members as clickable options
+  - Added clear visual indicators with payers highlighted using blue rings
+  - Enhanced participant management allowing easy addition/removal of people from existing expenses
+  - Implemented better validation preventing saves with invalid split totals
+  - Added helpful text showing selected participant count and usage instructions
+  - Fixed JSX syntax issues in expense editing components
 - June 14, 2025: Fixed password reset functionality
   - Configured Resend email service with verified sender domain
   - Updated URL generation to use production domain instead of development URL

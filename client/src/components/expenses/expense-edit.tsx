@@ -813,7 +813,7 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
               
               {/* Show custom amount inputs for unequal split */}
               {form.getValues("splitMethod") === "unequal" && selectedUserIds.length > 0 && (
-                  <div className="mt-4 space-y-3">
+                <div className="mt-4 space-y-3">
                     <h3 className="text-sm font-medium">Custom amounts:</h3>
                     {selectedUserIds.map(userId => {
                       const memberName = groupMembers?.find((m: any) => m.userId === userId)?.user?.name || 
@@ -863,9 +863,9 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
                   </div>
                 )}
                 
-                {/* Show percentage inputs for percentage split */}
-                {form.getValues("splitMethod") === "percentage" && selectedUserIds.length > 0 && (
-                  <div className="mt-4 space-y-3">
+              {/* Show percentage inputs for percentage split */}
+              {form.getValues("splitMethod") === "percentage" && selectedUserIds.length > 0 && (
+                <div className="mt-4 space-y-3">
                     <h3 className="text-sm font-medium">Custom percentages:</h3>
                     {selectedUserIds.map(userId => {
                       const memberName = groupMembers?.find((m: any) => m.userId === userId)?.user?.name || 
@@ -912,9 +912,8 @@ export function ExpenseEdit({ open, onOpenChange, expenseId, groupId }: ExpenseE
                       </span>
                       <span className="ml-2">(should equal 100%)</span>
                     </div>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
             <Button 
